@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0">
+<title>年假调整</title>
+<link rel="stylesheet" href="/assets/weui.min.css?v=20260807a">
+<link rel="stylesheet" href="/assets/admin.css?v=20260807a">
+<script src="/assets/admin.js?v=20260807a"></script>
+<script src="/assets/pinyin.js?v=20260807a"></script>
+<style>
+/* 员工可搜索下拉 */
+.sel-search-wrap{position:relative;display:inline-block;width:200px;max-width:100%;}
+.sel-search-inp{width:100%;font-size:13px;padding:7px 12px;border:1px solid #ddd;border-radius:6px;outline:none;font-family:inherit;box-sizing:border-box;background:#fff;}
+.sel-search-inp:focus{border-color:#07c160;}
+.sel-search-dd{position:absolute;top:calc(100% + 3px);left:0;right:0;background:#fff;border:1px solid #e5e7eb;border-radius:6px;box-shadow:0 6px 20px rgba(0,0,0,.1);max-height:320px;overflow-y:auto;z-index:50;display:none;min-width:220px;}
+.sel-search-dd.open{display:block;}
+.sel-search-dd .dd-item{padding:7px 12px;font-size:13px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sel-search-dd .dd-item:hover{background:#f3fbef;}
+.sel-search-dd .dd-item.active{background:#e8f8e0;}
+.sel-search-dd .dd-empty{padding:14px 12px;font-size:12px;color:#999;text-align:center;}
+.sel-search-clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:14px;color:#bbb;cursor:pointer;padding:2px 6px;display:none;}
+.sel-search-clear:hover{color:#666;}
+.sel-search-wrap.has-val .sel-search-clear{display:block;}
+body{background:#f5f5f5;font-family:-apple-system,"PingFang SC",sans-serif;margin:0;}
+.page{max-width:1100px;margin:0 auto;padding:15px;}
+.panel{background:#fff;border-radius:10px;padding:12px 14px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.06);}
+.ad-appbar__user{font-size:13px;opacity:.92;padding:0 6px;white-space:nowrap;}
+.ad-appbar__user .u-name{font-weight:600;}
+.sel-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.sel-bar label{font-size:13px;color:#666;white-space:nowrap;width:48px;text-align:right;}
+.sel-bar select{font-size:13px;padding:6px 10px;border:1px solid #ddd;border-radius:6px;outline:none;font-family:inherit;width:120px;box-sizing:border-box;}
+.sel-bar .abtn{font-size:13px;padding:6px 16px;border-radius:6px;cursor:pointer;border:none;background:#07c160;color:#fff;font-family:inherit;white-space:nowrap;}
+.balance-box{display:flex;gap:20px;flex-wrap:wrap;}
+.balance-item{text-align:center;flex:1;min-width:100px;}
+.balance-item .label{font-size:12px;color:#999;margin-bottom:4px;}
+.balance-item .val{font-size:24px;font-weight:700;font-family:Consolas,Monaco,monospace;}
+.val-ok{color:#2e7d32;}
+.val-warn{color:#e65100;}
+.val-sub{color:#666;}
+.adj-form{display:flex;flex-direction:column;gap:10px;max-width:500px;}
+.adj-form .row{display:flex;align-items:center;gap:8px;}
+.adj-form label{font-size:13px;color:#666;width:80px;white-space:nowrap;}
+.adj-form input,.adj-form textarea,.adj-form select{font-size:13px;padding:6px 10px;border:1px solid #ddd;border-radius:6px;outline:none;font-family:inherit;flex:1;}
+.adj-form textarea{min-height:60px;resize:vertical;}
+.adj-form .abtn{padding:8px 24px;border-radius:6px;cursor:pointer;border:none;background:#07c160;color:#fff;font-family:inherit;font-size:14px;align-self:flex-start;}
+.adj-form .abtn:hover{background:#06ad56;}
+/* 年假豁免滑块开关（与总览页样式一致） */
+.exempt-toggle{display:inline-flex;align-items:center;gap:4px;cursor:pointer;user-select:none;vertical-align:middle;}
+.exempt-toggle .et-track{width:32px;height:18px;border-radius:9px;background:#ccc;position:relative;transition:background .2s;flex-shrink:0;}
+.exempt-toggle .et-track::after{content:'';width:14px;height:14px;border-radius:50%;background:#fff;position:absolute;top:2px;left:2px;transition:left .2s;}
+.exempt-toggle.on .et-track{background:#e53935;}
+.exempt-toggle.on .et-track::after{left:16px;}
+.exempt-toggle .et-label{font-size:12px;color:#888;white-space:nowrap;}
+.exempt-toggle.on .et-label{color:#e53935;}
+.exempt-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 12px;background:#fff8e1;border:1px solid #ffe082;border-radius:8px;margin-bottom:14px;}
+/* 特殊年假规则行 */
+.special-rule-row{padding:10px 12px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;margin-bottom:14px;}
+.ledger-table{width:100%;border-collapse:collapse;font-size:12px;}
+.ledger-table th,.ledger-table td{border:1px solid #e5e5e5;padding:5px 8px;text-align:left;vertical-align:middle;word-break:break-all;}
+.ledger-table th{background:#fafafa;color:#666;font-weight:600;white-space:nowrap;}
+.ledger-table .num{text-align:right;font-family:Consolas,Monaco,monospace;}
+.src-1{color:#c62828;}
+.src-2{color:#1565c0;}
+.src-3{color:#7b1fa2;}
+.src-4{color:#2e7d32;}
+.delta-pos{color:#2e7d32;}
+.delta-neg{color:#c62828;}
+</style>
+</head>
+<body>
+<header class="ad-appbar">
+  <a class="ad-appbar__back" href="/admin/dashboard" aria-label="返回首页">‹</a>
+  <div class="ad-appbar__title"><span class="ic">✏️</span><span>年假调整</span></div>
+  <div class="ad-appbar__user" id="userInfo"></div>
+  <div class="ad-appbar__actions">
+    <a class="ad-appbar__btn" href="/admin/vacation_overview">年假总览</a>
+    <a class="ad-appbar__btn" href="/admin/dashboard">首页</a>
+    <a class="ad-appbar__btn" href="javascript:doLogout()">退出</a>
+  </div>
+</header>
+<div class="page">
+  <div class="panel">
+    <div class="sel-bar">
+      <label>年份</label>
+      <select id="yearSel"></select>
+      <label>员工</label>
+      <div class="sel-search-wrap" id="userSearchWrap">
+        <input id="userSearchInp" class="sel-search-inp" type="text" autocomplete="off"
+               placeholder="搜姓名/首字母" onfocus="openUserDropdown(true);">
+        <span class="sel-search-clear" title="清空" onclick="clearUserSel();">✕</span>
+        <div id="userDropdown" class="sel-search-dd"></div>
+        <!-- 原生 select 保留（隐藏），所有旧代码（userSel.value / selectedOptions[0].textContent）不变 -->
+        <select id="userSel" style="position:absolute;left:-9999px;width:0;height:0;opacity:0;padding:0;margin:0;border:0;pointer-events:none;"
+                onchange="onUserSelNativeChange();"><option value="">请选择</option></select>
+      </div>
+      <button class="abtn" onclick="loadDetail()">查询</button>
+    </div>
+  </div>
+
+  <div id="balancePanel" class="panel" style="display:none;">
+    <div style="font-size:14px;font-weight:600;margin-bottom:10px;">年假余额（<span id="empName"></span>）</div>
+    <div style="display:flex;gap:16px;align-items:center;margin-bottom:14px;flex-wrap:wrap;padding:10px 12px;background:#fafcff;border:1px solid #e6eaf2;border-radius:8px;">
+      <label style="font-size:13px;color:#666;white-space:nowrap;">入职日期</label>
+      <input id="hireInp" type="date" style="font-size:13px;padding:6px 10px;border:1px solid #d0d5dd;border-radius:6px;outline:none;font-family:inherit;width:180px;" onchange="dirtyHire=true;">
+      <button class="abtn" style="font-size:12px;padding:5px 14px;border-radius:6px;cursor:pointer;border:none;background:#07c160;color:#fff;font-family:inherit;margin-left:4px;" onclick="saveHireDate()">保存入职日期</button>
+      <span style="font-size:12px;color:#999;">未录入入职日期将按「未满工龄」处理</span>
+    </div>
+    <div class="exempt-row" id="exemptRow" style="display:none;">
+      <label style="font-size:13px;color:#666;white-space:nowrap;">年假豁免</label>
+      <div class="exempt-toggle" id="exemptToggle" onclick="toggleExemptAdj()">
+        <div class="et-track"></div>
+        <span class="et-label">正常</span>
+      </div>
+      <span style="font-size:12px;color:#999;">豁免后不享受年假（无论工龄），历史流水保留</span>
+    </div>
+    <!-- 特殊年假规则设置 -->
+    <div class="special-rule-row" id="specialRuleRow" style="display:none;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <label style="font-size:13px;color:#666;white-space:nowrap;">年假计算方式</label>
+        <select id="ruleTypeSel" style="font-size:13px;padding:6px 10px;border:1px solid #d0d5dd;border-radius:6px;outline:none;font-family:inherit;">
+          <option value="0">常规规则（按入职日期）</option>
+          <option value="1">两年增加一天</option>
+        </select>
+      </div>
+      <div id="specialParams" style="display:none;margin-bottom:8px;padding:10px 12px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px;">
+          <div style="display:flex;align-items:center;gap:4px;">
+            <label style="font-size:12px;color:#555;">起点日期</label>
+            <input id="specialStart" type="date" style="font-size:12px;padding:5px 8px;border:1px solid #d0d5dd;border-radius:5px;width:140px;">
+          </div>
+          <div style="display:flex;align-items:center;gap:4px;">
+            <label style="font-size:12px;color:#555;">起点天数</label>
+            <input id="specialDays" type="number" min="1" max="30" style="font-size:12px;padding:5px 8px;border:1px solid #d0d5dd;border-radius:5px;width:80px;">
+          </div>
+          <div style="display:flex;align-items:center;gap:4px;">
+            <label style="font-size:12px;color:#555;">封顶天数</label>
+            <input id="specialCap" type="number" min="1" max="30" style="font-size:12px;padding:5px 8px;border:1px solid #d0d5dd;border-radius:5px;width:80px;">
+          </div>
+        </div>
+        <div style="font-size:11px;color:#888;">公式：应享天数 = 起点天数 + floor((当前年份 - 起点年份) / 2)，封顶 N 天</div>
+      </div>
+      <button onclick="saveSpecialRule()" style="font-size:12px;padding:5px 14px;border-radius:6px;cursor:pointer;border:none;background:#4f8cff;color:#fff;font-family:inherit;">保存规则</button>
+    </div>
+    <div class="balance-box">
+      <div class="balance-item"><div class="label">应享天数</div><div class="val val-sub" id="vEnt">-</div></div>
+      <div class="balance-item"><div class="label">已休天数</div><div class="val val-warn" id="vUsed">-</div></div>
+      <div class="balance-item"><div class="label">手动调整</div><div class="val val-sub" id="vManual">-</div></div>
+      <div class="balance-item"><div class="label">剩余余额</div><div class="val val-ok" id="vBal">-</div></div>
+    </div>
+    <div style="margin-top:8px;font-size:12px;color:#999;" id="vDetail"></div>
+  </div>
+
+  <div id="adjustPanel" class="panel" style="display:none;">
+    <div style="font-size:14px;font-weight:600;margin-bottom:10px;">手动调整年假额度</div>
+    <div class="adj-form">
+      <div class="row">
+        <label>变动值</label>
+        <input id="adjDelta" type="number" step="0.5" placeholder="正数=增加额度，负数=扣减额度" onkeydown="if(event.key==='Enter')submitAdjust();">
+      </div>
+      <div class="row">
+        <label>调整说明</label>
+        <textarea id="adjNote" placeholder="说明调整原因，如：奖励额外年假 / 误操作修正等"></textarea>
+      </div>
+      <button class="abtn" onclick="submitAdjust()">提交调整</button>
+    </div>
+    <div style="margin-top:8px;font-size:12px;color:#999;">注：手动调整写入流水账 source=2，正数增加额度、负数扣减额度。审批通过/撤销由系统自动写入，无需手动操作。</div>
+  </div>
+
+  <div id="ledgerPanel" class="panel" style="display:none;">
+    <div style="font-size:14px;font-weight:600;margin-bottom:10px;">年假流水明细</div>
+    <table class="ledger-table">
+      <thead>
+        <tr>
+          <th>时间</th>
+          <th>来源</th>
+          <th class="num">变动值</th>
+          <th>审批单号</th>
+          <th>假期范围</th>
+          <th class="num">请假天数</th>
+          <th>操作人</th>
+          <th>说明</th>
+        </tr>
+      </thead>
+      <tbody id="ledgerRows">
+        <tr><td colspan="8" style="text-align:center;color:#999;padding:20px;">暂无流水</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+<script>
+function esc(s){if(s===null||s===undefined)return '';return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+var _curYear=new Date().getFullYear();
+
+async function checkAuth(){
+  try{
+    var r=await fetch('/api/auth/me');
+    if(r.status===401){
+      window.location.href='/api/auth/login?redirect=/admin/vacation_adjust';
+      return null;
+    }
+    return await r.json();
+  }catch(e){ return null; }
+}
+
+function initYearSelect(){
+  var sel=document.getElementById('yearSel');
+  for(var y=_curYear+1;y>=_curYear-1;y--){
+    var opt=document.createElement('option');
+    opt.value=y;opt.textContent=y+'年';
+    if(y===_curYear)opt.selected=true;
+    sel.appendChild(opt);
+  }
+}
+
+/**
+ * 加载员工列表（从 adjust 接口无 userid 时返回）
+ */
+var _allUsers=null;     // [{userid,name,userid_pinyin}]
+async function loadUsers(){
+  try{
+    var r=await fetch('/api/admin/vacation/adjust?year='+_curYear);
+    var d=await r.json();
+    if(d.success && d.users){
+      _allUsers=d.users;
+      var sel=document.getElementById('userSel');
+      d.users.forEach(function(u){
+        var opt=document.createElement('option');
+        opt.value=u.userid;
+        opt.textContent=u.name+'（'+(u.userid)+'）';
+        sel.appendChild(opt);
+      });
+      bindUserSearchInput();
+      // 从 URL 参数获取预选员工
+      var params=new URLSearchParams(location.search);
+      var preUser=params.get('userid');
+      if(preUser){
+        sel.value=preUser;
+        onUserSelNativeChange();  // 同步到搜索框
+        loadDetail();
+      }
+    }
+  }catch(e){}
+}
+function bindUserSearchInput(){
+  var inp=document.getElementById('userSearchInp');
+  inp.addEventListener('input',function(){ renderUserDropdown(inp.value.trim()); openUserDropdown(false); });
+  inp.addEventListener('keydown',function(e){
+    var dd=document.getElementById('userDropdown');
+    var items=dd.querySelectorAll('.dd-item');
+    var cur=[].indexOf.call(items, dd.querySelector('.dd-item.active'));
+    if(e.key==='ArrowDown'){ e.preventDefault();
+      var nxt=cur<0?0:Math.min(items.length-1,cur+1);
+      items.forEach(function(i,k){ i.classList.toggle('active',k===nxt); if(k===nxt) i.scrollIntoView({block:'nearest'}); });
+    }else if(e.key==='ArrowUp'){ e.preventDefault();
+      var prv=cur<=0?0:cur-1;
+      items.forEach(function(i,k){ i.classList.toggle('active',k===prv); if(k===prv) i.scrollIntoView({block:'nearest'}); });
+    }else if(e.key==='Enter'){
+      if(items.length>0){
+        e.preventDefault();
+        var act=dd.querySelector('.dd-item.active')||items[0];
+        if(act){ pickUserItem(act.dataset.userid); }
+      }
+    }else if(e.key==='Escape'){ closeUserDropdown(); }
+  });
+  document.addEventListener('click',function(e){
+    var wrap=document.getElementById('userSearchWrap');
+    if(!wrap.contains(e.target)) closeUserDropdown();
+  });
+}
+function openUserDropdown(resetFilter){
+  var inp=document.getElementById('userSearchInp');
+  if(resetFilter && !inp.value.trim()) renderUserDropdown('');
+  document.getElementById('userDropdown').classList.add('open');
+}
+function closeUserDropdown(){ document.getElementById('userDropdown').classList.remove('open'); }
+function renderUserDropdown(q){
+  var dd=document.getElementById('userDropdown');
+  var list=(_allUsers||[]).filter(function(u){
+    if(!q) return true;
+    var label=u.name+'（'+u.userid+'）';
+    return matchPinyinQuery(q, label) || matchPinyinQuery(q, u.name)
+        || (u.userid||'').toLowerCase().indexOf(q.toLowerCase())>=0;
+  });
+  if(list.length===0){
+    dd.innerHTML='<div class="dd-empty">没有匹配的员工</div>';
+    return;
+  }
+  var selVal=document.getElementById('userSel').value;
+  dd.innerHTML=list.map(function(u,idx){
+    var active=(u.userid===selVal)?' active':'';
+    return '<div class="dd-item'+active+'" data-userid="'+esc(u.userid)+'" onclick="pickUserItem(this.dataset.userid)">'+esc(u.name)+'（'+esc(u.userid)+'）</div>';
+  }).join('');
+}
+function pickUserItem(uid){
+  var sel=document.getElementById('userSel');
+  sel.value=uid;
+  onUserSelNativeChange();
+  closeUserDropdown();
+}
+function onUserSelNativeChange(){
+  var sel=document.getElementById('userSel');
+  var inp=document.getElementById('userSearchInp');
+  var wrap=document.getElementById('userSearchWrap');
+  if(!sel.value){ inp.value=''; wrap.classList.remove('has-val'); return; }
+  var opt=sel.selectedOptions[0];
+  inp.value=opt?opt.textContent:'';
+  wrap.classList.add('has-val');
+}
+function clearUserSel(){
+  document.getElementById('userSel').value='';
+  document.getElementById('userSearchInp').value='';
+  document.getElementById('userSearchWrap').classList.remove('has-val');
+  document.getElementById('balancePanel').style.display='none';
+  document.getElementById('adjustPanel').style.display='none';
+  document.getElementById('ledgerPanel').style.display='none';
+  renderUserDropdown('');
+  openUserDropdown(false);
+}
+
+/**
+ * 加载余额+流水
+ */
+async function loadDetail(){
+  var userid=document.getElementById('userSel').value;
+  var year=document.getElementById('yearSel').value;
+  if(!userid){
+    weui.topTips('请先选择员工');
+    return;
+  }
+  document.getElementById('balancePanel').style.display='none';
+  document.getElementById('adjustPanel').style.display='none';
+  document.getElementById('ledgerPanel').style.display='none';
+  try{
+    var r=await fetch('/api/admin/vacation/adjust?userid='+encodeURIComponent(userid)+'&year='+encodeURIComponent(year));
+    var d=await r.json();
+    if(!d.success){
+      weui.topTips(d.error||'加载失败');
+      return;
+    }
+    // 基本信息
+    document.getElementById('empName').textContent=d.emp?(d.emp.name+' / '+year+'年'):(year+'年');
+    // 入职日期
+    var hireInp=document.getElementById('hireInp');
+    hireInp.value=(d.emp && d.emp.hire_date)?d.emp.hire_date:'';
+    dirtyHire=false;
+    // 年假豁免状态
+    var isExempt=(d.emp && parseInt(d.emp.vacation_exempt||0,10)===1);
+    var exemptRow=document.getElementById('exemptRow');
+    var exemptToggle=document.getElementById('exemptToggle');
+    exemptRow.style.display='flex';
+    exemptToggle.classList.toggle('on',isExempt);
+    exemptToggle.querySelector('.et-label').textContent=isExempt?'已豁免':'正常';
+    // 特殊年假规则
+    var specialRuleRow=document.getElementById('specialRuleRow');
+    var ruleTypeSel=document.getElementById('ruleTypeSel');
+    var specialParams=document.getElementById('specialParams');
+    var specialStart=document.getElementById('specialStart');
+    var specialDays=document.getElementById('specialDays');
+    var specialCap=document.getElementById('specialCap');
+    if(d.emp){
+      specialRuleRow.style.display='block';
+      ruleTypeSel.value=(d.emp.vacation_rule_type||0).toString();
+      specialStart.value=d.emp.vacation_special_start||'';
+      specialDays.value=d.emp.vacation_special_days||0;
+      specialCap.value=d.emp.vacation_special_cap||15;
+      // 特殊参数仅在 type=1 时显示
+      specialParams.style.display=(ruleTypeSel.value==='1')?'block':'none';
+    }else{
+      specialRuleRow.style.display='none';
+    }
+    // 余额
+    var b=d.balance||{};
+    document.getElementById('vEnt').textContent=b.eligible?b.entitlement:'—';
+    document.getElementById('vUsed').textContent=b.eligible?b.used_days:'—';
+    var md=b.manual_delta>0?('+'+b.manual_delta):(''+b.manual_delta);
+    document.getElementById('vManual').textContent=b.eligible?md:'—';
+    document.getElementById('vBal').textContent=b.eligible?b.balance:'—';
+    var balEl=document.getElementById('vBal');
+    balEl.className='val '+(b.balance>0?'val-ok':(b.balance<0?'val-warn':'val-sub'));
+    document.getElementById('vDetail').textContent=b.eligible_detail||'';
+    document.getElementById('balancePanel').style.display='block';
+    // 豁免人员不显示手动调整区（eligible=false 已控制，但明确再判断一次）
+    document.getElementById('adjustPanel').style.display=(b.eligible&&!isExempt)?'block':'none';
+    // 流水
+    var ledger=d.ledger||[];
+    var tbody=document.getElementById('ledgerRows');
+    if(d.ledger_error){
+      // 后端查询异常时明确展示错误，不再静默显示"暂无记录"掩盖问题
+      tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:#d9534f;padding:20px;">流水查询异常：'+esc(d.ledger_error)+'</td></tr>';
+    }else if(ledger.length===0){
+      tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:#999;padding:20px;">暂无流水记录</td></tr>';
+    }else{
+      var srcMap={1:'审批通过',2:'手动调整',3:'系统调整',4:'审批撤销'};
+      var srcClass={1:'src-1',2:'src-2',3:'src-3',4:'src-4'};
+      tbody.innerHTML=ledger.map(function(x){
+        var delta=parseFloat(x.delta);
+        var deltaClass=delta>0?'delta-pos':(delta<0?'delta-neg':'');
+        var deltaStr=delta>0?('+'+x.delta):(''+x.delta);
+        var isApproval=((x.source===1||x.source===4)&&x.sp_no);
+        var rangeText='—';
+        var daysText='—';
+        if(isApproval){
+          if(x.start_date&&x.end_date) rangeText=esc(x.start_date)+' ~ '+esc(x.end_date);
+          else if(x.start_date||x.end_date) rangeText=esc(x.start_date||x.end_date);
+          if(x.leave_days!==null&&x.leave_days!==undefined&&x.leave_days!=='') daysText=esc(x.leave_days)+' 天';
+        }
+        return '<tr>'
+          +'<td>'+esc(x.show_time||x.created_at||x.tm||'-')+'</td>'
+          +'<td class="'+(srcClass[x.source]||'')+'">'+(srcMap[x.source]||'未知')+'</td>'
+          +'<td class="num '+deltaClass+'">'+deltaStr+'</td>'
+          +'<td>'+esc(x.ref_no||x.sp_no||'—')+'</td>'
+          +'<td>'+rangeText+'</td>'
+          +'<td class="num">'+daysText+'</td>'
+          +'<td>'+esc(x.op_by_name||x.op_by||x.operator_userid||'—')+'</td>'
+          +'<td>'+esc(x.remark||x.note||'')+'</td>'
+          +'</tr>';
+      }).join('');
+    }
+    document.getElementById('ledgerPanel').style.display='block';
+  }catch(e){
+    weui.topTips('加载失败：'+(e.message||e));
+  }
+}
+
+var dirtyHire=false;
+
+/**
+ * 保存入职日期（单独提交 hire_date，不要求填变动值）
+ */
+async function saveHireDate(){
+  var userid=document.getElementById('userSel').value;
+  var year=document.getElementById('yearSel').value;
+  var hire=document.getElementById('hireInp').value;
+  if(!userid){ weui.topTips('请先选择员工'); return; }
+  if(!hire){ weui.topTips('请先选择入职日期'); return; }
+  try{
+    var r=await fetch('/api/admin/vacation/adjust',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({userid:userid,year:parseInt(year),hire_date:hire})
+    });
+    var d=await r.json();
+    if(d.success){
+      dirtyHire=false;
+      weui.toast('✅ 入职日期已保存',1500);
+      // 入职日期改变 → 应享/资格可能变化，重新加载
+      loadDetail();
+    }else{
+      weui.topTips(d.error||'保存失败');
+    }
+  }catch(e){
+    weui.topTips('保存失败：'+(e.message||e));
+  }
+}
+
+/**
+ * 切换年假豁免状态（AJAX 保存后重载详情，因为 eligible/余额/调整区可用性都会变）
+ */
+async function toggleExemptAdj(){
+  var userid=document.getElementById('userSel').value;
+  if(!userid){ weui.topTips('请先选择员工'); return; }
+  var el=document.getElementById('exemptToggle');
+  var isOn=el.classList.contains('on');
+  var newExempt=isOn?0:1;
+  // 乐观更新
+  el.classList.toggle('on',newExempt===1);
+  el.querySelector('.et-label').textContent=newExempt===1?'已豁免':'正常';
+  try{
+    var r=await fetch('/api/admin/vacation/toggle_exempt',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({userid:userid,exempt:newExempt})
+    });
+    var d=await r.json();
+    if(!d.success){
+      el.classList.toggle('on',isOn);
+      el.querySelector('.et-label').textContent=isOn?'已豁免':'正常';
+      weui.topTips(d.error||'保存失败');
+      return;
+    }
+    weui.toast(newExempt===1?'已设为不享受年假':'已恢复年假',1500);
+    loadDetail();
+  }catch(e){
+    el.classList.toggle('on',isOn);
+    el.querySelector('.et-label').textContent=isOn?'已豁免':'正常';
+    weui.topTips('网络异常：'+(e.message||e));
+  }
+}
+
+/**
+ * 提交手动调整（可与入职日期同时提交，但当前 UI 分开提交）
+ */
+async function submitAdjust(){
+  var userid=document.getElementById('userSel').value;
+  var year=document.getElementById('yearSel').value;
+  var delta=parseFloat(document.getElementById('adjDelta').value);
+  var note=document.getElementById('adjNote').value.trim();
+  if(!userid){ weui.topTips('请先选择员工'); return; }
+  if(isNaN(delta)||delta===0){ weui.topTips('请填写非零变动值'); return; }
+  weui.confirm('确认对员工（'+document.getElementById('userSel').selectedOptions[0].textContent+'）'
+    +'在 '+year+' 年调整 '+(delta>0?'+':'')+delta+' 天年假？', async function(){
+    try{
+      var r=await fetch('/api/admin/vacation/adjust',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({userid:userid,year:parseInt(year),delta:delta,note:note})
+      });
+      var d=await r.json();
+      if(d.success){
+        weui.toast('✅ 调整已提交',1500);
+        document.getElementById('adjDelta').value='';
+        document.getElementById('adjNote').value='';
+        loadDetail();
+      }else{
+        weui.topTips(d.error||'提交失败');
+      }
+    }catch(e){
+      weui.topTips('提交失败：'+(e.message||e));
+    }
+  });
+}
+
+/**
+ * 保存特殊年假规则
+ */
+async function saveSpecialRule(){
+  var userid=document.getElementById('userSel').value;
+  if(!userid){ weui.topTips('请先选择员工'); return; }
+  var ruleType=parseInt(document.getElementById('ruleTypeSel').value,10);
+  var specialStart=document.getElementById('specialStart').value;
+  var specialDays=parseInt(document.getElementById('specialDays').value,10);
+  var specialCap=parseInt(document.getElementById('specialCap').value,10);
+  if(ruleType===1){
+    if(!specialStart){ weui.topTips('请设置起点日期'); return; }
+    if(!specialDays||specialDays<=0){ weui.topTips('起点天数必须大于0'); return; }
+  }
+  try{
+    var r=await fetch('/api/admin/vacation/adjust',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        userid:userid,
+        year:parseInt(document.getElementById('yearSel').value,10),
+        vacation_rule_type:ruleType,
+        vacation_special_start:specialStart,
+        vacation_special_days:specialDays,
+        vacation_special_cap:specialCap
+      })
+    });
+    var d=await r.json();
+    if(d.success){
+      weui.toast('✅ 年假规则已保存',1500);
+      loadDetail();
+    }else{
+      weui.topTips(d.error||'保存失败');
+    }
+  }catch(e){
+    weui.topTips('保存失败：'+(e.message||e));
+  }
+}
+
+/**
+ * 规则类型下拉切换事件
+ */
+document.addEventListener('change',function(e){
+  if(e.target.id==='ruleTypeSel'){
+    var specialParams=document.getElementById('specialParams');
+    specialParams.style.display=(e.target.value==='1')?'block':'none';
+  }
+});
+window.addEventListener('beforeunload',function(e){
+  if(dirtyHire){
+    e.preventDefault();
+    e.returnValue='入职日期已修改但未保存，确认离开？';
+    return e.returnValue;
+  }
+});
+
+document.addEventListener('DOMContentLoaded', async function(){
+  var me=await checkAuth();
+  if(!me) return;
+  var info=document.getElementById('userInfo');
+  if(me.name){
+    info.innerHTML='<span class="u-name">'+esc(me.name)+'</span>';
+  }
+  initYearSelect();
+  await loadUsers();
+});
+</script>
+</body>
+</html>

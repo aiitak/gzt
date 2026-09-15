@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0">
+<title>操作日志</title>
+<link rel="stylesheet" href="/assets/weui.min.css?v=20260807a">
+<link rel="stylesheet" href="/assets/admin.css?v=20260807a">
+<script src="/assets/weui.min.js?v=20260807a"></script>
+<script src="/assets/admin.js?v=20260807a"></script>
+<style>
+body{background:#f5f5f5;font-family:-apple-system,"PingFang SC",sans-serif;margin:0;}
+.page{max-width:1100px;margin:0 auto;padding:15px;}
+.panel{background:#fff;border-radius:10px;padding:12px 14px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.06);}
+/* 顶栏用户信息 */
+.ad-appbar__user{font-size:13px;opacity:.92;padding:0 6px;white-space:nowrap;}
+.ad-appbar__user .u-name{font-weight:600;}
+/* 筛选区紧凑单行 */
+.filter-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.filter-bar label{font-size:13px;color:#666;white-space:nowrap;}
+.filter-bar select,
+.filter-bar input{font-size:13px;padding:5px 8px;border:1px solid #ddd;border-radius:6px;background:#fff;outline:none;font-family:inherit;}
+.filter-bar select:focus,
+.filter-bar input:focus{border-color:#07c160;}
+.filter-bar input[type=date]{padding:4px 6px;}
+.filter-bar .fbtn{font-size:13px;padding:6px 14px;border-radius:6px;cursor:pointer;border:none;font-family:inherit;}
+.filter-bar .fbtn-primary{background:#07c160;color:#fff;}
+.filter-bar .fbtn-primary:hover{background:#06ad56;}
+.filter-bar .fbtn-ghost{background:#fff;color:#576b95;border:1px solid #ddd;}
+.filter-bar .fbtn-ghost:hover{background:#f5f5f5;}
+/* 表格：竖直分割线 + 每5行交替颜色 */
+.audit-table{width:100%;border-collapse:collapse;font-size:13px;}
+.audit-table th,
+.audit-table td{border:1px solid #e5e5e5;padding:6px 8px;text-align:left;vertical-align:top;word-break:break-all;}
+.audit-table th{background:#fafafa;color:#666;font-weight:600;white-space:nowrap;}
+/* 拖拽图标仅作视觉装饰，不加 title 避免悬浮 tooltip */
+.audit-table th .drag-ic{display:inline-block;color:#bbb;margin-right:4px;font-size:12px;user-select:none;cursor:default;}
+/* 每5行一组，5种颜色循环：白、浅粉、浅绿、浅米、浅蓝 */
+.audit-table tbody tr.row-c0{background:#fff;}
+.audit-table tbody tr.row-c1{background:#fff5f5;}
+.audit-table tbody tr.row-c2{background:#f3fbf3;}
+.audit-table tbody tr.row-c3{background:#fffdf0;}
+.audit-table tbody tr.row-c4{background:#f0f6ff;}
+.audit-table tbody tr:hover{background:#eafaf0 !important;}
+/* 结果 badge */
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500;}
+.badge-ok{background:#e8f8e8;color:#07c160;}
+.badge-fail{background:#fdecec;color:#fa5151;}
+/* detail 展开 */
+.detail-cell{cursor:pointer;color:#576b95;font-size:12px;}
+.detail-cell:hover{text-decoration:underline;}
+.detail-json{margin-top:6px;background:#f7f8fa;border:1px dashed #e0e0e0;border-radius:6px;padding:8px;font-family:Consolas,Monaco,monospace;font-size:12px;color:#333;white-space:pre-wrap;word-break:break-all;}
+</style>
+</head>
+<body>
+<header class="ad-appbar">
+  <a class="ad-appbar__back" href="/admin/dashboard" aria-label="返回首页">‹</a>
+  <div class="ad-appbar__title"><span class="ic">📋</span><span>操作日志</span></div>
+  <div class="ad-appbar__user" id="userInfo"></div>
+  <div class="ad-appbar__actions">
+    <a class="ad-appbar__btn" href="/admin/dashboard">首页</a>
+    <a class="ad-appbar__btn" href="javascript:doLogout()">退出</a>
+  </div>
+</header>
+<div class="page">
+  <!-- 筛选区：紧凑单行 -->
+  <div class="panel">
+    <div class="filter-bar">
+      <label>类型</label>
+      <select id="fOpType"><option value="">全部</option></select>
+      <label>操作人</label>
+      <input id="fOpUser" type="text" placeholder="模糊匹配" style="width:130px;">
+      <label>从</label>
+      <input id="fDateFrom" type="date">
+      <label>至</label>
+      <input id="fDateTo" type="date">
+      <button class="fbtn fbtn-primary" onclick="onQuery()">查询</button>
+      <button class="fbtn fbtn-ghost" onclick="onReset()">重置</button>
+    </div>
+  </div>
+  <!-- 表格 -->
+  <div class="panel">
+    <table class="audit-table">
+      <thead>
+        <tr>
+          <th><span class="drag-ic">⠿</span>时间</th>
+          <th><span class="drag-ic">⠿</span>操作人</th>
+          <th><span class="drag-ic">⠿</span>操作类型</th>
+          <th><span class="drag-ic">⠿</span>操作对象</th>
+          <th><span class="drag-ic">⠿</span>结果</th>
+          <th><span class="drag-ic">⠿</span>IP</th>
+          <th><span class="drag-ic">⠿</span>详情</th>
+        </tr>
+      </thead>
+      <tbody id="rows">
+        <tr><td colspan="7" style="text-align:center;color:#999;padding:20px;">加载中...</td></tr>
+      </tbody>
+    </table>
+    <div class="pager" id="auditPager"></div>
+  </div>
+</div>
+<script>
+
+var page=1, size=parseInt(localStorage.getItem('audit_pageSize') || '20', 10), total=0, totalPages=1;
+// 当前页每行的 detail 原文，按行索引取用，避免把长 JSON 塞进 DOM attribute
+var _pageDetails = [];
+var _opTypesLoaded = false;
+
+// ===== 操作类型中文映射表 =====
+var OP_TYPE_MAP = {
+  // 认证相关
+  'login': '员工登录',
+  'admin_login': '管理员登录',
+  'admin_logout': '管理员登出',
+  'password_set': '设置密码',
+  'password_reset': '重置密码',
+  'password_verify': '密码验证',
+  'unbind_wecom': '解绑企微',
+  'admin_password': '管理员改密',
+  'profile_change': '修改个人资料',
+  // 工资相关
+  'upload_salary': '上传工资',
+  'push_salary': '推送工资',
+  'delete_salary': '删除工资',
+  'history_import': '导入历史工资',
+  // 奖金相关
+  'upload_bonus': '上传奖金',
+  'push_bonus': '推送奖金',
+  'confirm_bonus': '确认奖金',
+  'delete_bonus': '删除奖金',
+  'bonus_type_add': '添加奖金类型',
+  'bonus_type_delete': '删除奖金类型',
+  // 催办相关
+  'salary_remind': '工资催办',
+  'bonus_remind': '奖金催办',
+  'remind_debug': '催办调试',
+  'push_debug': '推送调试',
+  'scheduled_push': '定时推送',
+  // 系统配置
+  'settings_wecom': '企微配置',
+  'site_settings': '站点设置',
+  'sync_contacts': '同步通讯录',
+  'schedule': '推送计划',
+  'keywords': '消息关键词',
+  'freewindow': '免打扰窗口',
+  'notify_users': '通知用户',
+  // 权限管理
+  'role_change': '角色变更',
+  'assignment_hr': '分配HR',
+  'assignment_delete': '取消HR分配',
+  'page_access_save': '保存页面权限',
+  'page_access_reset': '重置页面权限',
+  // 消息
+  'message_send': '发送消息',
+  'msg_template_add': '添加消息模板',
+  'msg_template_update': '更新消息模板',
+  'msg_template_delete': '删除消息模板',
+  // 反馈
+  'submit_feedback': '提交反馈',
+  'reply_feedback': '回复反馈',
+  'delete_feedback': '删除反馈',
+  // 年假相关
+  'vacation_settings': '年假同步参数配置',
+  'vacation_rules': '年假规则保存',
+  'vacation_hire_date': '年假-修改入职日期',
+  'vacation_adjust': '年假-手动调整额度',
+  'vacation_sync': '年假审批-手动同步（回看30天）',
+  'vacation_sync_full': '年假审批-全年批量同步',
+  'vacation_debug_scan': '审批调试-扫描反推模板库',
+  'vacation_debug_set_template': '审批调试-一键设年假模板',
+  'vacation_debug_sp': '审批调试-审批单详情查询',
+  'vacation_toggle_exempt': '年假-切换不享受年假豁免',
+  'vacation_set_rule': '年假-切换计算方式',
+  // ===== 回调审计：审批回调（op_user=审批回调）=====
+  'wecom_cb_approval_url':   '审批回调-URL验证',
+  'wecom_cb_approval_fail':  '审批回调-处理失败',
+  'wecom_cb_approval_event': '审批回调-审批事件',
+  // ===== 回调审计：通讯录回调（op_user=通讯录回调）=====
+  'wecom_cb_contact_url':          '通讯录回调-URL验证',
+  'wecom_cb_contact_fail':         '通讯录回调-处理失败',
+  'wecom_cb_contact_user_create':  '通讯录回调-新增用户',
+  'wecom_cb_contact_user_update':  '通讯录回调-更新用户',
+  'wecom_cb_contact_user_delete':  '通讯录回调-删除用户（离职）',
+  'wecom_cb_contact_dept_create':  '通讯录回调-新增部门',
+  'wecom_cb_contact_dept_update':  '通讯录回调-更新部门',
+  'wecom_cb_contact_dept_delete':  '通讯录回调-删除部门',
+  // ===== 回调审计：应用消息回调（op_user=应用消息回调）=====
+  'wecom_cb_app_url':       '应用消息回调-URL验证',
+  'wecom_cb_app_fail':      '应用消息回调-处理失败',
+  'wecom_msg_reset_pwd':    '消息口令-重置密码',
+  'wecom_msg_push_salary':  '消息口令-下发工资',
+  'wecom_msg_push_bonus':   '消息口令-下发奖金',
+  // 定时任务
+  'timer_run':              '定时任务-统一入口聚合执行'
+};
+
+/**
+ * 将操作类型 key 翻译为中文
+ * @param {string} t 操作类型 key
+ * @returns {string} 中文标签
+ */
+function fmtOpType(t){
+  return OP_TYPE_MAP[t] || t;
+}
+
+/**
+ * 将操作对象解析为可读文案
+ * @param {string} s 原始 op_target
+ * @returns {string} 可读文案
+ */
+function fmtOpTarget(s){
+  if(!s || s==='-') return '-';
+  // bonus:2026/年终奖 → 2026年 年终奖
+  var m = s.match(/^bonus:(\d{4})\/(.+)$/);
+  if(m) return m[1] + '年 ' + m[2];
+  // bonus:123 → 奖金 #123
+  m = s.match(/^bonus:(\d+)$/);
+  if(m) return '奖金记录 #' + m[1];
+  // bonus_type:年终奖 → 奖金类型「年终奖」
+  m = s.match(/^bonus_type:(.+)$/);
+  if(m) return '奖金类型「' + m[1] + '」';
+  // salary:2026/01 → 2026年1月工资
+  m = s.match(/^salary:(\d{4})\/(\d{2})(?:#(\d+))?$/);
+  if(m){
+    var txt = m[1] + '年' + parseInt(m[2],10) + '月工资';
+    if(m[3]) txt += ' #' + m[3];
+    return txt;
+  }
+  // user:admin → 用户 admin
+  m = s.match(/^user:(.+)$/);
+  if(m) return '用户 ' + m[1];
+  // template:123 → 消息模板 #123
+  m = s.match(/^template:(.+)$/);
+  if(m) return '消息模板 #' + m[1];
+  // feedback:123 → 反馈 #123
+  m = s.match(/^feedback:(\d+)$/);
+  if(m) return '反馈 #' + m[1];
+  // assignment:type:target → 分配（type:target）
+  m = s.match(/^assignment:(.+)$/);
+  if(m) return 'HR分配 ' + m[1];
+  // 固定值
+  var fixed = {
+    'wecom_config': '企微配置',
+    'site_config': '站点设置',
+    'role_page_access': '页面权限配置',
+    'push_notify': '推送通知',
+    'push_schedule': '推送计划',
+    'message_keywords': '消息关键词',
+    'free_window': '免打扰窗口',
+    'vacation_config': '年假配置参数',
+    'manual': '手动触发（回看30天）',
+    // 催办相关对象
+    'salary_remind': '工资催办',
+    'bonus_remind': '奖金催办',
+    'scheduled_push': '定时推送'
+  };
+  if(fixed[s]) return fixed[s];
+  // year:2025 → 2025 年（年假规则 / 全年同步的 target）
+  m = s.match(/^year:(\d{4})$/);
+  if(m) return m[1] + ' 年';
+
+  // ====== 回调专用格式 ======
+  // sp:202608220017 [樊成飞] → 审批单 202608220017（樊成飞）
+  m = s.match(/^sp:([^\s\[]+)(?:\s*\[([^\]]+)\])?$/);
+  if(m) return '审批单 ' + m[1] + (m[2] ? '（' + m[2] + '）' : '');
+
+  // wecom_userid:FanChengFei [樊成飞] → 用户 FanChengFei（樊成飞）
+  // 支持带 → 后缀的场景：wecom_userid:Xxx [姓名] → salary:YYYY/MM
+  m = s.match(/^wecom_userid:([^\s\[]+)(?:\s*\[([^\]]+)\])?(?:\s*→\s*(.+))?$/);
+  if(m){
+    var base = '用户 ' + m[1] + (m[2] ? '（' + m[2] + '）' : '');
+    if(m[3]){
+      // 解析箭头右侧：可能是 salary:YYYY/MM 或 "已离职" 等文字
+      var right = m[3].trim();
+      var rm = right.match(/^salary:(\d{4})\/(\d{2})$/);
+      if(rm) right = '下发 ' + rm[1] + '年' + parseInt(rm[2],10) + '月工资';
+      base += ' → ' + right;
+    }
+    return base;
+  }
+
+  // dept_id:5 [后勤部] → 部门 #5 后勤部
+  m = s.match(/^dept_id:(\d+)(?:\s*\[([^\]]+)\])?$/);
+  if(m) return '部门 #' + m[1] + (m[2] ? ' ' + m[2] : '');
+
+  // change_contact:create_user → 通讯录事件：新增用户
+  var ctMap = {
+    'create_user':'新增用户','update_user':'更新用户','delete_user':'删除用户',
+    'create_party':'新增部门','update_party':'更新部门','delete_party':'删除部门'
+  };
+  m = s.match(/^change_contact:(.+)$/);
+  if(m) return '通讯录事件：' + (ctMap[m[1]] || m[1]);
+
+  // from=approval / from=contact / from=app → 回调来源标签
+  var fromMap = {
+    'approval':'审批回调（来源标记）',
+    'contact':'通讯录回调（来源标记）',
+    'app':'应用消息回调（来源标记）'
+  };
+  m = s.match(/^from=(.+)$/);
+  if(m) return fromMap[m[1]] || ('回调来源：' + m[1]);
+
+  // 无匹配，原样返回
+  return s;
+}
+
+/**
+ * 检查登录态，401 跳转登录页
+ * @returns {Promise<object|null>} 当前用户信息，未登录返回 null
+ */
+async function checkAuth(){
+  try{
+    var r=await fetch('/api/auth/me');
+    if(r.status===401){
+      window.location.href='/api/auth/login?redirect=/admin/audit_log';
+      return null;
+    }
+    return await r.json();
+  }catch(e){ return null; }
+}
+
+/**
+ * 拉取并渲染操作日志列表
+ */
+async function load(){
+  var params=new URLSearchParams();
+  params.set('page',page);
+  params.set('size',size);
+  var ot=document.getElementById('fOpType').value;
+  var ou=document.getElementById('fOpUser').value.trim();
+  var df=document.getElementById('fDateFrom').value;
+  var dt=document.getElementById('fDateTo').value;
+  if(ot) params.set('op_type',ot);
+  if(ou) params.set('op_user',ou);
+  if(df) params.set('date_from',df);
+  if(dt) params.set('date_to',dt);
+
+  var tbody=document.getElementById('rows');
+  tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:#999;padding:20px;">加载中...</td></tr>';
+
+  try{
+    var r=await fetch('/api/admin/audit_log?'+params.toString());
+    var d=await r.json();
+    if(!d.success){
+      tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:#fa5151;padding:20px;">'+esc(d.error||'加载失败')+'</td></tr>';
+      return;
+    }
+    // 仅首次加载时回填 op_types 下拉，显示中文但值为原始 key
+    if(d.op_types && !_opTypesLoaded){
+      var sel=document.getElementById('fOpType');
+      sel.innerHTML='<option value="">全部</option>'+d.op_types.map(function(t){
+        return '<option value="'+esc(t)+'">'+esc(fmtOpType(t))+'</option>';
+      }).join('');
+      _opTypesLoaded = true;
+    }
+
+    total=d.total||0;
+    totalPages=Math.max(1,Math.ceil(total/size));
+
+    var list=d.list||[];
+    if(list.length===0){
+      _pageDetails=[];
+      tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:#999;padding:20px;">暂无记录</td></tr>';
+    }else{
+      _pageDetails = list.map(function(x){ return x.detail || ''; });
+      tbody.innerHTML=list.map(function(x,i){
+        // 每5行换一色，5种颜色循环
+        var colorIdx=Math.floor(i/5)%5;
+        var resultBadge = x.op_result==='ok'
+          ? '<span class="badge badge-ok">成功</span>'
+          : '<span class="badge badge-fail">失败</span>';
+        var detailHtml = x.detail
+          ? '<span class="detail-cell" data-idx="'+i+'" data-op-type="'+esc(x.op_type||'')+'" onclick="toggleDetail(this)">展开</span>'
+          : '<span style="color:#bbb;">-</span>';
+        // 优先使用后端返回的 op_user_label（含姓名），否则回退到原始 op_user
+        var userLabel = x.op_user_label || x.op_user || '-';
+        // 操作类型翻译为中文
+        var typeLabel = fmtOpType(x.op_type);
+        // 操作对象解析为可读文案
+        var targetLabel = fmtOpTarget(x.op_target);
+        return '<tr class="row-c'+colorIdx+'">'
+          + '<td>'+esc(x.op_time)+'</td>'
+          + '<td>'+esc(userLabel)+'</td>'
+          + '<td>'+esc(typeLabel)+'</td>'
+          + '<td>'+esc(targetLabel)+'</td>'
+          + '<td>'+resultBadge+'</td>'
+          + '<td>'+esc(x.ip||'-')+'</td>'
+          + '<td>'+detailHtml+'</td>'
+          + '</tr>';
+      }).join('');
+    }
+
+    updatePager();
+  }catch(e){
+    tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:#fa5151;padding:20px;">加载失败：'+esc(e.message||e)+'</td></tr>';
+  }
+}
+
+/**
+ * 展开/收起某行 detail 的格式化 JSON
+ * timer_run 类型专用中文翻译展示，其他类型展示原始 JSON
+ * @param {HTMLElement} span 当前触发的"展开/收起"文本节点
+ */
+function toggleDetail(span){
+  var cell=span.parentNode;
+  var existing=cell.querySelector('.detail-json');
+  if(existing){
+    existing.remove();
+    span.textContent='展开';
+    return;
+  }
+  var idx=parseInt(span.getAttribute('data-idx'),10);
+  var opType=span.getAttribute('data-op-type')||'';
+  var raw=_pageDetails[idx] || '';
+  var div=document.createElement('div');
+  div.className='detail-json';
+  // timer_run 类型使用中文翻译展示，其他类型展示格式化 JSON
+  if(opType==='timer_run'){
+    div.innerHTML=fmtTimerRunDetail(raw);
+  }else{
+    try{
+      div.textContent=JSON.stringify(JSON.parse(raw),null,2);
+    }catch(e){
+      div.textContent=raw;
+    }
+  }
+  cell.appendChild(div);
+  span.textContent='收起';
+}
+
+/**
+ * 将 timer_run 的 detail JSON 翻译为中文表格展示
+ * @param {string} raw 原始 JSON 字符串
+ * @returns {string} HTML 表格字符串
+ */
+function fmtTimerRunDetail(raw){
+  var d;
+  try{ d=JSON.parse(raw); }catch(e){ return esc(raw); }
+  var statusMap={'ok':'✅ 成功','fail':'❌ 失败','skip':'⏭ 跳过'};
+  function st(v){ return statusMap[v]||v||'-'; }
+  function Reason(r){ return r?esc(r):'-'; }
+
+  var rows=[];
+  rows.push('<table style="width:100%;border-collapse:collapse;font-size:12px;font-family:inherit;">');
+  rows.push('<thead><tr style="background:#f0f1f3;color:#6b7280;">'
+    +'<th style="border:1px solid #e0e0e0;padding:4px 8px;text-align:left;">子任务</th>'
+    +'<th style="border:1px solid #e0e0e0;padding:4px 8px;">状态</th>'
+    +'<th style="border:1px solid #e0e0e0;padding:4px 8px;">原因/说明</th>'
+    +'<th style="border:1px solid #e0e0e0;padding:4px 8px;">关键指标</th>'
+    +'<th style="border:1px solid #e0e0e0;padding:4px 8px;">错误</th>'
+    +'</tr></thead><tbody>');
+
+  // push：定时下发
+  var p=d.push||{};
+  rows.push('<tr>'
+    +'<td style="border:1px solid #e0e0e0;padding:4px 8px;font-weight:600;">📡 定时下发</td>'
+    +'<td style="border:1px solid #e0e0e0;padding:4px 8px;text-align:center;">'+st(p.status)+'</td>'
+    +'<td style="border:1px solid #e0e0e0;padding:4px 8px;">'+Reason(p.reason)+'</td>'
+    +'<td style="border:1px solid #e0e0e0;padding:4px 8px;">下发 '+esc(p.sent??0)+' / 共 '+esc(p.total??0)+'（'+(p.ym?('周期:'+esc(p.ym)):'-')+'）</td>'
+    +'<td style="border:1px solid #e0e0e0;padding:4px 8px;color:#fa5151;">'+(p.error?esc(p.error):'-')+'</td>'
+    +'</tr>');
+
+  // remind：催办
+  var r=d.remind||{};
+  rows.push('<tr>'
+    +'<td style="border:1px solid #e0e0e0;padding:4px 8px;font-weight:600;">🔔 工资催办</td>'
+    +'<td style="border:1px solid #e0e0e0;padding:4px 8px;text-align:center;">'+st(r.status)+'</td>'
+    +'<td style="border:1px solid #e0e0e0;padding:4px 8px;">'+Reason(r.reason)+'</td>'
+    +'<td style="border:1px solid #e0e0e0;padding:4px 8px;">工资 '+esc(r.salary_sent??0)+'/'+esc(r.salary_total??0)+' 条（跳过 '+esc(r.salary_skip??0)+'），奖金 '+esc(r.bonus_sent??0)+'/'+esc(r.bonus_total??0)+' 条（跳过 '+esc(r.bonus_skip??0)+'）</td>'
+    +'<td style="border:1px solid #e0e0e0;padding:4px 8px;color:#fa5151;">'+(r.error?esc(r.error):'-')+'</td>'
+    +'</tr>');
+
+  // vacation：年假增量同步
+  var v=d.vacation||{};
+  var vErrors=(v.errors&&v.errors.length)?v.errors.join('; '):'-';
+  rows.push('<tr>'
+    +'<td style="border:1px solid #e0e0e0;padding:4px 8px;font-weight:600;">🏖 年假同步</td>'
+    +'<td style="border:1px solid #e0e0e0;padding:4px 8px;text-align:center;">'+st(v.status)+'</td>'
+    +'<td style="border:1px solid #e0e0e0;padding:4px 8px;">'+Reason(v.reason)+'</td>'
+    +'<td style="border:1px solid #e0e0e0;padding:4px 8px;">处理 '+esc(v.processed??0)+' 单，新增 '+esc(v.inserted_approvals??0)+' 条，流水变动 '+esc(v.ledger_changes??0)+' 条（跳过 '+esc(v.skipped??0)+'）</td>'
+    +'<td style="border:1px solid #e0e0e0;padding:4px 8px;color:#fa5151;">'+esc(vErrors)+'</td>'
+    +'</tr>');
+
+  // cleanup：日志清理
+  var c=d.cleanup||{};
+  var cErrors=(c.errors&&c.errors.length)?c.errors.join('; '):'-';
+  rows.push('<tr>'
+    +'<td style="border:1px solid #e0e0e0;padding:4px 8px;font-weight:600;">🧹 日志清理</td>'
+    +'<td style="border:1px solid #e0e0e0;padding:4px 8px;text-align:center;">'+st(c.status)+'</td>'
+    +'<td style="border:1px solid #e0e0e0;padding:4px 8px;">'+Reason(c.reason)+'</td>'
+    +'<td style="border:1px solid #e0e0e0;padding:4px 8px;">审计日志 -'+esc(c.deleted_audit??0)+'，回调日志 -'+esc(c.deleted_cb??0)+'，slog -'+esc(c.deleted_slog??0)+'，反馈 -'+esc(c.deleted_feedback??0)+'</td>'
+    +'<td style="border:1px solid #e0e0e0;padding:4px 8px;color:#fa5151;">'+esc(cErrors)+'</td>'
+    +'</tr>');
+
+  rows.push('</tbody></table>');
+  rows.push('<div style="margin-top:6px;color:#9ca3af;font-size:11px;">'
+    +'总耗时 '+esc(d.duration_sec??'?')+' 秒 · 总体结果 '+st(d.overall)
+    +' · owner='+esc(d.owner||'-')
+    +'</div>');
+  return rows.join('');
+}
+
+function updatePager(){
+  renderPager('auditPager', page, totalPages, total, size, 'auditGoPage', 'auditChangePageSize');
+}
+function auditGoPage(p){ if(p>=1 && p<=totalPages){ page=p; load(); } }
+function auditChangePageSize(sz){
+  size = parseInt(sz, 10);
+  localStorage.setItem('audit_pageSize', sz);
+  page = 1;
+  load();
+}
+function prevPage(){ if(page>1){ page--; load(); } }
+function nextPage(){ if(page<totalPages){ page++; load(); } }
+function onSizeChange(){
+  size = parseInt(document.getElementById('pageSizeSel').value, 10);
+  page = 1;
+  load();
+}
+function onQuery(){ page=1; load(); }
+function onReset(){
+  document.getElementById('fOpType').value='';
+  document.getElementById('fOpUser').value='';
+  document.getElementById('fDateFrom').value='';
+  document.getElementById('fDateTo').value='';
+  page=1;
+  load();
+}
+
+document.addEventListener('DOMContentLoaded', async function(){
+  var me=await checkAuth();
+  if(!me) return;
+  var info=document.getElementById('userInfo');
+  if(me.name){
+    info.innerHTML='<span class="u-name">'+esc(me.name)+'</span>';
+  }
+  load();
+});
+</script>
+</body>
+</html>

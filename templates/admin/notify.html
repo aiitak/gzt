@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0">
+<title>发送消息</title>
+<link rel="stylesheet" href="/assets/weui.min.css?v=20260807a">
+<link rel="stylesheet" href="/assets/admin.css?v=20260807a">
+<script src="/assets/weui.min.js?v=20260807a"></script>
+<script src="/assets/admin.js?v=20260807a"></script>
+<script src="/assets/pinyin.js?v=20260807a"></script>
+<style>
+ body{background:#f5f5f5;font-family:-apple-system,"PingFang SC",sans-serif;margin:0;}
+ .page{max-width:1000px;margin:0 auto;padding:15px;}
+ .header{display:flex;justify-content:space-between;align-items:center;padding:10px 0;}
+ .header h1{font-size:20px;margin:0;}
+ .panel{background:#fff;border-radius:10px;padding:12px;margin-bottom:15px;box-shadow:0 1px 4px rgba(0,0,0,.06);}
+ .panel h3{margin:4px 0 10px;font-size:15px;}
+ label.fld{display:block;font-size:13px;color:#666;margin:10px 0 4px;}
+ select,input[type=text],textarea{width:100%;padding:9px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;font-size:14px;font-family:inherit;}
+ textarea{resize:vertical;}
+ .recp{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;}
+ .recp-col{background:#fafafa;border-radius:8px;padding:10px;}
+ .recp-col b{font-size:13px;display:block;margin-bottom:8px;}
+ .recp-col .recp-pick-btn{display:block;text-align:center;padding:8px;background:#fff;border:1px dashed #07c160;border-radius:6px;color:#07c160;font-size:13px;text-decoration:none;margin-bottom:8px;}
+ .recp-col .recp-pick-btn:hover{background:#f0f8f4;}
+ .recp-col .recp-chips{display:flex;flex-wrap:wrap;gap:6px;min-height:32px;max-height:180px;overflow:auto;}
+ .recp-chip{display:inline-flex;align-items:center;gap:4px;background:#e8f8ee;color:#06ad56;font-size:12px;padding:4px 8px;border-radius:12px;}
+ .recp-chip .x{color:#fa5151;cursor:pointer;font-weight:700;}
+ .recp-empty{color:#bbb;font-size:12px;padding:6px 0;}
+ .recp-count{color:#576b95;font-size:12px;margin-left:6px;font-weight:400;}
+ /* 选择器弹窗 */
+ .picker-mask{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:999;display:none;align-items:flex-start;justify-content:center;padding:30px 10px;}
+ .picker-mask.show{display:flex;}
+ .picker-box{background:#fff;border-radius:10px;width:100%;max-width:480px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden;}
+ .picker-head{padding:12px 14px;border-bottom:1px solid #eee;display:flex;align-items:center;gap:8px;}
+ .picker-head h4{margin:0;font-size:15px;flex:1;}
+ .picker-head .close{font-size:20px;color:#999;cursor:pointer;text-decoration:none;}
+ .picker-search{padding:8px 14px;border-bottom:1px solid #f0f0f0;}
+ .picker-search input{width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;}
+ .picker-selinfo{padding:4px 14px;font-size:12px;color:#576b95;background:#f6f8fa;border-bottom:1px solid #f0f0f0;}
+ .picker-list{flex:1;overflow:auto;padding:4px 0;}
+ .picker-item{display:flex;align-items:center;gap:8px;padding:9px 14px;cursor:pointer;font-size:14px;}
+ .picker-item:hover{background:#f5f5f5;}
+ .picker-item .nm{flex:1;min-width:0;}
+ .picker-item .sub{color:#999;font-size:12px;}
+ .picker-item .cb{color:#07c160;font-size:16px;}
+ .picker-empty{text-align:center;color:#bbb;padding:30px 0;font-size:13px;}
+ .picker-foot{padding:10px 14px;border-top:1px solid #eee;display:flex;gap:8px;}
+ .picker-foot a{flex:1;text-align:center;padding:9px;border-radius:6px;font-size:14px;text-decoration:none;}
+ .tpl{display:flex;align-items:flex-start;gap:10px;font-size:13px;padding:8px 0;border-bottom:1px solid #f0f0f0;}
+ .tpl .tname{flex:none;font-weight:500;}
+ .tpl .tmuted{color:#999;font-size:12px;font-weight:400;}
+ .tpl .tcontent{color:#666;font-size:12px;margin-top:3px;white-space:pre-wrap;word-break:break-all;max-height:46px;overflow:hidden;}
+ .tpl .tacts{display:flex;gap:10px;flex:none;align-items:center;margin-left:auto;}
+ .tpl .tacts a{color:#576b95;cursor:pointer;}
+ #result{font-size:14px;}
+ /* 通配符 chip */
+ .wc-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
+ .wc-chip{
+  position:relative;
+  display:inline-flex;align-items:center;
+  padding:3px 9px;
+  background:#fff;
+  border:1px solid #d9e3f0;
+  border-radius:12px;
+  font-size:11px;
+  color:#2b6cb0;
+  cursor:pointer;
+  transition:all .18s;
+  font-weight:500;
+  user-select:none;
+ }
+ .wc-chip:hover{background:#ebf4ff;border-color:#2b6cb0;transform:translateY(-1px);box-shadow:0 2px 5px rgba(43,108,176,.12);}
+ .wc-chip::after{
+  content:attr(data-tip);
+  position:absolute;
+  bottom:calc(100% + 5px);
+  left:50%;
+  transform:translateX(-50%);
+  background:rgba(40,45,55,.95);
+  color:#fff;
+  padding:6px 10px;
+  border-radius:6px;
+  font-size:11px;
+  white-space:nowrap;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .18s, transform .18s;
+  z-index:50;
+  font-weight:400;
+  line-height:1.5;
+  max-width:420px;
+ }
+ .wc-chip::before{
+  content:'';
+  position:absolute;
+  bottom:calc(100%);
+  left:50%;
+  transform:translateX(-50%);
+  border:4px solid transparent;
+  border-top-color:rgba(40,45,55,.95);
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .18s;
+  z-index:50;
+ }
+ .wc-chip:hover::after,
+ .wc-chip:hover::before{opacity:1;}
+ .wc-chip:hover::after{transform:translateX(-50%) translateY(-1px);}
+</style>
+</head>
+<body>
+<header class="ad-appbar">
+  <a class="ad-appbar__back" href="/admin/dashboard" aria-label="返回">‹</a>
+  <div class="ad-appbar__title"><span class="ic">📨</span><span>发送消息</span></div>
+  <div class="ad-appbar__actions">
+    <a class="ad-appbar__btn" href="javascript:doLogout()">退出</a>
+  </div>
+</header>
+<div class="page">
+
+  <div class="panel">
+    <h3>消息内容</h3>
+    <label class="fld">消息类型</label>
+    <select id="msgtype" onchange="onType()">
+      <option value="text">文本（text）</option>
+      <option value="markdown">Markdown</option>
+      <option value="template_card">模板卡片（template_card）</option>
+      <option value="image">图片（image）</option>
+    </select>
+    <div id="titleField" style="display:none">
+      <label class="fld">选择模板<span style="color:#bbb;font-weight:400;">（从模板库选择，自动填充标题与内容）</span></label>
+      <select id="title" onchange="onTitleTplChange()">
+        <option value="">-- 请选择模板 --</option>
+      </select>
+    </div>
+    <div id="textContentField">
+      <label class="fld">
+        内容<span id="cntTip" style="color:#999"></span>
+        <span style="float:right;color:#888;font-size:12px;">悬停通配符查看示例 · 点击可插入</span>
+      </label>
+      <textarea id="content" rows="6" placeholder="输入要发送的内容，支持通配符，如：{年月}工资条已发布，请查看。"></textarea>
+      <div class="wc-chips" id="wcChipsContent">
+        <span class="wc-chip" data-chip="{年}" data-tip="示例：2026" onclick="insertWildcard(this,'content')">{年}</span>
+        <span class="wc-chip" data-chip="{月}" data-tip="示例：08" onclick="insertWildcard(this,'content')">{月}</span>
+        <span class="wc-chip" data-chip="{日}" data-tip="示例：01" onclick="insertWildcard(this,'content')">{日}</span>
+        <span class="wc-chip" data-chip="{年月}" data-tip="示例：202608" onclick="insertWildcard(this,'content')">{年月}</span>
+        <span class="wc-chip" data-chip="{今天}" data-tip="示例：2026-08-01" onclick="insertWildcard(this,'content')">{今天}</span>
+        <span class="wc-chip" data-chip="{日期}" data-tip="示例：2026-08-01" onclick="insertWildcard(this,'content')">{日期}</span>
+        <span class="wc-chip" data-chip="{时间}" data-tip="示例：14:30:00" onclick="insertWildcard(this,'content')">{时间}</span>
+        <span class="wc-chip" data-chip="{日期时间}" data-tip="示例：2026-08-01 14:30:00" onclick="insertWildcard(this,'content')">{日期时间}</span>
+      </div>
+      <div style="margin-top:6px;font-size:11px;color:#e8810a;">⚠️ 群发消息不支持个人变量（如{姓名}），仅支持以上全局时间变量。</div>
+    </div>
+    <div id="imageContentField" style="display:none">
+      <label class="fld">上传图片</label>
+      <div id="imageUploadArea" style="border:2px dashed #ddd;border-radius:8px;padding:20px;text-align:center;cursor:pointer;background:#fafafa;">
+        <div id="uploadIcon" style="font-size:40px;margin-bottom:10px;">📷</div>
+        <div id="uploadText" style="color:#666;margin-bottom:5px;">点击选择图片 或 拖拽图片到此处</div>
+        <div style="color:#999;font-size:12px;">支持 JPG、PNG、GIF 格式，单张图片不超过 50MB</div>
+        <input type="file" id="imageInput" accept="image/jpeg,image/png,image/gif" style="display:none;" onchange="onImageSelect(event)">
+      </div>
+      <div id="imagePreview" style="display:none;margin-top:12px;text-align:center;">
+        <img id="imagePreviewImg" style="max-width:300px;max-height:300px;border-radius:8px;border:1px solid #eee;box-shadow:0 2px 8px rgba(0,0,0,.1);">
+        <div style="margin-top:8px;font-size:12px;color:#999;">
+          <span id="imageInfo"></span>
+          <span id="uploadStatus" style="color:#07c160;margin-left:10px;"></span>
+          <a href="javascript:clearImage()" style="color:#e64340;margin-left:10px;">清除</a>
+        </div>
+      </div>
+      <div style="margin-top:6px;font-size:11px;color:#888;">💡 选择图片后将自动上传到企业微信服务器。</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>接收人（成员 / 部门 / 标签 可多选叠加）</h3>
+    <div class="recp">
+      <div class="recp-col">
+        <b>👤 成员<span class="recp-count" id="cntU"></span></b>
+        <a href="javascript:openRecpPicker('user')" class="recp-pick-btn">＋ 选择成员</a>
+        <div id="chipsUsers" class="recp-chips"></div>
+      </div>
+      <div class="recp-col">
+        <b>🏢 部门<span class="recp-count" id="cntD"></span></b>
+        <a href="javascript:openRecpPicker('dept')" class="recp-pick-btn">＋ 选择部门</a>
+        <div id="chipsDepts" class="recp-chips"></div>
+      </div>
+      <div class="recp-col">
+        <b>🏷 标签<span class="recp-count" id="cntT"></span></b>
+        <a href="javascript:openRecpPicker('tag')" class="recp-pick-btn">＋ 选择标签</a>
+        <div id="chipsTags" class="recp-chips"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 接收人选择器弹窗 -->
+  <div class="picker-mask" id="recpPickerMask">
+    <div class="picker-box">
+      <div class="picker-head">
+        <h4 id="recpPickerTitle">选择</h4>
+        <a class="close" href="javascript:closeRecpPicker()">×</a>
+      </div>
+      <div class="picker-search"><input id="recpSearch" placeholder="输入姓名/ID搜索，支持拼音首字母" oninput="renderRecpList()"></div>
+      <div class="picker-selinfo" id="recpSelInfo"></div>
+      <div class="picker-list" id="recpList"></div>
+      <div class="picker-foot">
+        <a href="javascript:clearRecpPicker()" style="background:#f5f5f5;color:#666;">清空选择</a>
+        <a href="javascript:confirmRecpPicker()" style="background:#07c160;color:#fff;">确定</a>
+      </div>
+    </div>
+  </div>
+
+  <a href="javascript:send()" class="weui-btn weui-btn_primary" style="display:inline-block;width:auto;height:40px;line-height:40px;padding:0 28px;margin:4px 0 22px;">发送消息</a>
+  <div id="result" style="position:fixed;top:48px;left:0;right:0;z-index:1000;display:none;padding:12px 16px;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.15);text-align:center;font-size:14px;line-height:1.5;border-top:1px solid #eee;"></div>
+
+  <div class="panel">
+    <h3>消息模板库</h3>
+    <div id="tplList"></div>
+    <div class="tpl-editor" id="tplEditor" style="margin-top:12px;padding:12px;background:#fafafa;border:1px solid #eee;border-radius:8px;">
+      <div style="font-size:13px;font-weight:600;margin-bottom:8px;" id="tplEditorTitle">➕ 新增模板</div>
+      <label class="fld">模板名称</label>
+      <input type="text" id="tplName" placeholder="模板名称">
+      <label class="fld">消息类型</label>
+      <select id="tplMsgtype" onchange="onTplType()">
+        <option value="text">文本（text）</option>
+        <option value="markdown">Markdown</option>
+        <option value="template_card">模板卡片（template_card）</option>
+      </select>
+      <div id="tplTitleField" style="display:none">
+        <label class="fld">卡片标题<span style="color:#bbb;font-weight:400;">（模板卡片必填）</span></label>
+        <input type="text" id="tplTitle" placeholder="如：{年月}工资条已发布">
+      </div>
+      <label class="fld">模板内容（编辑这里）</label>
+      <textarea id="tplContent" rows="5" placeholder="输入模板内容，支持通配符"></textarea>
+      <div style="margin-top:6px;font-size:12px;color:#888;background:#fff8eef0;border-radius:6px;padding:8px 10px;line-height:1.6;">
+        <b>💡 可用通配符</b>（发送时自动替换为当前值，点击插入）：
+        <div class="wc-chips" style="margin-top:8px;">
+          <span class="wc-chip" data-chip="{年}" data-tip="示例：2026" onclick="insertWildcard(this,'tplContent')">{年}</span>
+          <span class="wc-chip" data-chip="{月}" data-tip="示例：08" onclick="insertWildcard(this,'tplContent')">{月}</span>
+          <span class="wc-chip" data-chip="{日}" data-tip="示例：01" onclick="insertWildcard(this,'tplContent')">{日}</span>
+          <span class="wc-chip" data-chip="{年月}" data-tip="示例：202608" onclick="insertWildcard(this,'tplContent')">{年月}</span>
+          <span class="wc-chip" data-chip="{今天}" data-tip="示例：2026-08-01" onclick="insertWildcard(this,'tplContent')">{今天}</span>
+          <span class="wc-chip" data-chip="{日期}" data-tip="示例：2026-08-01" onclick="insertWildcard(this,'tplContent')">{日期}</span>
+          <span class="wc-chip" data-chip="{时间}" data-tip="示例：14:30:00" onclick="insertWildcard(this,'tplContent')">{时间}</span>
+          <span class="wc-chip" data-chip="{日期时间}" data-tip="示例：2026-08-01 14:30:00" onclick="insertWildcard(this,'tplContent')">{日期时间}</span>
+        </div>
+        <div style="margin-top:6px;font-size:11px;color:#e8810a;">⚠️ 群发消息不支持个人变量（如{姓名}），仅支持以上全局时间变量。</div>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <a href="javascript:saveTpl()" id="saveTplBtn" class="weui-btn weui-btn_mini weui-btn_primary">保存为模板</a>
+        <a href="javascript:cancelEdit()" id="cancelEdit" class="weui-btn weui-btn_mini weui-btn_default" style="display:none">取消编辑</a>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+var DATA={users:[],departments:[],tags:[]};
+var TPLS=[];
+var editingId=null;
+var _imageMediaId = null;  // 存储上传后的 media_id
+function onType(){
+  var type = document.getElementById('msgtype').value;
+  document.getElementById('titleField').style.display =
+    (type==='template_card') ? 'block' : 'none';
+  document.getElementById('textContentField').style.display =
+    (type==='image') ? 'none' : 'block';
+  document.getElementById('imageContentField').style.display =
+    (type==='image') ? 'block' : 'none';
+}
+function onTitleTplChange(){
+  var sel=document.getElementById('title');
+  var id=sel.options[sel.selectedIndex].getAttribute('data-id');
+  if(!id){ document.getElementById('content').value=''; return; }
+  var x=TPLS.find(function(t){ return String(t.id)===String(id); });
+  if(x){ document.getElementById('content').value=x.content||''; }
+}
+
+// ===== 图片上传相关 =====
+function onImageSelect(e){
+  var file = e.target.files[0];
+  if(!file) return;
+  if(file.size > 50*1024*1024){
+    weui.alert('图片大小不能超过 50MB');
+    e.target.value = '';
+    return;
+  }
+  // 显示预览
+  var reader = new FileReader();
+  reader.onload = function(ev){
+    document.getElementById('imagePreviewImg').src = ev.target.result;
+    document.getElementById('imagePreview').style.display = 'block';
+    var sizeMB = file.size > 1024*1024 ? (file.size/1024/1024).toFixed(1)+'MB' : Math.round(file.size/1024)+'KB';
+    document.getElementById('imageInfo').textContent = file.name + ' (' + sizeMB + ')';
+    document.getElementById('uploadStatus').textContent = '⏳ 上传中...';
+    // 立即上传到服务器
+    uploadImage(file);
+  };
+  reader.readAsDataURL(file);
+}
+
+async function uploadImage(file){
+  try {
+    var fd = new FormData();
+    fd.append('image', file);
+    var resp = await fetch('/api/admin/message/upload_image', { method: 'POST', body: fd });
+    var result = await resp.json();
+    if (result.success) {
+      _imageMediaId = result.media_id;
+      document.getElementById('uploadStatus').textContent = '✅ 已上传';
+      document.getElementById('uploadStatus').style.color = '#07c160';
+    } else {
+      document.getElementById('uploadStatus').textContent = '❌ 上传失败';
+      document.getElementById('uploadStatus').style.color = '#e64340';
+      weui.alert(result.error || '图片上传失败');
+    }
+  } catch (err) {
+    document.getElementById('uploadStatus').textContent = '❌ 上传失败';
+    document.getElementById('uploadStatus').style.color = '#e64340';
+    weui.alert('图片上传失败，请重试');
+  }
+}
+
+function clearImage(){
+  _imageMediaId = null;
+  document.getElementById('imageInput').value = '';
+  document.getElementById('imagePreview').style.display = 'none';
+  document.getElementById('uploadStatus').textContent = '';
+}
+
+// 点击上传区域触发文件选择
+document.addEventListener('DOMContentLoaded', function(){
+  var area = document.getElementById('imageUploadArea');
+  if(area){
+    area.addEventListener('click', function(){
+      document.getElementById('imageInput').click();
+    });
+    area.addEventListener('dragover', function(e){
+      e.preventDefault();
+      area.style.borderColor = '#07c160';
+      area.style.background = '#f0f8f4';
+    });
+    area.addEventListener('dragleave', function(){
+      area.style.borderColor = '#ddd';
+      area.style.background = '#fafafa';
+    });
+    area.addEventListener('drop', function(e){
+      e.preventDefault();
+      area.style.borderColor = '#ddd';
+      area.style.background = '#fafafa';
+      var files = e.dataTransfer.files;
+      if(files.length > 0){
+        var file = files[0];
+        if(file.type.indexOf('image/') === 0){
+          var input = document.getElementById('imageInput');
+          input.files = files;
+          onImageSelect({target: {files: files}});
+        } else {
+          weui.alert('请选择图片文件');
+        }
+      }
+    });
+  }
+});
+async function load(){
+  try {
+    var r=await fetch('/api/admin/contacts'); var d=await r.json(); DATA=d;
+    renderRecpChips();
+    var t=await fetch('/api/admin/message/templates?source=custom'); TPLS=await t.json();
+    // 填充卡片模板下拉（仅 template_card 类型）
+    var titleSel=document.getElementById('title');
+    var cardTpls=TPLS.filter(function(x){ return x.msgtype==='template_card'; });
+    titleSel.innerHTML='<option value="">-- 请选择模板 --</option>' + cardTpls.map(function(x){
+      return '<option value="'+esc(x.title||'')+'" data-id="'+x.id+'">'+esc(x.name)+'</option>';
+    }).join('');
+    document.getElementById('tplList').innerHTML = TPLS.map(function(x){
+      return '<div class="tpl">'
+        + '<div style="flex:1;min-width:0;">'
+        +   '<div class="tname">'+esc(x.name)+' <span class="tmuted">['+esc(x.msgtype)+']</span></div>'
+        +   '<div class="tcontent">'+esc(x.content || '(无内容)')+'</div>'
+        + '</div>'
+        + '<div class="tacts">'
+        +   '<a onclick="useTpl('+x.id+')">套用</a>'
+        +   '<a onclick="editTpl('+x.id+')">编辑</a>'
+        +   '<a onclick="delTpl('+x.id+')">删除</a>'
+        + '</div>'
+        + '</div>';
+    }).join('') || '暂无模板';
+  } catch(e){
+    document.getElementById('tplList').innerHTML='<div style="color:#e64340;padding:10px;">加载失败：'+esc(e.message||e)+'</div>';
+  }
+}
+
+// ===== 接收人选择（搜索式多选弹窗） =====
+var RECP_SEL = { user:{}, dept:{}, tag:{} };   // {id:{id,name}}
+var recpCtx = null;                              // {kind,title,items:[]}
+
+function openRecpPicker(kind){
+  var items = [];
+  if(kind==='user'){
+    items = (DATA.users||[]).map(function(u){ return {id:u.userid, name:u.name, sub:u.dept_name||('ID:'+u.userid)}; });
+    document.getElementById('recpPickerTitle').textContent = '选择成员（可多选，已选 '+Object.keys(RECP_SEL.user).length+'）';
+  } else if(kind==='dept'){
+    items = (DATA.departments||[]).map(function(d){ return {id:d.dept_id, name:d.name, sub:'部门'}; });
+    document.getElementById('recpPickerTitle').textContent = '选择部门（可多选，已选 '+Object.keys(RECP_SEL.dept).length+'）';
+  } else {
+    items = (DATA.tags||[]).map(function(t){ return {id:t.tag_id, name:t.tagname, sub:'标签'}; });
+    document.getElementById('recpPickerTitle').textContent = '选择标签（可多选，已选 '+Object.keys(RECP_SEL.tag).length+'）';
+  }
+  recpCtx = { kind:kind, items:items };
+  document.getElementById('recpSearch').value = '';
+  document.getElementById('recpPickerMask').classList.add('show');
+  renderRecpList();
+}
+function closeRecpPicker(){
+  document.getElementById('recpPickerMask').classList.remove('show');
+  recpCtx = null;
+}
+function renderRecpList(){
+  if(!recpCtx) return;
+  var q = (document.getElementById('recpSearch').value||'').trim().toLowerCase();
+  var list = recpCtx.items;
+  if(q){
+    list = list.filter(function(it){
+      if((it.name||'').toLowerCase().indexOf(q)>=0 || String(it.id).toLowerCase().indexOf(q)>=0) return true;
+      if(typeof matchPinyinQuery==='function' && matchPinyinQuery(q, it.name||'')) return true;
+      return false;
+    });
+  }
+  var sel = RECP_SEL[recpCtx.kind];
+  var box = document.getElementById('recpList');
+  if(list.length===0){
+    box.innerHTML = '<div class="picker-empty">无匹配结果</div>';
+  } else {
+    box.innerHTML = list.map(function(it){
+      var checked = !!sel[it.id];
+      return '<div class="picker-item" onclick="toggleRecpItem(\''+esc(it.id)+'\')">'
+        + '<span class="nm">'+esc(it.name)+' <span class="sub">'+esc(it.sub)+'</span></span>'
+        + '<span class="cb">'+(checked?'●':'○')+'</span>'
+        + '</div>';
+    }).join('');
+  }
+  document.getElementById('recpSelInfo').textContent = '已选 '+Object.keys(sel).length+' 项，共 '+recpCtx.items.length+' 项可选';
+}
+function toggleRecpItem(id){
+  if(!recpCtx) return;
+  var sel = RECP_SEL[recpCtx.kind];
+  var it = recpCtx.items.find(function(x){ return String(x.id)===String(id); });
+  if(!it) return;
+  if(sel[id]){ delete sel[id]; } else { sel[id]={id:id,name:it.name}; }
+  document.getElementById('recpPickerTitle').textContent = document.getElementById('recpPickerTitle').textContent.replace(/已选 \d+/, '已选 '+Object.keys(sel).length);
+  renderRecpList();
+}
+function clearRecpPicker(){
+  if(!recpCtx) return;
+  RECP_SEL[recpCtx.kind] = {};
+  renderRecpList();
+}
+function confirmRecpPicker(){
+  closeRecpPicker();
+  renderRecpChips();
+}
+function renderRecpChips(){
+  function build(sel, boxId, cntId, kind){
+    var ids = Object.keys(sel);
+    document.getElementById(cntId).textContent = ids.length ? '('+ids.length+')' : '';
+    document.getElementById(boxId).innerHTML = ids.length
+      ? ids.map(function(id){
+          return '<span class="recp-chip">'+esc(sel[id].name)+' <span class="x" onclick="removeRecpChip(\''+kind+'\',\''+esc(id)+'\')">×</span></span>';
+        }).join('')
+      : '<span class="recp-empty">未选择</span>';
+  }
+  build(RECP_SEL.user, 'chipsUsers', 'cntU', 'user');
+  build(RECP_SEL.dept, 'chipsDepts', 'cntD', 'dept');
+  build(RECP_SEL.tag,  'chipsTags',  'cntT', 'tag');
+}
+function removeRecpChip(kind, id){
+  delete RECP_SEL[kind][id];
+  renderRecpChips();
+}
+
+function showWildcardHelp(){
+  weui.alert(
+    '<div style="text-align:left;font-size:13px;line-height:1.8;">' +
+    '<b>📌 可用通配符</b>（发送时自动替换为当前值，群发不支持个人变量）：<br><br>' +
+    '<div class="wc-chips" style="margin-top:0;">' +
+      '<span class="wc-chip" style="pointer-events:none;" data-tip="">{年}</span> ' +
+      '<span class="wc-chip" style="pointer-events:none;" data-tip="">{月}</span> ' +
+      '<span class="wc-chip" style="pointer-events:none;" data-tip="">{日}</span> ' +
+      '<span class="wc-chip" style="pointer-events:none;" data-tip="">{年月}</span> ' +
+      '<span class="wc-chip" style="pointer-events:none;" data-tip="">{今天}</span> ' +
+      '<span class="wc-chip" style="pointer-events:none;" data-tip="">{日期}</span> ' +
+      '<span class="wc-chip" style="pointer-events:none;" data-tip="">{时间}</span> ' +
+      '<span class="wc-chip" style="pointer-events:none;" data-tip="">{日期时间}</span>' +
+    '</div><br>' +
+    '<span style="color:#e8810a;">⚠️ 群发消息不支持个人变量（如{姓名}），仅支持以上全局时间变量。工资条推送模板支持{姓名}{部门}{链接}。</span>' +
+    '</div>',
+    '通配符说明'
+  );
+}
+
+// 点击通配符 chip 插入到目标输入框/文本域
+function insertWildcard(el, targetId){
+  var chip = el.getAttribute('data-chip') || el.textContent;
+  var target = document.getElementById(targetId);
+  if(!target) return;
+  var start = target.selectionStart ?? target.value.length;
+  var end = target.selectionEnd ?? target.value.length;
+  target.value = target.value.slice(0, start) + chip + target.value.slice(end);
+  var pos = start + chip.length;
+  if(target.setSelectionRange){ target.setSelectionRange(pos, pos); }
+  target.focus();
+}
+
+async function send(){
+  var msgtype=document.getElementById('msgtype').value;
+  var content='';
+  var title=document.getElementById('title').value;
+  if(msgtype==='image'){
+    if(!_imageMediaId){ weui.alert('请先上传图片'); return; }
+    content = _imageMediaId;
+  } else {
+    content=document.getElementById('content').value;
+  }
+  if(msgtype==='template_card' && title.trim()===''){ weui.alert('模板卡片必须填写标题'); return; }
+  if(msgtype!=='template_card' && msgtype!=='image' && content.trim()===''){ weui.alert('内容不能为空'); return; }
+  var u=Object.keys(RECP_SEL.user), d=Object.keys(RECP_SEL.dept), t=Object.keys(RECP_SEL.tag);
+  if(u.length===0 && d.length===0 && t.length===0){ weui.alert('请至少选择一个接收人'); return; }
+  var body={msgtype:msgtype, content:content, title:title};
+  if(u.length) body.touser=u.join('|');
+  if(d.length) body.toparty=d.join('|');
+  if(t.length) body.totag=t.join('|');
+  var loading = weui.loading('正在发送...');
+  try {
+    var r=await fetch('/api/admin/message/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    var res=await r.json();
+  } catch(e) {
+    loading.hide();
+    weui.topTips('网络错误，发送失败');
+    return;
+  }
+  loading.hide();
+  var box=document.getElementById('result');
+  if(res.success){
+    var msg='✅ 发送成功';
+    if(res.invaliduser||res.invalidparty||res.invalidtag){
+      msg+='（部分无效账号：'+esc(res.invaliduser||'')+' '+esc(res.invalidparty||'')+' '+esc(res.invalidtag||'')+'）';
+    }
+    box.innerHTML='<div style="color:#07c160">'+msg+'</div>';
+    // 图片发送成功后清除预览
+    if(msgtype==='image'){
+      clearImage();
+    }
+  } else {
+    box.innerHTML='<div style="color:#e64340">❌ '+esc(res.error||'发送失败')+'</div>';
+  }
+  box.style.display='block';
+  clearTimeout(window._resultTimer);
+  window._resultTimer=setTimeout(function(){ box.style.display='none'; }, 5000);
+}
+function useTpl(id){
+  cancelEdit();
+  var x=TPLS.find(function(t){ return t.id==id; }); if(!x) return;
+  document.getElementById('msgtype').value=x.msgtype; onType();
+  document.getElementById('title').value=x.title||'';
+  document.getElementById('content').value=x.content||'';
+  weui.toast('已套用');
+}
+function onTplType(){
+  document.getElementById('tplTitleField').style.display =
+    (document.getElementById('tplMsgtype').value==='template_card') ? 'block' : 'none';
+}
+function editTpl(id){
+  var x=TPLS.find(function(t){ return t.id==id; }); if(!x) return;
+  // 编辑：载入「消息模板库」面板自带的内联编辑器（改的是模板内容，而非顶部发送框）
+  document.getElementById('tplName').value=x.name;
+  document.getElementById('tplMsgtype').value=x.msgtype; onTplType();
+  document.getElementById('tplTitle').value=x.title||'';
+  document.getElementById('tplContent').value=x.content||'';
+  editingId=id;
+  document.getElementById('tplEditorTitle').textContent='✏️ 编辑模板：'+x.name;
+  document.getElementById('saveTplBtn').textContent='更新模板';
+  document.getElementById('cancelEdit').style.display='inline-block';
+  weui.toast('已进入编辑');
+  document.getElementById('tplEditor').scrollIntoView({behavior:'smooth',block:'center'});
+}
+function cancelEdit(){
+  editingId=null;
+  document.getElementById('tplName').value='';
+  document.getElementById('tplMsgtype').value='text'; onTplType();
+  document.getElementById('tplTitle').value='';
+  document.getElementById('tplContent').value='';
+  document.getElementById('tplEditorTitle').textContent='➕ 新增模板';
+  document.getElementById('saveTplBtn').textContent='保存为模板';
+  document.getElementById('cancelEdit').style.display='none';
+}
+async function saveTpl(){
+  var name=document.getElementById('tplName').value.trim();
+  if(!name){ weui.alert('请输入模板名称'); return; }
+  var body={ name:name, msgtype:document.getElementById('tplMsgtype').value,
+            title:document.getElementById('tplTitle').value, content:document.getElementById('tplContent').value};
+  if(editingId){ body.op='update'; body.id=editingId; }
+  else { body.op='add'; }
+  try {
+    var r=await fetch('/api/admin/message/templates',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    var d=await r.json();
+    if(d.success){ weui.toast('已保存'); cancelEdit(); load(); }
+    else { weui.alert(d.error||'保存失败'); }
+  } catch(e) {
+    weui.topTips('网络错误，保存失败');
+  }
+}
+async function delTpl(id){
+  weui.confirm('确定删除该模板吗？', async function(){
+    try {
+      var r = await fetch('/api/admin/message/templates',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({op:'delete', id:id})});
+      var d = await r.json();
+      if(d.success){ weui.toast('✅ 已删除', 1000); load(); }
+      else { weui.topTips(d.error || '删除失败'); }
+    } catch(e){ weui.topTips('删除失败'); }
+  });
+}
+document.addEventListener('DOMContentLoaded', async function(){
+  var me=await fetch('/api/auth/me');
+  if(me.status===401){ location.href='/api/auth/login?redirect=/admin/notify'; return; }
+  load();
+});
+</script>
+</body>
+</html>

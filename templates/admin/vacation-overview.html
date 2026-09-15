@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0">
+<title>年假总览</title>
+<link rel="stylesheet" href="/assets/weui.min.css?v=20260807a">
+<link rel="stylesheet" href="/assets/admin.css?v=20260807a">
+<script src="/assets/admin.js?v=20260807a"></script>
+<script src="/assets/pinyin.js?v=20260807a"></script>
+<style>
+body{background:#f5f5f5;font-family:-apple-system,"PingFang SC",sans-serif;margin:0;}
+.page{max-width:1100px;margin:0 auto;padding:15px;}
+.panel{background:#fff;border-radius:10px;padding:12px 14px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.06);}
+.ad-appbar__user{font-size:13px;opacity:.92;padding:0 6px;white-space:nowrap;}
+.ad-appbar__user .u-name{font-weight:600;}
+.filter-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.filter-bar label{font-size:13px;color:#666;white-space:nowrap;width:48px;text-align:right;}
+.filter-bar select,.filter-bar input{font-size:13px;padding:6px 10px;border:1px solid #ddd;border-radius:6px;outline:none;font-family:inherit;width:130px;box-sizing:border-box;}
+/* 部门单独加宽：最长部门名"维修中心/售后服务事业部"（12字+斜杠）需约 220px 才能完整显示；年份/搜索框保持 130px 符合"尽可能短" */
+.filter-bar #deptSel{width:220px;}
+.filter-bar .abtn{font-size:13px;padding:6px 16px;border-radius:6px;cursor:pointer;border:none;background:#07c160;color:#fff;font-family:inherit;white-space:nowrap;margin-left:8px;}
+.filter-bar .abtn:hover{background:#06ad56;}
+.filter-bar .abtn-secondary{background:#4f8cff;margin-left:0;}
+.filter-bar .abtn-secondary:hover{background:#3a76e8;}
+.vo-table{width:100%;border-collapse:collapse;font-size:13px;}
+.vo-table th,.vo-table td{border:1px solid #e5e5e5;padding:6px 8px;text-align:left;vertical-align:middle;word-break:break-all;}
+.vo-table th{background:#fafafa;color:#666;font-weight:600;white-space:nowrap;}
+.vo-table tbody tr:hover{background:#f0f9ff;}
+.vo-table .num{text-align:right;font-family:Consolas,Monaco,monospace;}
+.tag-eligible{display:inline-block;background:#e8f5e9;color:#2e7d32;border-radius:10px;padding:1px 8px;font-size:11px;}
+.tag-not{display:inline-block;background:#fce4ec;color:#c62828;border-radius:10px;padding:1px 8px;font-size:11px;}
+.tag-exempt{display:inline-block;background:#fff3e0;color:#e65100;border-radius:10px;padding:1px 8px;font-size:11px;}
+/* 计算方式下拉选择器 */
+.rule-selector{display:inline-flex;align-items:center;gap:4px;vertical-align:middle;position:relative;}
+.rule-selector .rs-dropdown{font-size:12px;padding:3px 6px;border:1px solid #ddd;border-radius:4px;background:#fff;outline:none;font-family:inherit;cursor:pointer;min-width:80px;}
+.rule-selector .rs-dropdown:focus{border-color:#07c160;}
+.rule-selector .rs-dropdown.rule-normal{color:#07c160;}
+.rule-selector .rs-dropdown.rule-special{color:#1565c0;}
+.rule-selector .rs-dropdown.rule-exempt{color:#e53935;}
+/* 特殊规则配置弹窗 */
+.special-rule-popover{position:absolute;top:100%;left:0;margin-top:4px;background:#fff;border:1px solid #e0e0e0;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);padding:12px;z-index:1000;min-width:200px;}
+.special-rule-popover .srp-title{font-size:12px;font-weight:600;color:#333;margin-bottom:8px;}
+.special-rule-popover .srp-row{display:flex;align-items:center;gap:6px;margin-bottom:6px;}
+.special-rule-popover .srp-row label{font-size:11px;color:#666;white-space:nowrap;width:60px;}
+.special-rule-popover .srp-row input,.special-rule-popover .srp-row select{font-size:11px;padding:3px 6px;border:1px solid #ddd;border-radius:4px;font-family:inherit;flex:1;min-width:80px;}
+.special-rule-popover .srp-actions{display:flex;gap:6px;margin-top:10px;}
+.special-rule-popover .srp-actions button{font-size:11px;padding:4px 12px;border-radius:4px;cursor:pointer;border:none;font-family:inherit;}
+.special-rule-popover .srp-save{background:#07c160;color:#fff;}
+.special-rule-popover .srp-save:hover{background:#06ad56;}
+.special-rule-popover .srp-cancel{background:#f5f5f5;color:#666;}
+.special-rule-popover .srp-cancel:hover{background:#e8e8e8;}
+.name-cell{display:flex;align-items:center;gap:4px;}
+.name-cell .exempt-icon{color:#e53935;font-size:13px;flex-shrink:0;}
+.balance-ok{color:#2e7d32;font-weight:600;}
+.balance-warn{color:#e65100;font-weight:600;}
+.balance-zero{color:#999;}
+.sync-panel{background:#f0f9ff;border:1px solid #d0e8ff;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:13px;line-height:1.8;}
+.sync-panel .sp-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.sync-panel .sp-label{color:#666;white-space:nowrap;}
+.sync-panel .sp-val{color:#333;font-weight:500;}
+.sync-panel .sp-ok{color:#07c160;}
+.sync-panel .sp-warn{color:#e65100;}
+.sync-panel .sp-err{color:#c62828;}
+.sync-panel .sp-info{color:#1565c0;}
+.sync-panel .sp-btn{font-size:12px;padding:4px 14px;border-radius:6px;cursor:pointer;border:1px solid #07c160;background:#fff;color:#07c160;font-family:inherit;}
+.sync-panel .sp-btn:hover{background:#07c160;color:#fff;}
+.sync-panel .sp-btn:disabled{border-color:#ccc;color:#ccc;cursor:not-allowed;}
+.sync-log-details{margin-top:8px;}
+.sync-log-summary{cursor:pointer;font-size:12px;color:#555;padding:4px 2px;user-select:none;list-style:none;display:flex;align-items:center;}
+.sync-log-summary::before{content:'▸';margin-right:6px;color:#888;transition:transform .15s;display:inline-block;}
+.sync-log-details[open] .sync-log-summary::before{transform:rotate(90deg);content:'▾';}
+.sync-log-summary:hover{color:#2a7;}
+.sync-log-box{margin-top:4px;font-size:12px;color:#666;line-height:1.6;}
+.sync-log-item{padding:3px 0;border-bottom:1px dashed #e0e0e0;}
+.sync-log-item:last-child{border-bottom:none;}
+/* 全年同步扩展 UI */
+.sync-full-row{margin-top:8px;padding-top:8px;border-top:1px dashed #cfe2ff;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.sync-full-row label{font-size:12px;color:#666;white-space:nowrap;}
+.sync-full-row select,
+.sync-full-row input[type=checkbox]{outline:none;}
+.sync-full-row select{font-size:12px;padding:4px 8px;border:1px solid #cdd6e4;border-radius:6px;font-family:inherit;background:#fff;}
+/* 全年同步年份下拉：4 位年份 80px 足够（2026 占约 55px + 下拉箭头 padding），再小会挤压箭头空间 */
+.sync-full-row #syncFullYear{width:80px;}
+.sync-full-row .dry-run-label{font-size:12px;color:#b26a00;display:inline-flex;align-items:center;gap:4px;cursor:pointer;}
+.sync-full-row .full-btn{font-size:12px;padding:4px 14px;border-radius:6px;cursor:pointer;border:1px solid #1565c0;background:#fff;color:#1565c0;font-family:inherit;}
+.sync-full-row .full-btn:hover{background:#1565c0;color:#fff;}
+.sync-full-row .full-btn:disabled{border-color:#ccc;color:#ccc;cursor:not-allowed;}
+/* Modal */
+.modal-mask{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding-top:40px;box-sizing:border-box;}
+.modal-card{background:#fff;border-radius:10px;max-width:880px;width:calc(100% - 28px);max-height:calc(100vh - 80px);overflow:hidden;display:flex;flex-direction:column;box-shadow:0 12px 48px rgba(0,0,0,.25);}
+.modal-card .hd{padding:12px 16px;border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.modal-card .hd .t{font-size:15px;font-weight:600;color:#222;display:flex;align-items:center;gap:6px;}
+.modal-card .hd .x{font-size:20px;color:#999;cursor:pointer;line-height:1;padding:2px 6px;border-radius:4px;}
+.modal-card .hd .x:hover{background:#f0f0f0;color:#333;}
+.modal-card .bd{padding:14px 16px;overflow:auto;}
+.modal-card .ft{padding:10px 16px;border-top:1px solid #eee;display:flex;justify-content:flex-end;gap:8px;}
+.dry-run-banner{background:#fff8e1;border:1px solid #ffe082;color:#8d6e00;padding:8px 12px;border-radius:6px;font-size:12px;margin-bottom:12px;display:flex;align-items:center;gap:6px;}
+.sum-box{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;}
+.sum-box .it{flex:1;min-width:120px;background:#fafbfc;border:1px solid #ebeef3;border-radius:8px;padding:10px;text-align:center;}
+.sum-box .it .n{font-size:22px;font-weight:700;font-family:Consolas,Monaco,monospace;line-height:1.2;}
+.sum-box .it .l{font-size:12px;color:#888;margin-top:4px;}
+.sum-box .it.t-ok .n{color:#2e7d32;}
+.sum-box .it.t-skip .n{color:#8d6e00;}
+.sum-box .it.t-fail .n{color:#c62828;}
+.sum-box .it.t-total .n{color:#1976d2;}
+.sum-box .it.t-ledge .n{color:#7b1fa2;}
+.collapse-t{font-size:13px;font-weight:600;color:#333;margin:10px 0 6px;cursor:pointer;user-select:none;display:flex;align-items:center;gap:4px;}
+.collapse-t .arr{transition:transform .15s;display:inline-block;}
+.collapse-t.collapsed .arr{transform:rotate(-90deg);}
+.mini-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:10px;}
+.mini-table th,.mini-table td{border:1px solid #e5e5e5;padding:5px 7px;text-align:left;vertical-align:top;word-break:break-all;}
+.mini-table th{background:#f5f7fa;color:#555;font-weight:600;white-space:nowrap;}
+.mini-table td.err{color:#c62828;}
+.mini-table td.skip{color:#8d6e00;}
+.status-pill{display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;}
+.status-1{background:#fff3e0;color:#e65100;} /* 审批中 */
+.status-2{background:#e8f5e9;color:#2e7d32;} /* 已通过 */
+.status-3{background:#fce4ec;color:#c62828;} /* 已驳回 */
+.status-4{background:#eeeeee;color:#616161;} /* 主动撤销 */
+.status-6{background:#f3e5f5;color:#7b1fa2;} /* 通过后撤销 */
+.status-0{background:#f5f5f5;color:#888;}
+.prog-line{font-size:12px;color:#555;margin-bottom:10px;line-height:1.6;}
+.prog-line .bar-wrap{height:6px;background:#eef1f5;border-radius:3px;overflow:hidden;margin:4px 0 6px;}
+.prog-line .bar{height:100%;width:0%;background:linear-gradient(90deg,#1976d2,#07c160);transition:width .25s ease;}
+.bbtn{font-size:13px;padding:6px 16px;border-radius:6px;cursor:pointer;border:none;background:#eef1f5;color:#333;font-family:inherit;}
+.bbtn.primary{background:#07c160;color:#fff;}
+.bbtn.primary:hover{background:#06ad56;}
+.bbtn:disabled{background:#f0f0f0;color:#bbb;cursor:not-allowed;}</style>
+</head>
+<body>
+<header class="ad-appbar">
+  <a class="ad-appbar__back" href="/admin/dashboard" aria-label="返回首页">‹</a>
+  <div class="ad-appbar__title"><span class="ic">🏖️</span><span>年假总览</span></div>
+  <div class="ad-appbar__user" id="userInfo"></div>
+  <div class="ad-appbar__actions">
+    <a class="ad-appbar__btn" href="/admin/vacation_adjust">年假调整</a>
+    <a class="ad-appbar__btn" href="/admin/dashboard">首页</a>
+    <a class="ad-appbar__btn" href="javascript:doLogout()">退出</a>
+  </div>
+</header>
+<div class="page">
+  <div class="sync-panel" id="syncPanel" style="display:none;">
+    <div class="sp-row">
+      <span class="sp-label">🔄 审批同步状态：</span>
+      <span class="sp-val" id="syncLastTime">—</span>
+      <span style="color:#ddd;margin:0 4px;">|</span>
+      <span class="sp-label">模板：</span>
+      <span class="sp-val" id="syncTpl">—</span>
+      <span style="color:#ddd;margin:0 4px;">|</span>
+      <span class="sp-label">已同步审批单：</span>
+      <span class="sp-val" id="syncCount">—</span>
+    </div>
+    <div class="sp-row" style="margin-top:6px;">
+      <button class="sp-btn" id="syncBtn" onclick="triggerSync()">手动同步</button>
+      <span id="syncResult" style="font-size:12px;"></span>
+    </div>
+    <!-- 全年一次性回填（按月透明拆分 + has_more 自动翻） -->
+    <div class="sync-full-row">
+      <label>📅 全年同步</label>
+      <select id="syncFullYear"></select>
+      <label class="dry-run-label"><input type="checkbox" id="syncFullDryRun" checked>🔒 干跑模式（不写入DB，仅预览处理/失败明细）</label>
+      <button class="full-btn" id="syncFullBtn" onclick="triggerSyncFull()">开始同步</button>
+      <span id="syncFullHint" style="font-size:11px;color:#888;">内部按 ≤30天 分块请求企微，自动合并去重；全年 200 单内通常 ≈10~30 秒</span>
+    </div>
+    <details id="syncLogDetails" class="sync-log-details">
+      <summary class="sync-log-summary" id="syncLogSummary">📜 同步回调日志（共 0 条）</summary>
+      <div class="sync-log-box" id="syncLogBox" style="display:none;"></div>
+    </details>
+  </div>
+  <div class="panel">
+    <div class="filter-bar">
+      <label>年份</label>
+      <select id="yearSel"></select>
+      <label>部门</label>
+      <select id="deptSel"><option value="0">全部</option></select>
+      <label style="width:60px;">计算方式</label>
+      <select id="exemptSel" style="width:120px;" onchange="goPage(1)"><option value="all">全部</option><option value="normal">常规</option><option value="special">两年+1天</option><option value="exempt">已豁免</option></select>
+      <label>搜索</label>
+      <input id="qInp" type="text" placeholder="姓名/账号/企微ID" onkeydown="if(event.key==='Enter') goPage(1);">
+      <button class="abtn" onclick="goPage(1)">查询</button>
+      <button class="abtn abtn-secondary" onclick="exportExcel()">导出Excel</button>
+    </div>
+  </div>
+  <div class="panel">
+    <table class="vo-table">
+      <thead>
+        <tr>
+          <th>姓名</th>
+          <th>部门</th>
+          <th>入职日期</th>
+          <th>计算方式</th>
+          <th>资格</th>
+          <th class="num">应享天数</th>
+          <th class="num">已休天数</th>
+          <th class="num">手动调整</th>
+          <th class="num">剩余余额</th>
+          <th>审批单数</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="rows">
+        <tr><td colspan="11" style="text-align:center;color:#999;padding:20px;">加载中...</td></tr>
+      </tbody>
+    </table>
+    <div class="pager" id="pager"></div>
+  </div>
+  <!-- 全年同步结果 Modal 容器（display:none；由 JS 控制内容 + 可见性） -->
+  <div id="syncFullModalRoot" style="display:none;"></div>
+</div>
+<script>
+var _curYear=new Date().getFullYear();
+var _curPage=1;
+var _pageSize=20;
+
+/**
+ * 检查登录态
+ */
+async function checkAuth(){
+  try{
+    var r=await fetch('/api/auth/me');
+    if(r.status===401){
+      window.location.href='/api/auth/login?redirect=/admin/vacation_overview';
+      return null;
+    }
+    return await r.json();
+  }catch(e){ return null; }
+}
+
+function initYearSelect(){
+  var sel=document.getElementById('yearSel');
+  for(var y=_curYear+1;y>=_curYear-1;y--){
+    var opt=document.createElement('option');
+    opt.value=y;opt.textContent=y+'年';
+    if(y===_curYear)opt.selected=true;
+    sel.appendChild(opt);
+  }
+}
+
+/**
+ * 加载部门下拉
+ */
+async function loadDepts(){
+  try{
+    var r=await fetch('/api/admin/vacation/overview?year='+_curYear+'&page=1&pageSize=1');
+    var d=await r.json();
+    if(d.success && d.depts){
+      var sel=document.getElementById('deptSel');
+      d.depts.forEach(function(dt){
+        var opt=document.createElement('option');
+        opt.value=dt.dept_id;opt.textContent=esc(dt.name);
+        sel.appendChild(opt);
+      });
+    }
+  }catch(e){}
+}
+
+/**
+ * 纯字母搜索：前端拼音过滤缓存（首拼/全拼/字母子序列）
+ * 缓存维度：year+dept，切换年份或部门时作废重拉
+ */
+var _pyCache=null;  // {key: year+"|"+dept, fetchTs: ts, allRows: [], total: N}
+function _pyCacheKey(y,d,f){ return y+'|'+d+'|'+(f||'all'); }
+function pyCacheInvalidate(){ _pyCache=null; }
+
+/**
+ * 渲染列表 + 分页（服务端路径 / 前端拼音过滤路径 共用）
+ * @param {Array} pageRows    — 当前页要显示的行（_lastList 直接绑定到这个数组，避免 data-idx 和 _lastList 索引错位）
+ * @param {Array} fullList    — 完整过滤后 list（分页总数用，不再参与 data-idx 映射）
+ * @param {number} total      — 完整过滤后总数（分页计算）
+ */
+function renderList(pageRows, fullList, total){
+  var tbody=document.getElementById('rows');
+  if(!pageRows || pageRows.length===0){
+    tbody.innerHTML='<tr><td colspan="11" style="text-align:center;color:#999;padding:20px;">暂无数据</td></tr>';
+  }else{
+    // 关键点：_lastList 必须 = 当前页数据 pageRows；data-idx 只用当前页 localIdx（0~pageSize-1）。
+    // 否则非拼音模式下 _lastList=当前页20条，但 data-idx = 全局索引（第2页=20~39），
+    // 导致 startEditHire 里 _lastList[idx] 为 undefined 直接 return，翻页后入职日期"点了没反应"。
+    _lastList=pageRows;
+    tbody.innerHTML=pageRows.map(function(x,localIdx){
+      // 计算方式：exempt=1 → 豁免, rule_type=1 → 两年+1天, 否则常规
+      var isExempt=(x.vacation_exempt===1);
+      var ruleType=isExempt?'exempt':(x.vacation_rule_type===1?'special':'normal');
+      var statusTag;
+      if(isExempt){
+        statusTag='<span class="tag-exempt">不享受年假</span>';
+      }else if(x.vacation_rule_type===1){
+        statusTag='<span class="tag-eligible">特殊规则</span>';
+      }else{
+        statusTag=x.eligible
+          ?'<span class="tag-eligible">有资格</span>'
+          :'<span class="tag-not">未满工龄</span>';
+      }
+      // 姓名前加 🚫 图标（豁免人员）
+      var nameCell='<div class="name-cell">'
+        +(isExempt?'<span class="exempt-icon">🚫</span>':'')
+        +'<span>'+esc(x.name)+'</span></div>';
+      // 计算方式下拉选择器
+      var ruleOptions='<option value="normal"'+(ruleType==='normal'?' selected':'')+'>常规</option>'
+        +'<option value="special"'+(ruleType==='special'?' selected':'')+'>两年+1天</option>'
+        +'<option value="exempt"'+(ruleType==='exempt'?' selected':'')+'>豁免</option>';
+      var ruleSelector='<div class="rule-selector" data-uid="'+esc(x.userid)+'" data-idx="'+localIdx+'">'
+        +'<select class="rs-dropdown rule-'+ruleType+'" data-uid="'+esc(x.userid)+'" data-idx="'+localIdx+'">'
+        +ruleOptions
+        +'</select>'
+        +'</div>';
+      var rawHire=x.hire_date||'';
+      var hireDisplay=rawHire
+        ?'<span class="hire-cell" data-idx="'+localIdx+'">'+esc(rawHire)+'</span>'
+        :'<span class="hire-cell" data-idx="'+localIdx+'" style="color:#ccc;">未录入 <u>点击设置</u></span>';
+      var balClass=x.balance>0?'balance-ok':(x.balance<0?'balance-warn':'balance-zero');
+      var manualDelta=x.manual_delta>0?('+'+x.manual_delta):(''+x.manual_delta);
+      var manualClass=x.manual_delta>0?'color:#2e7d32':(x.manual_delta<0?'color:#c62828':'color:#999');
+      // 豁免人员不显示调整按钮（因 eligible=false）
+      var adjustBtn=(!isExempt && x.eligible)
+        ?'<a href="/admin/vacation_adjust?userid='+encodeURIComponent(x.userid)+'" style="color:#07c160;font-size:12px;">调整</a>'
+        :'<span style="color:#bbb;font-size:12px;">—</span>';
+      return '<tr data-uid="'+esc(x.userid)+'">'
+        +'<td data-field="name">'+nameCell+'</td>'
+        +'<td data-field="dept">'+esc(x.dept_name||'-')+'</td>'
+        +'<td data-field="hire_date">'+hireDisplay+'</td>'
+        +'<td data-field="rule">'+ruleSelector+'</td>'
+        +'<td data-field="status">'+statusTag+'</td>'
+        +'<td data-field="entitlement" class="num">'+(x.eligible?x.entitlement:'-')+'</td>'
+        +'<td data-field="used_days" class="num">'+(x.eligible?x.used_days:'-')+'</td>'
+        +'<td data-field="manual_delta" class="num" style="'+manualClass+'">'+(x.eligible?manualDelta:'-')+'</td>'
+        +'<td data-field="balance" class="num '+balClass+'">'+(x.eligible?x.balance:'-')+'</td>'
+        +'<td data-field="approval_count">'+(x.eligible?x.approval_count:'-')+'</td>'
+        +'<td data-field="action">'+adjustBtn+'</td>'
+        +'</tr>';
+    }).join('');
+    // 注意：_lastList 在 else 分支开头已赋值 = 当前页 pageRows（此处不再重复覆盖）
+  }
+  var totalPages=Math.ceil(total/_pageSize)||1;
+  renderPager('pager',_curPage,totalPages,total,_pageSize,'goPage','changePageSize');
+}
+
+/**
+ * 加载列表
+ *  - 纯字母 query：走前端拼音过滤（一次性拉全量当前部门+年份，本地 matchPinyinQuery 过滤后分页）
+ *  - 其他 query：走后端 LIKE 原逻辑
+ */
+async function goPage(p){
+  _curPage=p||1;
+  var year=document.getElementById('yearSel').value;
+  var dept=document.getElementById('deptSel').value;
+  var q=document.getElementById('qInp').value.trim();
+  var filter=document.getElementById('exemptSel').value;
+  var tbody=document.getElementById('rows');
+  tbody.innerHTML='<tr><td colspan="11" style="text-align:center;color:#999;padding:20px;">加载中...</td></tr>';
+  var isPinyinMode = q!=='' && /^[a-zA-Z]+$/.test(q);
+  try{
+    if(isPinyinMode){
+      // —— 首拼/全拼搜索：先拉全量再前端过滤 ——
+      var cacheKey=_pyCacheKey(year,dept,filter);
+      var allRows=null, total=null;
+      if(_pyCache && _pyCache.key===cacheKey && (Date.now()-_pyCache.fetchTs)<60000){
+        allRows=_pyCache.allRows; total=_pyCache.total;
+      }else{
+        // 1000 条足够覆盖公司全员，避免 OOM 与接口超时
+        var allUrl='/api/admin/vacation/overview?year='+encodeURIComponent(year)+'&dept='+encodeURIComponent(dept)
+                  +'&filter='+encodeURIComponent(filter)
+                  +'&q=&page=1&pageSize=1000';
+        var rAll=await fetch(allUrl);
+        var dAll=await rAll.json();
+        if(!dAll.success){
+          tbody.innerHTML='<tr><td colspan="11" style="text-align:center;color:#fa5151;padding:20px;">'+esc(dAll.error||'加载失败')+'</td></tr>';
+          return;
+        }
+        allRows=dAll.list||[]; total=(dAll.total||0);
+        _pyCache={key:cacheKey,fetchTs:Date.now(),allRows:allRows,total:total};
+      }
+      var qLow=q.toLowerCase();
+      var filtered=allRows.filter(function(x){
+        // 搜索框职责：人员字段。部门筛选统一走 deptSel 下拉框，职责不重叠
+        return matchPinyinQuery(q, x.name||'')
+            || ((x.userid||'').toLowerCase().indexOf(qLow)>=0)
+            || ((x.wecom_userid||'').toLowerCase().indexOf(qLow)>=0);
+      });
+      var start=(_curPage-1)*_pageSize;
+      var pageRows=filtered.slice(start, start+_pageSize);
+      renderList(pageRows, filtered, filtered.length);
+    }else{
+      // —— 普通中文/数字查询：仍走后端 LIKE，拼音缓存失效（避免搜索模式切回时看到旧数据）
+      pyCacheInvalidate();
+      var url='/api/admin/vacation/overview?year='+encodeURIComponent(year)+'&dept='+encodeURIComponent(dept)+'&filter='+encodeURIComponent(filter)+'&q='+encodeURIComponent(q)+'&page='+_curPage+'&pageSize='+_pageSize;
+      var r=await fetch(url);
+      var d=await r.json();
+      if(!d.success){
+        tbody.innerHTML='<tr><td colspan="11" style="text-align:center;color:#fa5151;padding:20px;">'+esc(d.error||'加载失败')+'</td></tr>';
+        return;
+      }
+      var list=d.list||[];
+      renderList(list, list, d.total||0);
+    }
+  }catch(e){
+    tbody.innerHTML='<tr><td colspan="11" style="text-align:center;color:#fa5151;padding:20px;">加载失败：'+esc(e.message||e)+'</td></tr>';
+  }
+}
+
+/**
+ * 导出当前筛选条件下的年假总览为 xlsx（后端全量生成，不受前端分页限制）
+ *
+ * 浏览器端以 a[download] 触发保存而非 fetch → new Blob，避免：
+ *   1) 跨浏览器 blob URL 对 Content-Disposition 文件名的忽略
+ *   2) fetch + blob 无法在失败时读取 500 的文本错误体
+ */
+function exportExcel(){
+  var year=document.getElementById('yearSel').value;
+  var dept=document.getElementById('deptSel').value;
+  var q=document.getElementById('qInp').value.trim();
+  var filter=document.getElementById('exemptSel').value;
+  var params=[];
+  params.push('year='+encodeURIComponent(year));
+  params.push('dept='+encodeURIComponent(dept));
+  params.push('filter='+encodeURIComponent(filter));
+  if(q!=='') params.push('q='+encodeURIComponent(q));
+  var url='/api/admin/vacation/overview_export?'+params.join('&');
+
+  // 先用 HEAD 风格的 fetch 预览错误（避免错误内容被当作 xlsx 下载）
+  fetch(url,{method:'GET',credentials:'same-origin'}).then(async function(r){
+    if(!r.ok){
+      var msg='导出失败（HTTP '+r.status+'）';
+      try{ msg+='：'+await r.text(); }catch(e){}
+      alert(msg);
+      return;
+    }
+    var disp=r.headers.get('Content-Disposition')||'';
+    var m=disp.match(/filename\*=UTF-8''([^;]+)/i);
+    var suggest;
+    try{ suggest=m?decodeURIComponent(m[1]):null; }catch(e){ suggest=null; }
+    var blob=await r.blob();
+    var objUrl=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    a.href=objUrl;
+    a.download=suggest||('年假总览_'+year+'_'+Date.now()+'.xlsx');
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){URL.revokeObjectURL(objUrl);},1000);
+  }).catch(function(e){
+    alert('导出失败：'+(e.message||e));
+  });
+}
+
+function changePageSize(sz){
+  _pageSize=parseInt(sz)||20;
+  goPage(1);
+}
+
+document.addEventListener('DOMContentLoaded', async function(){
+  var me=await checkAuth();
+  if(!me) return;
+  var info=document.getElementById('userInfo');
+  if(me.name){
+    info.innerHTML='<span class="u-name">'+esc(me.name)+'</span>';
+  }
+  initYearSelect();
+  initSyncFullYearSelect();
+  await loadDepts();
+  loadSyncStatus();
+  goPage(1);
+});
+
+/**
+ * 加载同步状态 + 回调日志摘要
+ */
+async function loadSyncStatus(){
+  try{
+    var r=await fetch('/api/admin/vacation/sync');
+    var d=await r.json();
+    if(!d.success) return;
+    document.getElementById('syncLastTime').textContent=d.last_sync_at||'尚未同步';
+    document.getElementById('syncTpl').textContent=d.template_configured?(d.template_id+'…'):'未配置';
+    document.getElementById('syncTpl').className='sp-val '+(d.template_configured?'sp-ok':'sp-err');
+    document.getElementById('syncCount').textContent=d.approval_count+' 条';
+    // 回调日志
+    var logs=d.recent_logs||[];
+    if(logs.length>0){
+      var statusMap={'url_verified':'URL验证','url_verify_failed':'URL验证失败','success':'同步成功','skipped':'跳过','skipped_tpl':'非年假','skipped_status':'中间态','skipped_account':'账号未匹配','error':'同步错误','no_sp_no':'无单号','not_applicable':'不适用','unsupported_method':'不支持'};
+      var html=logs.map(function(l){
+        var sigTag=l.sig_ok===true?'<span class="sp-ok">✅签名</span>':(l.sig_ok===false?'<span class="sp-err">❌签名</span>':'');
+        var decTag=l.decrypt_ok===true?'<span class="sp-ok">✅解密</span>':(l.decrypt_ok===false?'<span class="sp-err">❌解密</span>':'');
+        var s=l.sync_status||'';
+        var cls;
+        if(s==='success') cls='sp-ok';
+        else if(s==='error'||s==='url_verify_failed') cls='sp-err';
+        else if(s==='skipped_status'||s==='no_sp_no') cls='sp-warn';
+        else cls='sp-info';
+        var syncTag=s?(' → <span class="'+cls+'">'+esc(statusMap[s]||s)+'</span>'):'';
+        if(l.sync_detail) syncTag+=' <span style="color:#999;font-size:11px;">'+esc(l.sync_detail)+'</span>';
+        var nameTag=l.apply_name?(' ['+esc(l.apply_name)+']'):'';
+        return '<div class="sync-log-item">'+esc(l.time||'')+' ['+esc(l.method||'')+'] '+sigTag+' '+decTag
+          +(l.sp_no?(' <span class="sp-label">单号:</span> '+esc(l.sp_no)+nameTag):'')
+          +syncTag+'</div>';
+      }).join('');
+      document.getElementById('syncLogBox').innerHTML=html;
+      document.getElementById('syncLogBox').style.display='block';
+      var sumEl=document.getElementById('syncLogSummary');
+      if(sumEl) sumEl.textContent='📜 同步回调日志（共 '+(logs?logs.length:0)+' 条）';
+    }
+    document.getElementById('syncPanel').style.display='block';
+  }catch(e){}
+}
+
+/**
+ * 手动触发批量同步
+ */
+async function triggerSync(){
+  var btn=document.getElementById('syncBtn');
+  var resultEl=document.getElementById('syncResult');
+  btn.disabled=true;
+  // 同步开始前自动展开日志折叠区，避免用户看不到进度
+  var det=document.getElementById('syncLogDetails');
+  if(det) det.open=true;
+  resultEl.innerHTML='<span class="sp-warn">正在同步…</span>';
+  try{
+    var r=await fetch('/api/admin/vacation/sync',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({lookback_days:30})
+    });
+    var d=await r.json();
+    if(!d.success){
+      resultEl.innerHTML='<span class="sp-err">❌ '+esc(d.error||'同步失败')+'</span>';
+    }else{
+      var parts=[];
+      parts.push('处理 '+d.processed+' 条');
+      if(d.inserted_approvals>0) parts.push('新增审批 '+d.inserted_approvals);
+      if(d.ledger_changes>0) parts.push('ledger 变动 '+d.ledger_changes);
+      if(d.skipped>0) parts.push('跳过 '+d.skipped);
+      if(d.errors && d.errors.length>0) parts.push('<span class="sp-err">错误 '+d.errors.length+'</span>');
+      resultEl.innerHTML='<span class="sp-ok">✅ '+parts.join('，')+'</span>';
+      // 刷新状态 + 列表
+      await loadSyncStatus();
+      goPage(1);
+    }
+  }catch(e){
+    resultEl.innerHTML='<span class="sp-err">❌ '+(e.message||e)+'</span>';
+  }
+  btn.disabled=false;
+}
+
+// ================== 全年审批单同步（一次性回填 / 干跑预览） ==================
+function initSyncFullYearSelect(){
+  var sel=document.getElementById('syncFullYear');
+  if(!sel) return;
+  sel.innerHTML='';
+  for(var y=_curYear+1;y>=_curYear-1;y--){
+    var opt=document.createElement('option');
+    opt.value=y;opt.textContent=y+'年';
+    if(y===_curYear) opt.selected=true;
+    sel.appendChild(opt);
+  }
+}
+
+function _spStatusPill(s){
+  var cls='status-'+(s===1||s===2||s===3||s===4||s===6?s:0);
+  var txt=({1:'审批中',2:'已通过',3:'已驳回',4:'主动撤销',6:'通过后撤销',0:'未知'})[s]||('状态'+s);
+  return '<span class="status-pill '+cls+'">'+esc(txt)+'</span>';
+}
+
+function openSyncFullModal(html){
+  var root=document.getElementById('syncFullModalRoot');
+  if(!root) return;
+  root.innerHTML=html;
+  root.style.display='block';
+}
+function closeSyncFullModal(){
+  var root=document.getElementById('syncFullModalRoot');
+  if(root){ root.innerHTML=''; root.style.display='none'; }
+}
+function syncFullToggleCollapse(btn, targetId){
+  var el=document.getElementById(targetId);
+  if(!el) return;
+  var hidden=el.style.display==='none';
+  el.style.display=hidden?'block':'none';
+  btn.classList.toggle('collapsed', !hidden);
+}
+
+/**
+ * 全年审批单同步：打开模态窗 → 发送 AJAX → 渲染汇总/失败/跳过明细
+ * 设计为什么要走"模态弹窗"而不是像 triggerSync 只在按钮下方显示一行？
+ *   因为全年可能 100~200 单，有几十条失败/跳过的解释性信息需要完整表格展示，
+ *   卡片下方一行空间严重不足；模态窗能提供全宽 + 滚动区 + 明细折叠，阅读体验最好。
+ */
+async function triggerSyncFull(){
+  var btn=document.getElementById('syncFullBtn');
+  var dryEl=document.getElementById('syncFullDryRun');
+  var yearEl=document.getElementById('syncFullYear');
+  var dryRun=dryEl && dryEl.checked?1:0;
+  var year=parseInt(yearEl?yearEl.value:_curYear)||_curYear;
+
+  btn.disabled=true;
+  // 同步开始前自动展开日志折叠区，避免用户看不到进度
+  var det=document.getElementById('syncLogDetails');
+  if(det) det.open=true;
+  // 打开进度模态（先显示 loading 态）
+  openSyncFullModal(
+    '<div class="modal-mask" onclick="if(event.target===this) closeSyncFullModal()">'
+    +'<div class="modal-card">'
+    +'  <div class="hd"><div class="t">📅 '+year+'年 年假审批单同步'
+    +(dryRun?' <span style="font-size:11px;color:#b26a00;background:#fff8e1;border:1px solid #ffe082;padding:2px 6px;border-radius:4px;margin-left:4px;">🔒 干跑模式</span>':'')
+    +'</div><span class="x" onclick="closeSyncFullModal()">×</span></div>'
+    +'  <div class="bd">'
+    +'    <div class="prog-line" id="sfProgress">'
+    +'      🔎 向企微拉取 '+year+' 年全部审批单号（内部按 ≤30天 自动拆分 chunk + has_more 翻页）…<br>'
+    +'      单条详情 API 约 100~200ms/单，请耐心等待（全年 200 单预计 20~40 秒）'
+    +'      <div class="bar-wrap"><div class="bar" id="sfBar"></div></div>'
+    +'      <span id="sfPct" style="font-family:Consolas,Monaco,monospace;color:#666;">准备中…</span>'
+    +'    </div>'
+    +'  </div>'
+    +'  <div class="ft">'
+    +'    <button class="bbtn" disabled>请稍候…</button>'
+    +'  </div>'
+    +'</div></div>'
+  );
+
+  // 假进度（因为后端一次性返回，没法拿到真实进度；但让用户知道程序没卡住）
+  var bar=document.getElementById('sfBar');
+  var pctEl=document.getElementById('sfPct');
+  var fakePct=0,fakeTimer=null;
+  if(bar){
+    fakeTimer=setInterval(function(){
+      fakePct=Math.min(92, fakePct+(fakePct<30?1.8:(fakePct<70?0.7:0.2)));
+      bar.style.width=fakePct.toFixed(1)+'%';
+      if(pctEl) pctEl.textContent=fakePct.toFixed(0)+'%';
+    }, 120);
+  }
+
+  try{
+    var r=await fetch('/api/admin/vacation/sync_full',{
+      method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body:'year='+encodeURIComponent(year)+'&dry_run='+encodeURIComponent(dryRun)
+    });
+    var d=await r.json();
+    if(fakeTimer){ clearInterval(fakeTimer); fakeTimer=null; }
+    if(bar){ bar.style.width='100%'; if(pctEl) pctEl.textContent='100%'; }
+
+    if(!d.success){
+      _renderSyncFullError(year, dryRun, d.error||'同步失败', d.errcode||null);
+    }else{
+      _renderSyncFullResult(year, dryRun, d);
+      // 正式写入模式下：刷新顶部状态 + 列表数据（ledger 变动 → 余额重算）
+      if(!dryRun){
+        try{ await loadSyncStatus(); }catch(_e){}
+        try{ goPage(_curPage); }catch(_e){}
+      }
+    }
+  }catch(e){
+    if(fakeTimer){ clearInterval(fakeTimer); fakeTimer=null; }
+    _renderSyncFullError(year, dryRun, (e&&e.message)?e.message:('请求失败:'+e), null);
+  }
+  btn.disabled=false;
+}
+
+function _renderSyncFullError(year, dryRun, msg, errcode){
+  openSyncFullModal(
+    '<div class="modal-mask" onclick="if(event.target===this) closeSyncFullModal()">'
+    +'<div class="modal-card">'
+    +'  <div class="hd"><div class="t">📅 '+year+'年 年假审批单同步 — 失败'
+    +(dryRun?' <span style="font-size:11px;color:#b26a00;background:#fff8e1;border:1px solid #ffe082;padding:2px 6px;border-radius:4px;margin-left:4px;">🔒 干跑模式</span>':'')
+    +'</div><span class="x" onclick="closeSyncFullModal()">×</span></div>'
+    +'  <div class="bd">'
+    +'    <div class="dry-run-banner">⚠️ 调用失败：'+esc(msg)
+    +(errcode?'（企微 errcode='+errcode+'）':'')
+    +'</div>'
+    +'    <div style="font-size:12px;color:#666;">请检查：①模板ID是否正确；②审批系统应用是否把自建应用加入可调用白名单；③网络连通性；或用 _test_vacation_sync.php 详细调试页定位。</div>'
+    +'  </div>'
+    +'  <div class="ft">'
+    +'    <button class="bbtn primary" onclick="closeSyncFullModal()">关闭</button>'
+    +'  </div>'
+    +'</div></div>'
+  );
+}
+
+function _renderSyncFullResult(year, dryRun, d){
+  var total=parseInt(d.total)||0;
+  var ok=parseInt(d.processed_ok)||0;
+  var sk=parseInt(d.skipped)||0;
+  var fa=parseInt(d.failed)||0;
+  var lg=parseInt(d.ledger_changes)||0;
+  var range=(d.range&&d.range.length===2)?(d.range[0]+' ~ '+d.range[1]):'';
+  var skip=(d.skip_logs||[]);
+  var fail=(d.fail_logs||[]);
+
+  var failHtml='';
+  if(fail.length===0){
+    failHtml='<div style="font-size:12px;color:#2e7d32;">✅ 无失败审批单</div>';
+  }else{
+    failHtml='<table class="mini-table"><thead><tr>'
+      +'<th style="width:140px;">审批单号</th><th style="width:90px;">姓名</th><th style="width:96px;">状态</th>'
+      +'<th>失败原因</th></tr></thead><tbody>'
+      +fail.map(function(x){
+        return '<tr>'
+          +'<td>'+esc(x.sp_no||'')+'</td>'
+          +'<td>'+esc(x.name||'-')+'</td>'
+          +'<td>'+_spStatusPill(parseInt(x.status)||0)+'</td>'
+          +'<td class="err">'+esc(x.error||'')+'</td>'
+          +'</tr>';
+      }).join('')
+      +'</tbody></table>';
+  }
+
+  var skipHtml='';
+  if(skip.length===0){
+    skipHtml='<div style="font-size:12px;color:#555;">— 无跳过明细</div>';
+  }else{
+    skipHtml='<table class="mini-table"><thead><tr>'
+      +'<th style="width:140px;">审批单号</th><th style="width:90px;">姓名</th><th style="width:96px;">状态</th>'
+      +'<th>跳过原因</th></tr></thead><tbody>'
+      +skip.map(function(x){
+        return '<tr>'
+          +'<td>'+esc(x.sp_no||'')+'</td>'
+          +'<td>'+esc(x.name||'-')+'</td>'
+          +'<td>'+_spStatusPill(parseInt(x.status)||0)+'</td>'
+          +'<td class="skip">'+esc(x.reason||'')+'</td>'
+          +'</tr>';
+      }).join('')
+      +'</tbody></table>';
+  }
+
+  var banner='';
+  if(dryRun){
+    banner='<div class="dry-run-banner">🔒 当前为 <b>干跑模式</b>：所有数据库写入操作均已被事务回滚，DB 零污染。请在确认"处理成功"+"失败明细符合预期"后，取消勾选「干跑模式」再点一次正式写入。</div>';
+  }else{
+    banner='<div style="background:#e8f5e9;border:1px solid #a5d6a7;color:#2e7d32;padding:8px 12px;border-radius:6px;font-size:12px;margin-bottom:12px;">✅ <b>已正式写入</b>：'+(d.last_sync_at?('同步时间 '+esc(d.last_sync_at)):'完成')
+      +(lg>0?('，'+lg+' 条流水已更新（扣除/冲回）；页面下方余额会自动重算刷新。'):'；流水无变动。')
+      +'</div>';
+  }
+
+  openSyncFullModal(
+    '<div class="modal-mask" onclick="if(event.target===this) closeSyncFullModal()">'
+    +'<div class="modal-card">'
+    +'  <div class="hd"><div class="t">📅 '+year+'年 年假审批单同步 — 完成'
+    +(dryRun?' <span style="font-size:11px;color:#b26a00;background:#fff8e1;border:1px solid #ffe082;padding:2px 6px;border-radius:4px;margin-left:4px;">🔒 干跑模式</span>':'')
+    +'</div><span class="x" onclick="closeSyncFullModal()">×</span></div>'
+    +'  <div class="bd">'
+    +banner
+    +'    <div style="font-size:12px;color:#666;margin-bottom:8px;">时间范围：'+esc(range||'-')+'</div>'
+    +'    <div class="sum-box">'
+    +'      <div class="it t-total"><div class="n">'+total+'</div><div class="l">审批单总数</div></div>'
+    +'      <div class="it t-ok"><div class="n">'+ok+'</div><div class="l">处理成功（扣减/冲回/快照）</div></div>'
+    +'      <div class="it t-skip"><div class="n">'+sk+'</div><div class="l">跳过（非扣减状态）</div></div>'
+    +'      <div class="it t-fail"><div class="n">'+fa+'</div><div class="l">失败（需排查）</div></div>'
+    +'      <div class="it t-ledge"><div class="n">'+lg+'</div><div class="l">流水 ledger 变动</div></div>'
+    +'    </div>'
+    +'    <div class="collapse-t" id="sfCollapseFailT" onclick="syncFullToggleCollapse(this, \'sfFailBox\')">'
+    +'      <span class="arr">▼</span> 失败明细（'+fa+' 条）'
+    +'    </div>'
+    +'    <div id="sfFailBox">'+failHtml+'</div>'
+    +'    <div class="collapse-t collapsed" id="sfCollapseSkipT" onclick="syncFullToggleCollapse(this, \'sfSkipBox\')">'
+    +'      <span class="arr">▼</span> 跳过明细（'+sk+' 条）'
+    +'    </div>'
+    +'    <div id="sfSkipBox" style="display:none;">'+skipHtml+'</div>'
+    +'    <div style="margin-top:16px;padding:10px 12px;background:#f5f8ff;border:1px solid #d3e0ff;border-radius:6px;font-size:12px;color:#334155;line-height:1.7;">'
+    +'      <b>💡 常见失败原因：</b><br>'
+    +'      1) <b>未匹配到内部账号</b>：users.wecom_userid 为空 / 与审批单 apply_userid 不一致 → HR 先到「员工档案」维护好企微ID或姓名匹配后重跑。<br>'
+    +'      2) <b>控件索引解析不到休假区间</b>：settings.vacation_daterange_idx（默认 5）与实际审批单中 DateRange 控件索引不符 → 去 `vacation_rules` 页重校验后更新索引。<br>'
+    +'      3) <b>写入 vacation_ledger 失败</b>：userid/year/source/ref_no 已在事务中或字段约束触发 → 点一次干跑确认后通常重试即可。'
+    +'    </div>'
+    +'  </div>'
+    +'  <div class="ft">'
+    +(fa>0?'    <button class="bbtn" onclick="closeSyncFullModal();triggerSyncFull();" style="margin-right:auto;">🔁 修复后重新运行（保留参数）</button>':'')
+    +(dryRun?'    <button class="bbtn" onclick="document.getElementById(\'syncFullDryRun\').checked=false;closeSyncFullModal();triggerSyncFull();" title="取消干跑并重新执行正式写入">📝 去干跑 → 正式写入</button>':'')
+    +'    <button class="bbtn primary" onclick="closeSyncFullModal();">关闭</button>'
+    +'  </div>'
+    +'</div></div>'
+  );
+}
+
+// ================== 入职日期 inline-edit ==================
+var _lastList=[];
+var _editingCell=null;
+
+/**
+ * 保留空实现兼容旧调用；已改为 tbody 父级事件委托（一次绑定，翻页/搜索/刷新永生效）
+ */
+function bindHireClicks(){}
+
+/**
+ * 事件委托（绑一次，永远生效）：点击 .hire-cell 进入编辑；
+ *  不使用每次翻页 addEventListener 的原因：① 翻页后 DOM 重建易漏绑；② 重复绑定导致 startEditHire 被抢占（_editingCell 防重入锁直接拦截第二次）。
+ *  事件委托 100% 覆盖任何场景下新渲染的入职日期单元格。
+ */
+document.addEventListener('DOMContentLoaded', function(){
+  var tbody = document.getElementById('rows');
+  if(!tbody) return;
+  tbody.addEventListener('click', function(e){
+    // 入职日期编辑
+    var cell = e.target && e.target.closest ? e.target.closest('.hire-cell') : null;
+    if(cell){
+      if(_editingCell) return;   // 同一时间只允许一个编辑框
+      startEditHire(cell);
+      return;
+    }
+  });
+  // 计算方式下拉选择器：用 change 事件
+  tbody.addEventListener('change', function(e){
+    var sel = e.target;
+    if(sel && sel.classList && sel.classList.contains('rs-dropdown')){
+      onRuleChange(sel);
+    }
+  });
+});
+
+/**
+ * 计算方式切换处理
+ * 常规→豁免：直接切换
+ * 常规→两年+1天：弹出参数表单
+ * 两年+1天→常规：清除特殊参数
+ * 其他组合：直接切换
+ * @param {HTMLSelectElement} sel 下拉选择器
+ */
+async function onRuleChange(sel){
+  // 防止快速连续切换导致的竞态问题
+  if(sel._changing){
+    // 如果正在处理中，强制回滚下拉框到当前状态
+    var uidRollback=sel.getAttribute('data-uid');
+    var idxRollback=parseInt(sel.getAttribute('data-idx'));
+    var rowRollback=_lastList[idxRollback];
+    if(rowRollback){
+      if(rowRollback.vacation_exempt===1) sel.value='exempt';
+      else if(rowRollback.vacation_rule_type===1) sel.value='special';
+      else sel.value='normal';
+    }
+    return;
+  }
+
+  var uid=sel.getAttribute('data-uid');
+  var idx=parseInt(sel.getAttribute('data-idx'));
+  var row=_lastList[idx];
+  if(!uid||!row) return;
+
+  var newType=sel.value;
+  var oldType;
+  if(row.vacation_exempt===1) oldType='exempt';
+  else if(row.vacation_rule_type===1) oldType='special';
+  else oldType='normal';
+
+  // 如果切换到"两年+1天"，弹出参数表单
+  if(newType==='special' && oldType!=='special'){
+    showSpecialRuleForm(sel, uid, idx, row, oldType);
+    return;  // 等待弹窗处理
+  }
+
+  // 设置锁定标志
+  sel._changing = true;
+  try {
+    // 直接切换（常规/豁免互转，或特殊→常规/豁免）
+    await applyRuleChange(uid, idx, newType, {}, oldType);
+  } finally {
+    sel._changing = false;
+  }
+}
+
+/**
+ * 显示特殊规则参数配置弹窗
+ */
+function showSpecialRuleForm(sel, uid, idx, row, oldType){
+  // 关闭已存在的弹窗
+  hideSpecialRuleForm();
+
+  var popover=document.createElement('div');
+  popover.className='special-rule-popover';
+  popover.id='specialRulePopover';
+
+  var startDate=row.vacation_special_start || '2026-01-01';
+  var baseDays=row.vacation_special_days || 3;
+  var capDays=row.vacation_special_cap || 15;
+
+  popover.innerHTML=
+    '<div class="srp-title">两年+1天 规则参数</div>'
+    +'<div class="srp-row"><label>起点日期</label><input type="date" id="srpStart" value="'+esc(startDate)+'"></div>'
+    +'<div class="srp-row"><label>基础天数</label><input type="number" id="srpBase" min="1" max="30" value="'+esc(String(baseDays))+'"></div>'
+    +'<div class="srp-row"><label>封顶天数</label><input type="number" id="srpCap" min="1" max="30" value="'+esc(String(capDays))+'"></div>'
+    +'<div class="srp-actions">'
+    +'<button class="srp-save" id="srpSave">保存</button>'
+    +'<button class="srp-cancel" id="srpCancel">取消</button>'
+    +'</div>';
+
+  // 插入到 select 后面
+  sel.closest('.rule-selector').appendChild(popover);
+
+  // 增加标志位，防止保存后被外部点击回滚
+  var isSaving = false;
+
+  // 定义外部点击关闭处理
+  function outsideClickClose(e){
+    // 如果正在保存或已保存，禁止回滚
+    if(isSaving) return;
+    // 如果弹窗已经被移除（比如保存成功后），直接移除监听并返回
+    if(!document.getElementById('specialRulePopover')){
+      document.removeEventListener('click', outsideClickClose);
+      return;
+    }
+    if(!popover.contains(e.target) && e.target!==sel){
+      hideSpecialRuleForm();
+      sel.value=oldType;
+      sel.className='rs-dropdown rule-'+oldType;
+      document.removeEventListener('click', outsideClickClose);
+    }
+  }
+
+  // 保存按钮
+  document.getElementById('srpSave').addEventListener('click', async function(){
+    isSaving = true; // 锁定状态
+    var startDate=document.getElementById('srpStart').value;
+    var baseDays=parseInt(document.getElementById('srpBase').value)||3;
+    var capDays=parseInt(document.getElementById('srpCap').value)||15;
+
+    if(!startDate){ alert('请选择起点日期'); isSaving = false; return; }
+    if(baseDays<1){ alert('基础天数不能小于1'); isSaving = false; return; }
+    if(capDays<1){ alert('封顶天数不能小于1'); isSaving = false; }
+
+    // 先移除全局监听，防止保存后点击其他地方触发回滚
+    document.removeEventListener('click', outsideClickClose);
+    hideSpecialRuleForm();
+    await applyRuleChange(uid, idx, 'special', {
+      special_start: startDate,
+      special_days: baseDays,
+      special_cap: capDays
+    }, oldType);
+    isSaving = false; // 恢复状态
+  });
+
+  // 取消按钮
+  document.getElementById('srpCancel').addEventListener('click', function(){
+    isSaving = true; // 锁定状态
+    document.removeEventListener('click', outsideClickClose);
+    hideSpecialRuleForm();
+    // 恢复下拉选择
+    sel.value=oldType;
+    sel.className='rs-dropdown rule-'+oldType;
+    isSaving = false;
+  });
+
+  // 点击外部关闭
+  setTimeout(function(){
+    document.addEventListener('click', outsideClickClose);
+  }, 0);
+}
+
+function hideSpecialRuleForm(){
+  var existing=document.getElementById('specialRulePopover');
+  if(existing) existing.remove();
+}
+
+/**
+ * 应用计算方式变更
+ */
+async function applyRuleChange(uid, idx, newType, params, oldType){
+  var row=_lastList[idx];
+  if(!row) return;
+
+  var sel=document.querySelector('.rule-selector[data-uid="'+uid+'"] .rs-dropdown');
+  // 乐观更新 UI
+  if(sel){
+    sel.value=newType;
+    sel.className='rs-dropdown rule-'+newType;
+  }
+
+  try{
+    var body={userid:uid, rule_type:newType};
+    if(params.special_start) body.special_start=params.special_start;
+    if(params.special_days) body.special_days=params.special_days;
+    if(params.special_cap) body.special_cap=params.special_cap;
+
+    var r=await fetch('/api/admin/vacation/overview_set_rule',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(body)
+    });
+    var d=await r.json();
+    if(!d.success){
+      // 回滚
+      if(sel){
+        sel.value=oldType;
+        sel.className='rs-dropdown rule-'+oldType;
+      }
+      alert(d.error||'保存失败');
+      return;
+    }
+
+    // 更新 _lastList 数据
+    if(newType==='exempt'){
+      row.vacation_exempt=1;
+      row.vacation_rule_type=0;
+    }else if(newType==='special'){
+      row.vacation_exempt=0;
+      row.vacation_rule_type=1;
+      row.vacation_special_start=params.special_start||'2026-01-01';
+      row.vacation_special_days=params.special_days||3;
+      row.vacation_special_cap=params.special_cap||15;
+    }else{
+      row.vacation_exempt=0;
+      row.vacation_rule_type=0;
+      row.vacation_special_start='';
+      row.vacation_special_days=3;
+      row.vacation_special_cap=15;
+    }
+
+    // 使用后端返回的最新计算数据刷新余额、应享天数等
+    if(d.details && d.details.length > 0){
+      var updatedData = d.details[0].balance_data;
+      if(updatedData){
+        row.eligible = updatedData.eligible;
+        row.entitlement = updatedData.entitlement;
+        row.used_days = updatedData.used_days;
+        row.manual_delta = updatedData.manual_delta;
+        row.balance = updatedData.balance;
+        row.approval_count = updatedData.approval_count;
+        row.eligible_detail = updatedData.eligible_detail;
+      }
+    }
+
+    // 刷新当前行显示
+    refreshRowDisplay(uid, row, newType);
+  }catch(e){
+    // 回滚
+    if(sel){
+      sel.value=oldType;
+      sel.className='rs-dropdown rule-'+oldType;
+    }
+    alert('网络异常：'+(e.message||e));
+  }
+}
+
+/**
+ * 刷新当前行显示（资格标签、数字列、调整按钮等）
+ * 使用 data-field 属性精确查找单元格，避免依赖数组索引导致的错位问题
+ */
+function refreshRowDisplay(uid, row, ruleType){
+  var tr=document.querySelector('tr[data-uid="'+uid+'"]');
+  if(!tr) return;
+
+  var isExempt=ruleType==='exempt';
+
+  // 辅助函数：设置指定字段的文本或HTML
+  function setField(field, value, isHTML){
+    var cell=tr.querySelector('td[data-field="'+field+'"]');
+    if(!cell) return;
+    if(isHTML){
+      cell.innerHTML = value;
+    }else{
+      cell.textContent = value;
+    }
+  }
+
+  // 资格标签（status 字段）
+  var statusHTML;
+  if(isExempt){
+    statusHTML = '<span class="tag-exempt">不享受年假</span>';
+  }else if(ruleType==='special'){
+    statusHTML = '<span class="tag-eligible">特殊规则</span>';
+  }else{
+    statusHTML = row.eligible
+      ?'<span class="tag-eligible">有资格</span>'
+      :'<span class="tag-not">未满工龄</span>';
+  }
+  setField('status', statusHTML, true);
+
+  // 姓名列 🚫 图标（name 字段）
+  var nameCell=tr.querySelector('td[data-field="name"]');
+  if(nameCell){
+    var icon=nameCell.querySelector('.exempt-icon');
+    if(isExempt && !icon){
+      nameCell.insertAdjacentHTML('afterbegin','<span class="exempt-icon">🚫</span>');
+    }else if(!isExempt && icon){
+      icon.remove();
+    }
+  }
+
+  // 数字列和调整按钮
+  if(isExempt){
+    setField('entitlement', '-');
+    setField('used_days', '-');
+    setField('manual_delta', '-');
+    var balCell=tr.querySelector('td[data-field="balance"]');
+    if(balCell){ balCell.textContent='-'; balCell.className='num'; }
+    setField('approval_count', '-');
+    setField('action', '<span style="color:#bbb;font-size:12px;">—</span>', true);
+  }else if(ruleType==='special'){
+    // 特殊规则：始终显示计算结果，不受常规 eligible 限制
+    setField('entitlement', row.entitlement||0);
+    setField('used_days', row.used_days||0);
+    var manDelta=(row.manual_delta||0);
+    setField('manual_delta', manDelta>0?('+'+manDelta):(''+manDelta));
+    var balCellSpecial=tr.querySelector('td[data-field="balance"]');
+    if(balCellSpecial){
+      balCellSpecial.textContent=row.balance||0;
+      var balClassSpecial=(row.balance||0)>0?'balance-ok':((row.balance||0)<0?'balance-warn':'balance-zero');
+      balCellSpecial.className='num '+balClassSpecial;
+    }
+    setField('approval_count', row.approval_count||0);
+    setField('action', '<a href="/admin/vacation_adjust?userid='+encodeURIComponent(row.userid)+'" style="color:#07c160;font-size:12px;">调整</a>', true);
+  }else{
+    // 常规规则
+    setField('entitlement', row.eligible?row.entitlement:'-');
+    setField('used_days', row.eligible?row.used_days:'-');
+    var manDeltaNormal=(row.manual_delta||0);
+    setField('manual_delta', row.eligible?(manDeltaNormal>0?('+'+manDeltaNormal):(''+manDeltaNormal)):'-');
+    var balCellNormal=tr.querySelector('td[data-field="balance"]');
+    if(balCellNormal){
+      balCellNormal.textContent=row.eligible?(row.balance||0):'-';
+      var balClassNormal=(row.balance||0)>0?'balance-ok':((row.balance||0)<0?'balance-warn':'balance-zero');
+      balCellNormal.className='num '+(row.eligible?balClassNormal:'');
+    }
+    setField('approval_count', row.eligible?row.approval_count:'-');
+    var actionHTML = row.eligible
+      ? '<a href="/admin/vacation_adjust?userid='+encodeURIComponent(row.userid)+'" style="color:#07c160;font-size:12px;">调整</a>'
+      : '<span style="color:#bbb;font-size:12px;">—</span>';
+    setField('action', actionHTML, true);
+  }
+}
+
+function startEditHire(cell){
+  if(_editingCell) return;   // 同一时间只允许一个编辑框
+  var idx=parseInt(cell.getAttribute('data-idx'));
+  var row=_lastList[idx];if(!row)return;
+  var curVal=row.hire_date||'';
+  _editingCell={cell:cell,row:row};
+  var inp=document.createElement('input');
+  inp.type='date';
+  inp.value=curVal;
+  inp.style.cssText='font-size:12px;padding:3px 6px;border:1px solid #07c160;border-radius:4px;outline:none;font-family:inherit;width:140px;';
+  cell.innerHTML='';
+  cell.appendChild(inp);
+  inp.focus();
+  // 选中原有日期或默认聚焦 day 部分
+  try{ inp.showPicker&&inp.showPicker(); }catch(e){}
+  function finish(save){
+    var newVal=inp.value;
+    if(!save || !newVal){
+      // 取消：还原
+      cell.innerHTML=curVal?esc(curVal):'<span style="color:#ccc;">未录入 <u>点击设置</u></span>';
+      _editingCell=null;
+      return;
+    }
+    // 提交保存
+    saveHireInline(row.userid,newVal,function(ok,msg){
+      if(ok){
+        row.hire_date=newVal;
+        cell.innerHTML=esc(newVal);
+        weui.toast('✅ 已保存',1000);
+        // 日期改变后重算资格/应享 → 刷新整页列表
+        setTimeout(function(){ goPage(_curPage); },800);
+      }else{
+        cell.innerHTML=curVal?esc(curVal):'<span style="color:#ccc;">未录入 <u>点击设置</u></span>';
+        weui.topTips(msg||'保存失败');
+      }
+      _editingCell=null;
+    });
+  }
+  inp.addEventListener('blur',function(){ finish(true); });
+  inp.addEventListener('keydown',function(e){
+    if(e.key==='Enter'){ e.preventDefault(); inp.blur(); }
+    if(e.key==='Escape'){ e.preventDefault(); inp.removeEventListener('blur',finish); finish(false); }
+  });
+}
+
+async function saveHireInline(userid,hireValue,cb){
+  try{
+    var year=document.getElementById('yearSel').value;
+    var r=await fetch('/api/admin/vacation/adjust',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({userid:userid,year:parseInt(year),hire_date:hireValue})
+    });
+    var d=await r.json();
+    cb(!!d.success,d.error||'');
+  }catch(e){ cb(false,e.message||'网络错误'); }
+}
+</script>
+</body>
+</html>

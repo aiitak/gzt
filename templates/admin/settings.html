@@ -1,0 +1,2177 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0">
+    <title>系统设置</title>
+    <link rel="stylesheet" href="/assets/admin.css?v=20260807a">
+    <script src="/assets/admin.js?v=20260807a"></script>
+    <style>
+        /* cron 密钥与调用方式样式（从 upload.html 迁移） */
+        .cron-key-box { background:#f7f8fa; border:1px solid #e5e7eb; border-radius:8px; padding:12px; margin-top:12px; }
+        .cron-key-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+        .cron-key-row label { font-size:13px; color:#374151; font-weight:500; min-width:80px; }
+        .cron-key-val { flex:1; font-family:monospace; font-size:13px; color:#111827; background:#fff; border:1px solid #d1d5db; border-radius:6px; padding:6px 10px; letter-spacing:1px; }
+        .cron-eye { cursor:pointer; font-size:16px; color:#6b7280; user-select:none; padding:4px; }
+        .cron-eye:hover { color:#07c160; }
+        .cron-copy { cursor:pointer; font-size:12px; color:#07c160; border:1px solid #07c160; border-radius:4px; padding:3px 8px; background:#fff; user-select:none; }
+        .cron-copy:hover { background:#f0fff0; }
+        .cron-call { font-size:12px; color:#4b5563; line-height:1.7; }
+        .cron-call code { background:#eef2f7; padding:2px 5px; border-radius:3px; font-size:12px; color:#1f2937; word-break:break-all; }
+        .cron-call .cron-note { color:#6b7280; margin-top:6px; }
+        .cron-call-row { display:flex; align-items:center; gap:6px; }
+        .cron-call-row code { flex:1; min-width:0; }
+        .cron-copy-mini { cursor:pointer; font-size:11px; color:#07c160; border:1px solid #07c160; border-radius:4px; padding:2px 6px; background:#fff; user-select:none; white-space:nowrap; flex:0 0 auto; }
+        .cron-copy-mini:hover { background:#f0fff0; }
+
+        /* 催办调试按钮区域 */
+        .remind-debug-box { background:#fff8e1; border:1px dashed #ffa726; border-radius:8px; padding:12px; margin-top:12px; }
+        .remind-debug-title { font-size:13px; color:#e65100; font-weight:500; margin-bottom:8px; }
+        .remind-debug-actions { display:flex; gap:8px; flex-wrap:wrap; }
+        .remind-debug-actions .ad-btn { font-size:13px; padding:6px 14px; }
+        .remind-debug-result { margin-top:10px; background:#fff; border-radius:6px; padding:10px; font-size:12px; max-height:300px; overflow:auto; }
+        .remind-debug-result .rdr-summary { font-weight:bold; margin-bottom:6px; padding-bottom:6px; border-bottom:1px solid #eee; }
+        .remind-debug-result .rdr-error { color:#dc2626; font-weight:bold; margin-bottom:6px; }
+        .remind-debug-result .rdr-item { padding:3px 0; display:flex; gap:8px; align-items:flex-start; }
+        .remind-debug-result .rdr-item .rdr-status { flex:0 0 60px; font-size:11px; padding:1px 6px; border-radius:3px; text-align:center; }
+        .remind-debug-result .rdr-item .rdr-status.ok { background:#e8f5e9; color:#2e7d32; }
+        .remind-debug-result .rdr-item .rdr-status.fail { background:#ffebee; color:#c62828; }
+        .remind-debug-result .rdr-item .rdr-status.skip_dedup { background:#fff3e0; color:#ef6c00; }
+        .remind-debug-result .rdr-item .rdr-status.skip { background:#f5f5f5; color:#616161; }
+        .remind-debug-result .rdr-item .rdr-status.info { background:#e3f2fd; color:#1565c0; }
+        .remind-debug-result .rdr-item .rdr-status.warn { background:#fff3e0; color:#f57f17; }
+        .remind-debug-result .rdr-section-title { font-size:12px; font-weight:bold; margin:8px 0 4px; padding:4px 6px; background:#f7f8fa; border-radius:4px; color:#374151; }
+        .remind-debug-result .rdr-section-sub { font-size:12px; font-weight:500; margin:6px 0 3px; color:#555; padding-left:4px; }
+        .remind-debug-result .rdr-item .rdr-name { flex:0 0 auto; min-width:60px; color:#374151; }
+        .remind-debug-result .rdr-item .rdr-msg { flex:1; color:#6b7280; word-break:break-all; }
+        .remind-debug-result .rdr-empty { color:#999; text-align:center; padding:12px; }
+
+        /* 催办工作时间 - 美化排版 */
+        .rw-row-enable { display:flex; align-items:center; gap:12px; padding:14px 0; border-bottom:1px solid var(--ad-border-2); }
+        .rw-row-enable .rw-label { width:116px; flex:0 0 116px; font-size:14px; }
+        .rw-row-enable .rw-ctrl  { flex:1 1 auto; }
+        .rw-row-enable .rw-ctrl label { display:inline-flex; align-items:center; gap:8px; cursor:pointer; font-size:14px; padding:4px 0; }
+        .rw-row-enable .rw-ctrl input[type=checkbox] { width:17px; height:17px; cursor:pointer; }
+        .rw-row-days { display:flex; align-items:flex-start; gap:12px; padding:12px 0; border-bottom:1px solid var(--ad-border-2); transition:opacity .2s; }
+        .rw-row-days .rw-label { width:116px; flex:0 0 116px; font-size:14px; padding-top:6px; }
+        .rw-row-days .rw-ctrl  { flex:1 1 auto; display:flex; flex-wrap:wrap; gap:8px; }
+        .rw-row-time { display:flex; align-items:center; gap:12px; padding:12px 0; transition:opacity .2s; }
+        .rw-row-time .rw-label { width:116px; flex:0 0 116px; font-size:14px; }
+        .rw-row-time .rw-ctrl  { flex:1 1 auto; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+        .rw-row-time .rw-ctrl select { width:96px; }
+        .rw-row-days.disabled, .rw-row-time.disabled { opacity:.4; pointer-events:none; }
+
+        .ad-form-row { display:flex; align-items:flex-start; gap:12px; padding:12px 0; border-bottom:1px solid var(--ad-border-2); }
+        .ad-form-row:last-of-type { border-bottom:none; }
+        .ad-form-label { width:116px; flex:0 0 116px; font-size:14px; padding-top:9px; }
+        .ad-form-label .req { color:var(--ad-danger); margin-left:2px; }
+        .ad-form-ctrl { flex:1 1 auto; min-width:0; }
+        .ad-header__back {
+            flex:0 0 auto; width:34px; height:34px; border-radius:9px;
+            background:rgba(255,255,255,0.18); color:#fff; font-size:22px; line-height:34px;
+            text-align:center; text-decoration:none; cursor:pointer; user-select:none;
+        }
+        .ad-header__back:hover { background:rgba(255,255,255,0.3); }
+
+        /* 通配符 chip */
+        .tpl-chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+        .tpl-chip {
+            position:relative;
+            display:inline-flex; align-items:center;
+            padding:4px 10px;
+            background:#fff;
+            border:1px solid #d9e3f0;
+            border-radius:14px;
+            font-size:12px;
+            color:#2b6cb0;
+            cursor:pointer;
+            transition:all .18s;
+            font-weight:500;
+            user-select:none;
+        }
+        .tpl-chip:hover {
+            background:#ebf4ff;
+            border-color:#2b6cb0;
+            transform:translateY(-1px);
+            box-shadow:0 2px 6px rgba(43,108,176,.15);
+        }
+        .tpl-chip:active { transform:translateY(0); }
+        /* Tooltip 悬停示例 */
+        .tpl-chip::after {
+            content: attr(data-tip);
+            position:absolute;
+            bottom:calc(100% + 6px);
+            left:50%;
+            transform:translateX(-50%);
+            background:rgba(40,45,55,.95);
+            color:#fff;
+            padding:6px 10px;
+            border-radius:6px;
+            font-size:12px;
+            white-space:nowrap;
+            opacity:0;
+            pointer-events:none;
+            transition:opacity .18s, transform .18s;
+            z-index:50;
+            font-weight:400;
+        }
+        .tpl-chip::before {
+            content:'';
+            position:absolute;
+            bottom:calc(100% + 1px);
+            left:50%;
+            transform:translateX(-50%);
+            border:4px solid transparent;
+            border-top-color:rgba(40,45,55,.95);
+            opacity:0;
+            pointer-events:none;
+            transition:opacity .18s;
+            z-index:50;
+        }
+        .tpl-chip:hover::after,
+        .tpl-chip:hover::before { opacity:1; }
+        .tpl-chip:hover::after { transform:translateX(-50%) translateY(-1px); }
+        .tpl-chips-desc { font-size:12px; color:#888; margin-bottom:2px; }
+    </style>
+</head>
+<body class="ad-body">
+    <div class="ad-header">
+        <a class="ad-header__back" href="/admin/dashboard" aria-label="返回">‹</a>
+        <div class="ad-header__icon">⚙️</div>
+        <div>
+            <div class="ad-header__title">系统设置</div>
+            <div class="ad-header__sub">企业微信配置 · 通知与同步 · 后台账号</div>
+        </div>
+    </div>
+
+    <div class="ad-page">
+        <!-- 导航 -->
+        <div class="ad-tabs" id="tabs">
+            <div class="ad-tab active" data-tab="wecom" onclick="switchTab('wecom')">企业微信</div>
+            <div class="ad-tab" data-tab="notify" onclick="switchTab('notify')">通知设置</div>
+            <div class="ad-tab" data-tab="sync" onclick="switchTab('sync')">通讯录同步</div>
+            <div class="ad-tab" data-tab="site" onclick="switchTab('site')">站点设置</div>
+    <div class="ad-tab" data-tab="pwd" onclick="switchTab('pwd')">后台密码</div>
+        </div>
+
+        <!-- ===== Tab 1: 企业微信配置 ===== -->
+        <div class="ad-tab-content active" id="tab-wecom">
+            <div class="ad-card">
+                <div class="ad-card__title"><span class="dot"></span>📡 企业微信自建应用配置</div>
+                <div class="ad-card__desc">请在「企业微信管理后台 → 应用管理 → 自建应用」中获取以下参数。带 <b>*</b> 为必填。</div>
+
+                <div class="ad-form-row">
+                    <div class="ad-form-label">企业ID<span class="req">*</span></div>
+                    <div class="ad-form-ctrl"><input class="ad-input" id="corpid" placeholder="CorpID（必填）"></div>
+                </div>
+                <div class="ad-form-row">
+                    <div class="ad-form-label">AgentID<span class="req">*</span></div>
+                    <div class="ad-form-ctrl"><input class="ad-input" id="agentid" placeholder="应用 AgentID（必填）"></div>
+                </div>
+                <div class="ad-form-row">
+                    <div class="ad-form-label">应用Secret<span class="req">*</span></div>
+                    <div class="ad-form-ctrl"><input class="ad-input" id="secret" type="password" placeholder="应用 Secret（必填）"></div>
+                </div>
+                <div class="ad-form-row">
+                    <div class="ad-form-label">通讯录Secret</div>
+                    <div class="ad-form-ctrl">
+                        <input class="ad-input" id="contact_secret" type="password" placeholder="通讯录 Secret（用于同步组织架构）">
+                        <div class="ad-hint">仅同步通讯录时需要；不下发/不登录可不填。</div>
+                    </div>
+                </div>
+                <div class="ad-form-row">
+                    <div class="ad-form-label">Token</div>
+                    <div class="ad-form-ctrl"><input class="ad-input" id="token" type="password" autocomplete="new-password" placeholder="回调地址验证 Token（可选）"></div>
+                </div>
+                <div class="ad-form-row">
+                    <div class="ad-form-label">EncodingAESKey</div>
+                    <div class="ad-form-ctrl"><input class="ad-input" id="encoding_aes_key" type="password" autocomplete="new-password" placeholder="回调消息加解密密钥（可选）"></div>
+                </div>
+
+                <div class="ad-actions">
+                    <button class="ad-btn ad-btn--primary" onclick="saveWecomSettings()">保存配置</button>
+                    <button class="ad-btn ad-btn--ghost" onclick="testWecomSettings()">测试连接</button>
+                </div>
+                <div class="ad-alert ad-alert--ok" id="testOk"></div>
+                <div class="ad-alert ad-alert--err" id="testErr"></div>
+            </div>
+
+            <div class="ad-card">
+                <div class="ad-card__title"><span class="dot"></span>🌐 可信域名与回调地址</div>
+                <div class="ad-card__desc">可信域名用于拼接企业微信的回调地址，可随时修改。回调地址由系统固定生成、不可修改。</div>
+
+                <div class="ad-form-row">
+                    <div class="ad-form-label">可信域名</div>
+                    <div class="ad-form-ctrl">
+                        <input class="ad-input" id="server_domain" placeholder="如：salary.yourcompany.com" oninput="updateCallbackUrl(); updateContactCallbackUrl()">
+                        <div class="ad-hint">填写域名即可，无需带 http(s)://，系统会自动补全。</div>
+                    </div>
+                </div>
+                <div class="ad-form-row">
+                    <div class="ad-form-label">卡片显示名称</div>
+                    <div class="ad-form-ctrl">
+                        <input class="ad-input" id="card_source_desc" placeholder="如：XX公司 工资条系统">
+                        <div class="ad-hint">企微消息卡片左上角显示的来源名称，留空则使用可信域名。</div>
+                    </div>
+                </div>
+                <div class="ad-form-row">
+                    <div class="ad-form-label">回调路径</div>
+                    <div class="ad-form-ctrl">
+                        <div class="ad-readonly"><span class="ad-readonly__text">/callback.php</span></div>
+                        <div class="ad-hint">固定路径，不可修改。</div>
+                    </div>
+                </div>
+                <div class="ad-form-row">
+                    <div class="ad-form-label">完整回调地址</div>
+                    <div class="ad-form-ctrl">
+                        <div class="ad-readonly">
+                            <span class="ad-readonly__text" id="callbackUrl"><span class="muted">请先填写上方可信域名</span></span>
+                            <button class="ad-copy" onclick="copyCallback()">复制</button>
+                        </div>
+                        <div class="ad-hint">将上述完整地址填到企业微信后台「接收消息」回调 URL。</div>
+                    </div>
+                </div>
+
+                <div class="ad-actions">
+                    <button class="ad-btn ad-btn--primary" onclick="saveWecomSettings('domain')">保存配置</button>
+                </div>
+                <div class="ad-alert ad-alert--ok" id="domainOk"></div>
+                <div class="ad-alert ad-alert--err" id="domainErr"></div>
+            </div>
+
+            <div class="ad-card">
+                <div class="ad-card__title"><span class="dot"></span>🏖️ 年假同步参数</div>
+                <div class="ad-card__desc">
+                    配置企业微信「年假」审批模板参数，系统将按此模板自动拉取审批单、写入 <b>vacation_ledger</b>（审批通过=扣减，已通过后撤销=冲回）。
+                    业务规则：<b>审批中不扣、仅审批通过(source=1)扣减、已通过后撤销(source=4)冲回</b>，手动调整在「年假调整」页面由 HR 操作。
+                </div>
+
+                <div class="ad-form-row">
+                    <div class="ad-form-label">年假模板ID<span class="req">*</span></div>
+                    <div class="ad-form-ctrl">
+                        <input class="ad-input" id="vacation_template_id" placeholder="模板 ThirdPartyId，如 C4emYyaLoSdFNGAbcsZBMJGmrbmKCwaSg6CkCNSaT" maxlength="128">
+                        <div class="ad-hint">路径：企业微信后台 → 应用管理 → 审批 → 模板管理 → 点进年假模板 → 浏览器地址栏末尾或详情页中查看模板ID。</div>
+                    </div>
+                </div>
+                <div class="ad-form-row">
+                    <div class="ad-form-label">入职日期控件索引</div>
+                    <div class="ad-form-ctrl">
+                        <input class="ad-input" id="vacation_hire_date_idx" placeholder="默认 2（contents 数组第3项，0起）">
+                        <div class="ad-hint">审批模板中「入职日期」Date 控件在 contents 数组中的索引（0 起）。<b>只用于审批首次回填 users.hire_date 空值</b>，若 HR 已手动维护入职日期则可忽略。</div>
+                    </div>
+                </div>
+                <div class="ad-form-row">
+                    <div class="ad-form-label">休假DateRange索引</div>
+                    <div class="ad-form-ctrl">
+                        <input class="ad-input" id="vacation_daterange_idx" placeholder="默认 5（contents 数组第6项，0起）">
+                        <div class="ad-hint">审批模板中「休假日期」DateRange 控件索引，系统按 perday_duration(秒)换算天数（默认 8h/天 = 28800秒）。</div>
+                    </div>
+                </div>
+                <div class="ad-form-row">
+                    <div class="ad-form-label">示例审批单号</div>
+                    <div class="ad-form-ctrl">
+                        <input class="ad-input" id="vacation_sample_sp" placeholder="可选，用于下方按钮「校验模板与控件索引」预览结构，如 202608210016" maxlength="64">
+                        <div class="ad-hint">若系统已同步过该模板的审批单则可留空，会自动取本地最新一条。首次配置请从企微审批详情中复制一条真实审批单号过来。</div>
+                    </div>
+                </div>
+                <div class="ad-form-row">
+                    <div class="ad-form-label">上次同步时间</div>
+                    <div class="ad-form-ctrl">
+                        <div class="ad-readonly"><span class="ad-readonly__text" id="vacation_last_sync"><span class="muted">尚未同步过</span></span></div>
+                        <div class="ad-hint">批量同步器最近一次成功执行的时间戳，仅供参考，不可手动修改。</div>
+                    </div>
+                </div>
+
+                <div class="ad-actions">
+                    <button class="ad-btn ad-btn--primary" onclick="saveVacationSettings()">保存配置</button>
+                    <button class="ad-btn ad-btn--ghost"   onclick="checkVacationTemplate()">校验模板与控件索引</button>
+                </div>
+                <div class="ad-alert ad-alert--ok"  id="vacationOk"></div>
+                <div class="ad-alert ad-alert--err" id="vacationErr"></div>
+
+                <!-- 校验结果：控件列表（校验按钮点击后显示） -->
+                <div id="vacationTplPreview" style="display:none; margin-top:16px;">
+                    <div class="ad-form-row" style="border-bottom:none;">
+                        <div class="ad-form-label">控件类型校验</div>
+                        <div class="ad-form-ctrl">
+                            <div class="ad-readonly" style="padding:12px 14px;">
+                                <div id="vacationHireHint" style="margin-bottom:6px;"></div>
+                                <div id="vacationDrHint"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ad-form-row" style="border-bottom:none;">
+                        <div class="ad-form-label">审批单信息</div>
+                        <div class="ad-form-ctrl">
+                            <div class="ad-readonly"><span class="ad-readonly__text" id="vacationSpInfo">—</span></div>
+                        </div>
+                    </div>
+                    <div class="ad-form-row" style="border-bottom:none;">
+                        <div class="ad-form-label">模板控件列表</div>
+                        <div class="ad-form-ctrl">
+                            <div style="border:1px solid var(--ad-border-2);border-radius:8px;overflow:hidden;font-size:13px;">
+                                <table id="vacationCtlTable" style="width:100%;border-collapse:collapse;">
+                                    <thead>
+                                        <tr style="background:#f7f8fa;">
+                                            <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--ad-border-2);width:70px;">索引</th>
+                                            <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--ad-border-2);min-width:140px;">控件名称</th>
+                                            <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--ad-border-2);width:120px;">控件类型</th>
+                                            <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--ad-border-2);">示例值（当前审批单）</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                            <div class="ad-hint">
+                                高亮 <span style="background:#fff3cd;padding:2px 6px;border-radius:4px;">入职日期</span> 与
+                                <span style="background:#cfe2ff;padding:2px 6px;border-radius:4px;">休假 DateRange</span> 对应的行，
+                                若类型提示不匹配或行未高亮，请调整上方索引后重新校验。
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== Tab 2: 通知设置 ===== -->
+        <div class="ad-tab-content" id="tab-notify">
+            <div class="ad-card">
+                <div class="ad-card__title"><span class="dot"></span>🔑 消息口令关键词</div>
+                <div class="ad-card__desc">成员在企业微信对话中发送以下关键词即可触发对应操作，多个用 <b>|</b> 分隔，发送任意一个均可匹配。</div>
+                <div class="ad-form-row">
+                    <div class="ad-form-label">重置密码口令</div>
+                    <div class="ad-form-ctrl"><input class="ad-input" id="resetKeywords" placeholder="重置密码|密码重置|改密|修改密码"></div>
+                </div>
+                <div class="ad-form-row">
+                    <div class="ad-form-label">下发工资口令</div>
+                    <div class="ad-form-ctrl"><input class="ad-input" id="pushKeywords" placeholder="下发工资|工资下发|推送工资|发工资"></div>
+                </div>
+                <div class="ad-form-row">
+                    <div class="ad-form-label">下发奖金口令</div>
+                    <div class="ad-form-ctrl"><input class="ad-input" id="bonusPushKeywords" placeholder="下发奖金|奖金下发|推送奖金|发奖金"></div>
+                </div>
+                <div class="ad-hint">重置密码：任意员工发送即可重置自己的查看密码。下发工资/奖金：仅管理员 / 财务发送可下发所有待发批次。</div>
+                <div class="ad-actions">
+                    <button class="ad-btn ad-btn--primary" onclick="saveKeywords()">保存口令设置</button>
+                </div>
+            </div>
+
+            <div class="ad-card">
+                <div class="ad-card__title"><span class="dot"></span>🔓 免密窗口时长</div>
+                <div class="ad-card__desc">员工验证密码后，在设定的分钟数内查看工资条无需再次输入密码。建议 10~120 分钟。</div>
+                <div class="ad-form-row">
+                    <div class="ad-form-label">免密时长</div>
+                    <div class="ad-form-ctrl">
+                        <input class="ad-input" id="freeWindow" type="number" min="1" max="1440" value="30" placeholder="如：30">
+                        <div class="ad-hint">单位：分钟。仅管理员可修改。</div>
+                    </div>
+                </div>
+                <div class="ad-actions">
+                    <button class="ad-btn ad-btn--primary" onclick="saveFreeWindow()">保存免密设置</button>
+                </div>
+            </div>
+
+            <div class="ad-card">
+                <div class="ad-card__title"><span class="dot"></span>🕒 催办工作时间</div>
+                <div class="ad-card__desc">配置工资条 / 奖金催办任务的执行时间窗口。关闭限制后任意时间都会触发催办（方便测试）。仅管理员可修改。</div>
+                <div class="rw-row-enable">
+                    <div class="rw-label">启用限制</div>
+                    <div class="rw-ctrl">
+                        <label>
+                            <input type="checkbox" id="remindEnabled" checked onchange="syncRemindWorktimeDisabled()">
+                            勾选后仅在下方工作时间内催办（取消勾选则任意时间都触发）
+                        </label>
+                    </div>
+                </div>
+                <div class="rw-row-days" id="rwRowDays">
+                    <div class="rw-label">催办星期</div>
+                    <div class="rw-ctrl" id="remindDaysWrap">
+                        <!-- 0=周日 ... 6=周六，复选框由 JS 渲染 -->
+                    </div>
+                </div>
+                <div class="rw-row-time" id="rwRowTime">
+                    <div class="rw-label">时间范围</div>
+                    <div class="rw-ctrl">
+                        <select class="ad-input" id="remindStartHour"></select>
+                        <span>点</span>
+                        <span>~</span>
+                        <select class="ad-input" id="remindEndHour"></select>
+                        <span>点</span>
+                    </div>
+                </div>
+                <div class="ad-actions">
+                    <button class="ad-btn ad-btn--primary" onclick="saveRemindWorktime()">保存催办时间设置</button>
+                </div>
+                <!-- 调试按钮：绕过时间/日期/去重限制，直接触发 -->
+                <div class="remind-debug-box">
+                    <div class="remind-debug-title">🔧 调试（绕过时间、日期、去重限制，直接触发）</div>
+                    <div class="remind-debug-actions">
+                        <button class="ad-btn" id="debugRemindBtn" onclick="debugRemind('all')">调试：触发催办（工资+奖金）</button>
+                        <button class="ad-btn" id="debugPushBtn" onclick="debugPush()">调试：定时下发工资条</button>
+                    </div>
+                    <div class="remind-debug-result" id="remindDebugResult" style="display:none;"></div>
+                </div>
+
+                <!-- ===== 定时推送计划（复用 settings.schedule K-V） ===== -->
+                <div class="sch-plan-box" style="margin-top:16px;padding:14px 16px;border:1px dashed var(--ad-border-2);border-radius:10px;background:#fafbfc;">
+                    <div style="font-weight:600;color:#111827;margin-bottom:10px;">⏰ 定时推送计划（每月工资条自动下发）</div>
+                    <div class="ad-form-row" style="border-bottom:none;padding:6px 0;">
+                        <div class="ad-form-label" style="width:88px;flex-shrink:0;">启用</div>
+                        <div class="ad-form-ctrl">
+                            <label>
+                                <input type="checkbox" id="schEnabled">
+                                启用后，每月指定日期及之后，首次触发 cron 时会自动下发所有 <b>draft</b> 状态的工资条（去重：当月已推送则跳过）
+                            </label>
+                        </div>
+                    </div>
+                    <div class="ad-form-row" style="border-bottom:none;padding:6px 0;">
+                        <div class="ad-form-label" style="width:88px;flex-shrink:0;">每月日期</div>
+                        <div class="ad-form-ctrl" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                            <select class="ad-input" id="schDay" style="width:96px;"></select>
+                            <span>日</span>
+                            <select class="ad-input" id="schHour" style="width:88px;"></select>
+                            <span>时</span>
+                            <select class="ad-input" id="schMin" style="width:88px;"></select>
+                            <span>分 之后触发</span>
+                        </div>
+                    </div>
+                    <div class="ad-actions" style="margin-top:10px;">
+                        <button class="ad-btn ad-btn--primary" onclick="saveSchedule()">保存推送计划</button>
+                    </div>
+                </div>
+
+                <!-- ===== 定时任务参数（折叠块） ===== -->
+                <div class="timer-cfg-box" style="margin-top:16px;border:1px solid var(--ad-border-2);border-radius:10px;overflow:hidden;">
+                    <div class="timer-cfg-head" onclick="toggleTimerCfg()" style="padding:12px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;background:#f3f4f6;">
+                        <div style="font-weight:600;color:#111827;">⚙️ 定时任务参数（日志清理 / 年假同步回看天数）</div>
+                        <span id="timerCfgArrow" style="transition:transform .2s;">▾</span>
+                    </div>
+                    <div id="timerCfgBody" style="padding:14px 16px;display:none;">
+                        <div class="ad-hint" style="margin-bottom:12px;">以下参数控制 <code>task=all</code> 统一入口中「年假同步」「日志清理」的行为；修改后即时生效，无需重启服务。</div>
+                        <div class="ad-form-row" style="border-bottom:none;padding:6px 0;">
+                            <div class="ad-form-label" style="width:170px;flex-shrink:0;">年假同步回看天数</div>
+                            <div class="ad-form-ctrl">
+                                <input class="ad-input" id="timerLookback" type="number" min="1" max="180" style="width:120px;" placeholder="默认 2">
+                                <div class="ad-hint">默认 2 天；每天 02:00-05:00 窗口执行增量同步，回看过去 N 天的审批单（推荐 ≥2，避免跨天边界漏单）。</div>
+                            </div>
+                        </div>
+                        <div class="ad-form-row" style="border-bottom:none;padding:6px 0;">
+                            <div class="ad-form-label" style="width:170px;flex-shrink:0;">audit_log 保留天数</div>
+                            <div class="ad-form-ctrl">
+                                <input class="ad-input" id="timerKeepAudit" type="number" min="1" max="3650" style="width:120px;" placeholder="默认 180">
+                                <div class="ad-hint">默认 180 天；超过此时长的审计日志将在每天 03:00-06:00 窗口自动清理。</div>
+                            </div>
+                        </div>
+                        <div class="ad-form-row" style="border-bottom:none;padding:6px 0;">
+                            <div class="ad-form-label" style="width:170px;flex-shrink:0;">审批回调日志保留天数</div>
+                            <div class="ad-form-ctrl">
+                                <input class="ad-input" id="timerKeepCb" type="number" min="1" max="3650" style="width:120px;" placeholder="默认 90">
+                                <div class="ad-hint">默认 90 天；超过此时长的 approval_callback_logs 记录将被自动清理。</div>
+                            </div>
+                        </div>
+                        <div class="ad-form-row" style="border-bottom:none;padding:6px 0;">
+                            <div class="ad-form-label" style="width:170px;flex-shrink:0;">slog 日志文件保留天数</div>
+                            <div class="ad-form-ctrl">
+                                <input class="ad-input" id="timerKeepSlog" type="number" min="1" max="3650" style="width:120px;" placeholder="默认 30">
+                                <div class="ad-hint">默认 30 天；slog/ 目录下超过此时长的 <code>*.log</code> 文件将被自动删除。</div>
+                            </div>
+                        </div>
+                        <div class="ad-form-row" style="border-bottom:none;padding:6px 0;">
+                            <div class="ad-form-label" style="width:170px;flex-shrink:0;">员工反馈保留天数</div>
+                            <div class="ad-form-ctrl">
+                                <input class="ad-input" id="timerKeepFb" type="number" min="1" max="3650" style="width:120px;" placeholder="默认 180">
+                                <div class="ad-hint">默认 180 天；超过此时长的 feedback（员工意见反馈）记录将被自动清理。</div>
+                            </div>
+                        </div>
+                        <div class="ad-actions" style="margin-top:12px;">
+                            <button class="ad-btn ad-btn--primary" onclick="saveSchedule()">保存定时任务参数</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 访问密钥与调用方式（从上传工资条页迁移过来） -->
+                <div class="cron-key-box" style="margin-top:16px;">
+                    <div class="cron-key-row">
+                        <label>访问密钥</label>
+                        <span class="cron-key-val" id="cronKeyVal">—</span>
+                        <span class="cron-eye" id="cronKeyEye" onclick="toggleCronKey()" title="显示/隐藏">👁</span>
+                        <span class="cron-copy" onclick="copyCronKey()">复制</span>
+                    </div>
+                    <div class="cron-call">
+                        <div style="font-weight:500;color:#374151;margin-bottom:4px;">调用方式（推荐统一入口，一条计划任务搞定 4 件事）</div>
+                        <div class="cron-call-row">① <b>统一入口</b>（推荐）：<code id="cronCallAll">cron.php?task=all&key=密钥</code><span class="cron-copy-mini" onclick="copyCronCall('all')">复制</span></div>
+                        <div style="color:#6b7280;font-size:12px;margin:2px 0 4px 24px;">统一调度：每分钟自动分发 → 下发（按每月日期）+ 催办（每小时）+ 年假同步（每天 02-05 点）+ 日志清理（每天 03-06 点）</div>
+                        <div class="cron-call-row" style="opacity:.85;">② 调试用·独立下发：<code id="cronCallPush">cron.php?task=push&key=密钥</code><span class="cron-copy-mini" onclick="copyCronCall('push')">复制</span></div>
+                        <div class="cron-call-row" style="opacity:.85;">③ 调试用·独立催办：<code id="cronCallRemind">cron.php?task=remind&key=密钥</code><span class="cron-copy-mini" onclick="copyCronCall('remind')">复制</span></div>
+                        <div>④ 命令行：<code>php cron.php all 密钥</code></div>
+                        <div class="cron-note">建议在服务器面板（如 1Panel）只添加 <b>一条</b> 计划任务，每分钟执行一次统一入口即可；内部会按时间窗口自动分发。若仍保留了旧的 <code>task=remind</code>/<code>task=push</code> 两条 cron，代码层会做 ≥55 分钟 / 23 小时互斥兜底，避免重复催办或重复推送。密钥在 <code>config.local.php</code> 的 <code>CRON_KEY</code> 中配置。</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ad-card">
+                <div class="ad-card__title"><span class="dot"></span>🧩 消息通知模板</div>
+                <div class="ad-card__desc">选择模板类型后编辑卡片标题、内容。下方卡片链接为系统自动生成，仅供参考不可编辑。支持 <code>{姓名}</code>、<code>{年}</code>、<code>{月}</code>、<code>{年月}</code>、<code>{链接}</code>、<code>{成功数}</code>、<code>{总数}</code>、<code>{账号}</code> 等通配符，发送时自动替换。</div>
+                <div class="ad-form-row">
+                    <div class="ad-form-label">模板类型</div>
+                    <div class="ad-form-ctrl">
+                        <select class="ad-input" id="mtTplSelect" onchange="onMsgTplChange()" style="max-width:420px;"></select>
+                    </div>
+                </div>
+                <div class="ad-form-row" id="mtTplTypeRow">
+                    <div class="ad-form-label">消息类型</div>
+                    <div class="ad-form-ctrl">
+                        <select class="ad-input" id="mtMsgType" onchange="renderMsgTplPreview()">
+                            <option value="template_card">模板卡片（推荐，点击可跳转）</option>
+                            <option value="markdown">Markdown（链接可点击）</option>
+                            <option value="text">纯文本</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="ad-form-row" id="mtLinkRow">
+                    <div class="ad-form-label">卡片链接</div>
+                    <div class="ad-form-ctrl">
+                        <div class="ad-readonly">
+                            <span class="ad-readonly__text" id="mtLinkUrl" style="word-break:break-all;">—</span>
+                        </div>
+                        <div class="ad-hint">系统发送时自动生成的跳转链接，根据实际月份/记录动态拼接，此处仅展示示例。</div>
+                    </div>
+                </div>
+                <div class="ad-form-row" id="mtTitleRow">
+                    <div class="ad-form-label">卡片标题</div>
+                    <div class="ad-form-ctrl">
+                        <input class="ad-input" id="mtTitle" oninput="renderMsgTplPreview()" placeholder="模板卡片标题（纯文本/Markdown 可留空）">
+                    </div>
+                </div>
+                <div class="ad-form-row">
+                    <div class="ad-form-label">模板内容</div>
+                    <div class="ad-form-ctrl">
+                        <textarea class="ad-input" id="mtContent" rows="8" oninput="renderMsgTplPreview()" placeholder="模板内容，可使用通配符 {姓名} {年} {月} {年月} 等"></textarea>
+                        <div class="tpl-chips-desc" id="mtVarsHint"></div>
+                        <div class="tpl-chips" id="mtVarsChips"></div>
+                    </div>
+                </div>
+                <div class="ad-form-row">
+                    <div class="ad-form-label">实时预览</div>
+                    <div class="ad-form-ctrl">
+                        <div id="mtCardPreview" style="border:1px solid #e5e5e5;border-radius:8px;padding:12px;background:#fafafa;max-width:420px;">
+                            <div id="mtPreview" style="white-space:pre-wrap;font-size:13px;color:#333;">—</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="ad-actions">
+                    <button class="ad-btn ad-btn--primary" onclick="saveMsgTemplate()">保存模板</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== Tab 3: 通讯录同步 ===== -->
+        <div class="ad-tab-content" id="tab-sync">
+            <div class="ad-card">
+                <div class="ad-card__title"><span class="dot"></span>📡 通讯录事件服务器</div>
+                <div class="ad-card__desc">
+                    用于实时接收企业微信通讯录变更事件（员工入职/离职/调岗、部门增删改），自动同步到本系统。<br>
+                    <b>与「自建应用接收消息」是两套独立的 Token / EncodingAESKey</b>，需在企业微信后台分别配置。
+                </div>
+
+                <div class="ad-form-row">
+                    <div class="ad-form-label">回调地址</div>
+                    <div class="ad-form-ctrl">
+                        <div class="ad-readonly">
+                            <span class="ad-readonly__text" id="contactCallbackUrl"><span class="muted">请先在「企业微信」Tab 填写可信域名</span></span>
+                            <button class="ad-copy" onclick="copyContactCallback()">复制</button>
+                        </div>
+                        <div class="ad-hint">将此地址填到企业微信后台「管理工具 → 通讯录同步 → 接收事件服务器」的 URL。</div>
+                    </div>
+                </div>
+                <div class="ad-form-row">
+                    <div class="ad-form-label">Token</div>
+                    <div class="ad-form-ctrl">
+                        <input class="ad-input" id="contact_token" type="password" autocomplete="new-password" placeholder="通讯录事件服务器 Token（与自建应用 Token 不同）">
+                        <div class="ad-hint">在企业微信后台「通讯录同步 → 接收事件服务器」随机生成，<b>勿与自建应用的 Token 混用</b>。</div>
+                    </div>
+                </div>
+                <div class="ad-form-row">
+                    <div class="ad-form-label">EncodingAESKey</div>
+                    <div class="ad-form-ctrl">
+                        <input class="ad-input" id="contact_aes_key" type="password" autocomplete="new-password" placeholder="通讯录事件服务器 EncodingAESKey（独立配置）">
+                    </div>
+                </div>
+                <div class="ad-actions">
+                    <button class="ad-btn ad-btn--primary" onclick="saveContactCallbackSettings()">保存配置</button>
+                </div>
+                <div class="ad-alert ad-alert--ok" id="contactCallbackOk"></div>
+                <div class="ad-alert ad-alert--err" id="contactCallbackErr"></div>
+            </div>
+
+            <div class="ad-card">
+                <div class="ad-card__title"><span class="dot"></span>👥 通讯录手动同步</div>
+                <div class="ad-card__desc">手动拉取企业微信通讯录到系统（全量覆盖）。配置了上面的「事件服务器」后，日常变更会自动同步，无需手动操作；此处仅用于首次接入或异常补救。</div>
+                <div class="ad-actions">
+                    <button class="ad-btn ad-btn--primary" onclick="syncDepartment()">同步部门</button>
+                    <button class="ad-btn ad-btn--primary" onclick="syncUser()">同步成员</button>
+                </div>
+                <div class="ad-alert ad-alert--ok" id="syncOk"></div>
+                <div class="ad-alert ad-alert--err" id="syncErr"></div>
+            </div>
+
+            <div class="ad-card">
+                <div class="ad-card__title"><span class="dot"></span>📋 当前通讯录概况</div>
+                <div id="orgOverview" class="ad-empty">加载中...</div>
+            </div>
+        </div>
+
+        <!-- ===== Tab 4: 站点设置 ===== -->
+        <div class="ad-tab-content" id="tab-site">
+            <div class="ad-card">
+                <div class="ad-card__title"><span class="dot"></span>🏢 站点品牌配置</div>
+                <div class="ad-card__desc">配置员工端页面的品牌信息，包括标题、主题色、Logo、公告等。修改后立即在所有员工端页面生效。</div>
+
+                <div class="ad-form-row">
+                    <div class="ad-form-label">系统标题</div>
+                    <div class="ad-form-ctrl">
+                        <input class="ad-input" id="site_title" placeholder="如：工资查询">
+                        <div class="ad-hint">显示在员工端登录页顶部的大标题。</div>
+                    </div>
+                </div>
+                <div class="ad-form-row">
+                    <div class="ad-form-label">副标题 / 标语</div>
+                    <div class="ad-form-ctrl">
+                        <input class="ad-input" id="site_subtitle" placeholder="如：团结奋进 知难而进 不断改进">
+                        <div class="ad-hint">标题下方的小字说明。</div>
+                    </div>
+                </div>
+                <div class="ad-form-row">
+                    <div class="ad-form-label">主题色</div>
+                    <div class="ad-form-ctrl">
+                        <div style="display:flex;align-items:center;gap:12px;">
+                            <input type="color" class="ad-input" id="theme_color" style="width:50px;height:40px;padding:2px;cursor:pointer;border:1px solid #ddd;border-radius:8px;">
+                            <input class="ad-input" id="theme_color_text" placeholder="#07c160" style="width:120px;">
+                        </div>
+                        <div class="ad-hint">员工端的主色调（按钮、卡片、链接等）。可直接选色或输入 HEX 色值。</div>
+                    </div>
+                </div>
+                <div class="ad-form-row">
+                    <div class="ad-form-label">Logo 图片</div>
+                    <div class="ad-form-ctrl">
+                        <div id="logoPreview" style="margin-bottom:10px;">
+                            <span style="color:#999;font-size:13px;">未上传</span>
+                        </div>
+                        <input type="file" id="logoFile" accept="image/*" style="font-size:13px;">
+                        <div class="ad-hint">建议尺寸 200x200 像素，支持 JPG/PNG/WEBP，不超过 2MB。</div>
+                    </div>
+                </div>
+                <div class="ad-form-row">
+                    <div class="ad-form-label">公告 / 通知</div>
+                    <div class="ad-form-ctrl">
+                        <textarea class="ad-input" id="announcement" rows="2" placeholder="如：7月工资条已发放，请查收"></textarea>
+                        <div class="ad-hint">在员工端页面顶部显示一条通知横幅（可留空不显示）。</div>
+                    </div>
+                </div>
+
+                <div class="ad-form-row">
+                    <div class="ad-form-label">公司名称</div>
+                    <div class="ad-form-ctrl">
+                        <input class="ad-input" id="site_company" placeholder="如：劲旋风航空">
+                    </div>
+                </div>
+                <div class="ad-form-row">
+                    <div class="ad-form-label">公司网址</div>
+                    <div class="ad-form-ctrl">
+                        <input class="ad-input" id="site_website" placeholder="如：jxfpropeller.com">
+                    </div>
+                </div>
+
+                <div class="ad-form-row">
+                    <div class="ad-form-label">预览效果</div>
+                    <div class="ad-form-ctrl">
+                        <div class="ad-readonly" style="padding:16px;">
+                            <!-- 模拟员工端登录页 -->
+                            <div id="site_preview" style="border-radius:12px;overflow:hidden;border:1px solid #e5e5e5;">
+                                <!-- 顶部色带 -->
+                                <div id="prev_header" style="background:linear-gradient(180deg,#07c160 0%,#06ad56 100%);padding:40px 20px;text-align:center;color:#fff;">
+                                    <div id="prev_logo" style="width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,0.2);margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-size:24px;overflow:hidden;">💰</div>
+                                    <div id="prev_title" style="font-size:22px;font-weight:bold;letter-spacing:2px;">工资查询</div>
+                                    <div id="prev_subtitle" style="margin-top:6px;font-size:12px;opacity:0.85;">团结奋进 知难而进 不断改进</div>
+                                </div>
+                                <!-- 公告横幅 -->
+                                <div id="prev_announcement" style="display:none;background:#fff8e1;border-left:3px solid #ffa726;padding:10px 14px;font-size:13px;color:#666;margin:0;">📢 <span id="prev_ann_text"></span></div>
+                                <!-- 底部 -->
+                                <div style="padding:20px;text-align:center;">
+                                    <div id="prev_company" style="color:#bbb;font-size:12px;margin-bottom:4px;">劲旋风航空</div>
+                                    <div id="prev_copyright" style="color:#bbb;font-size:12px;">Copyright © <span id="prev_year">2026</span> <span id="prev_website">jxfpropeller.com</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="ad-actions">
+                    <button class="ad-btn ad-btn--primary" onclick="saveSiteSettings()">保存站点设置</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== Tab 5: 后台密码 ===== -->
+        <div class="ad-tab-content" id="tab-pwd">
+            <div class="ad-card">
+                <div class="ad-card__title"><span class="dot"></span>👤 修改显示姓名 / 部门</div>
+                <div class="ad-card__desc">修改后，工资条列表、工资条详情等所有地方都会同步更新。</div>
+                <div class="ad-form-row">
+                    <div class="ad-form-label">显示姓名</div>
+                    <div class="ad-form-ctrl"><input class="ad-input" id="adm_name" placeholder="如 杨东升"></div>
+                </div>
+                <div class="ad-form-row">
+                    <div class="ad-form-label">所属部门</div>
+                    <div class="ad-form-ctrl">
+                        <select class="ad-input" id="adm_dept"><option value="">未分配</option></select>
+                    </div>
+                </div>
+                <div class="ad-actions">
+                    <button class="ad-btn ad-btn--primary" onclick="changeAdminProfile()">保存修改</button>
+                </div>
+            </div>
+
+            <div class="ad-card">
+                <div class="ad-card__title"><span class="dot"></span>🔑 修改后台登录密码</div>
+                <div class="ad-card__desc">设置或修改「后台账号密码登录」的账号与密码（与企业微信查看密码相互独立）。用企业微信登录时可不填旧密码直接设置。</div>
+                <div class="ad-form-row">
+                    <div class="ad-form-label">后台登录账号</div>
+                    <div class="ad-form-ctrl"><input class="ad-input" id="adm_login" placeholder="如 admin"></div>
+                </div>
+                <div class="ad-form-row">
+                    <div class="ad-form-label">旧密码</div>
+                    <div class="ad-form-ctrl"><input class="ad-input" id="adm_old" type="password" placeholder="账号密码登录时必填；企微登录可留空"></div>
+                </div>
+                <div class="ad-form-row">
+                    <div class="ad-form-label">新密码</div>
+                    <div class="ad-form-ctrl"><input class="ad-input" id="adm_new" type="password" placeholder="至少 8 位，需含字母和数字"></div>
+                </div>
+                <div class="ad-actions">
+                    <button class="ad-btn ad-btn--primary" onclick="changeAdminPassword()">保存修改</button>
+                </div>
+            </div>
+
+            <div class="ad-card">
+                <div class="ad-card__title"><span class="dot"></span>🟢 企业微信账号绑定</div>
+                <div class="ad-card__desc">绑定后，可在登录页用「企业微信登录」直接进后台，无需每次输入账号密码。绑定的是你<b>当前登录的企微身份</b>（需先用「后台账号密码」登录后再绑定）。<br>绑定前请确认：企微后台该自建应用的「可见范围」包含你本人，且网页授权可信域名已配置为本站点。</div>
+                <div class="ad-form-row">
+                    <div class="ad-form-label">已绑定企微 ID</div>
+                    <div class="ad-form-ctrl"><input class="ad-input" id="wecomBound" readonly placeholder="未绑定"></div>
+                </div>
+                <div class="ad-actions">
+                    <button class="ad-btn ad-btn--primary" id="btnBindWecom" onclick="bindWecom()">绑定企业微信</button>
+                    <button class="ad-btn" id="btnUnbindWecom" onclick="unbindWecom()" style="display:none;">解绑</button>
+                </div>
+                <div class="ad-alert ad-alert--ok" id="bindOk" style="display:none;"></div>
+                <div class="ad-alert ad-alert--err" id="bindErr" style="display:none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showAlert(okEl, errEl, success, msg) {
+            if (okEl) okEl.classList.remove('show');
+            if (errEl) errEl.classList.remove('show');
+            const el = success ? okEl : errEl;
+            if (!el) return;
+            el.textContent = msg;
+            el.classList.add('show');
+        }
+        let _loadingEl = null;
+        function showLoading(msg) {
+            if (!_loadingEl) {
+                _loadingEl = document.createElement('div');
+                _loadingEl.className = 'ad-loading-mask';
+                _loadingEl.innerHTML = '<div class="ad-loading-box"><div class="ad-spinner"></div><div class="ad-loading-text"></div></div>';
+                document.body.appendChild(_loadingEl);
+            }
+            _loadingEl.querySelector('.ad-loading-text').textContent = msg || '处理中...';
+            _loadingEl.classList.add('show');
+        }
+        function hideLoading() { if (_loadingEl) _loadingEl.classList.remove('show'); }
+
+        // ===== 标签切换 =====
+        function switchTab(name, opts) {
+            opts = opts || {};
+            document.querySelectorAll('.ad-tab').forEach(function (t) {
+                t.classList.toggle('active', t.getAttribute('data-tab') === name);
+            });
+            document.querySelectorAll('.ad-tab-content').forEach(function (c) {
+                c.classList.toggle('active', c.id === 'tab-' + name);
+            });
+            if (name === 'sync') { loadOrgOverview(); }
+            if (name === 'site') { loadSiteSettings(); }
+            // 写 hash 记忆 Tab，opts.fromHash=true 表示来自 hashchange，避免死循环写回
+            if (!opts.fromHash) {
+                var target = '#tab=' + name;
+                if (location.hash !== target) {
+                    history.replaceState(null, '', target);
+                }
+            }
+        }
+        // 根据 hash 返回合法 tab 名，非法返回 null
+        function _getTabFromHash() {
+            var m = /^#tab=([a-zA-Z0-9_-]+)$/.exec(location.hash || '');
+            if (!m) return null;
+            var valid = { wecom: 1, notify: 1, sync: 1, site: 1, pwd: 1 };
+            return valid[m[1]] ? m[1] : null;
+        }
+
+        // ===== 工具 =====
+
+        // ===== 回调地址拼接 =====
+        function updateCallbackUrl() {
+            let d = (document.getElementById('server_domain').value || '').trim();
+            const box = document.getElementById('callbackUrl');
+            if (!d) { box.innerHTML = '<span class="muted">请先填写上方可信域名</span>'; return; }
+            if (!/^https?:\/\//i.test(d)) d = location.protocol + '//' + d;
+            const url = d.replace(/\/+$/, '') + '/callback.php';
+            box.textContent = url;
+            if (location.protocol === 'http:') {
+                box.setAttribute('title', '当前页面为 http://，企业微信回调要求 https://，建议部署 HTTPS 后重新复制');
+            } else {
+                box.removeAttribute('title');
+            }
+            if (_currentMsgTplId) {
+                const tpl = _msgTplList.find(t => t.id === _currentMsgTplId);
+                if (tpl) selectMsgTemplate(tpl);
+            }
+        }
+        function selectCallbackText() {
+            const box = document.getElementById('callbackUrl');
+            if (!box.firstChild) return;
+            const range = document.createRange();
+            range.selectNodeContents(box);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+        }
+        function copyCallback() {
+            const text = document.getElementById('callbackUrl').textContent;
+            if (!text || text.indexOf('请先') === 0) { weui.topTips('请先填写可信域名'); return; }
+
+            function tryClipboard() {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    return navigator.clipboard.writeText(text);
+                }
+                return Promise.reject(new Error('clipboard unavailable'));
+            }
+
+            tryClipboard().then(function () { weui.toast('✅ 已复制回调地址'); })
+            .catch(function () {
+                // fallback 1: execCommand（兼容 http/旧浏览器）
+                let copied = false;
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.setAttribute('readonly', '');
+                ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0;';
+                document.body.appendChild(ta);
+                ta.select();
+                ta.setSelectionRange(0, 99999);
+                try { copied = document.execCommand('copy'); } catch (e) {}
+                document.body.removeChild(ta);
+                if (copied) { weui.toast('✅ 已复制回调地址'); return; }
+
+                // fallback 2: 自动选中文本，提示手动复制
+                selectCallbackText();
+                weui.topTips('当前环境不支持自动复制，请按 Ctrl+C 复制');
+            });
+        }
+
+        // ===== 企业微信配置 =====
+        let _wecomHasSecret = false;
+        async function loadWecomSettings() {
+            try {
+                const resp = await fetch('/api/admin/settings/wecom');
+                const data = await resp.json();
+                _wecomHasSecret = !!data.has_secret;
+                for (const key in data) {
+                    if (key.indexOf('has_') === 0) continue;
+                    const el = document.getElementById(key);
+                    if (el) el.value = data[key] || '';
+                }
+                if (data.has_secret) document.getElementById('secret').placeholder = '已配置，留空保持不变';
+                if (data.has_contact_secret) document.getElementById('contact_secret').placeholder = '已配置，留空保持不变';
+                if (data.has_token) document.getElementById('token').placeholder = '已配置，留空保持不变';
+                if (data.has_encoding_aes_key) document.getElementById('encoding_aes_key').placeholder = '已配置，留空保持不变';
+                if (data.has_contact_token) document.getElementById('contact_token').placeholder = '已配置，留空保持不变';
+                if (data.has_contact_aes_key) document.getElementById('contact_aes_key').placeholder = '已配置，留空保持不变';
+                updateCallbackUrl();
+                updateContactCallbackUrl();
+                loadVacationSettings();
+            } catch (e) {
+                weui.topTips('加载配置失败');
+            }
+        }
+
+        async function saveWecomSettings(src) {
+            const fields = ['corpid', 'agentid', 'secret', 'contact_secret', 'token', 'encoding_aes_key', 'server_domain', 'card_source_desc'];
+            const data = {};
+            fields.forEach(function (f) { data[f] = document.getElementById(f).value.trim(); });
+
+            if (!data.corpid || !data.agentid) { weui.topTips('企业ID、AgentID 为必填项'); return; }
+            if (!data.secret && !_wecomHasSecret) { weui.topTips('应用 Secret 为必填项'); return; }
+
+            // 仅域名卡片校验可信域名
+            if (src === 'domain' && !data.server_domain) {
+                showAlert(document.getElementById('domainOk'), document.getElementById('domainErr'), false, '可信域名为必填项');
+                return;
+            }
+
+            try {
+                const resp = await fetch('/api/admin/settings/wecom', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const r = await resp.json();
+                if (r.success) {
+                    updateCallbackUrl();
+                    if (src === 'domain') {
+                        showAlert(document.getElementById('domainOk'), document.getElementById('domainErr'), true, '✅ 可信域名配置已保存');
+                    } else {
+                        weui.toast('✅ 企业微信配置已保存');
+                    }
+                } else {
+                    if (src === 'domain') {
+                        showAlert(document.getElementById('domainOk'), document.getElementById('domainErr'), false, r.error || '保存失败');
+                    } else {
+                        weui.topTips(r.error || '保存失败');
+                    }
+                }
+            } catch (e) {
+                if (src === 'domain') {
+                    showAlert(document.getElementById('domainOk'), document.getElementById('domainErr'), false, '保存失败，请检查网络');
+                } else {
+                    weui.topTips('保存失败，请检查网络');
+                }
+            }
+        }
+
+        async function testWecomSettings() {
+            const okEl = document.getElementById('testOk');
+            const errEl = document.getElementById('testErr');
+            okEl.classList.remove('show'); errEl.classList.remove('show');
+            showLoading('正在测试连接...');
+            try {
+                const resp = await fetch('/api/admin/test_connect', { method: 'POST' });
+                const r = await resp.json();
+                hideLoading();
+                if (r.success) { showAlert(okEl, errEl, true, r.message || '✅ 连接成功'); weui.toast('✅ 连接成功'); }
+                else { showAlert(okEl, errEl, false, r.error || '连接失败'); weui.topTips(r.error || '连接失败'); }
+            } catch (e) {
+                hideLoading();
+                showAlert(okEl, errEl, false, '请求失败，无法连接服务器');
+                weui.topTips('测试连接失败');
+            }
+        }
+
+        // ===== 通讯录事件服务器 =====
+        function updateContactCallbackUrl() {
+            let d = (document.getElementById('server_domain').value || '').trim();
+            const box = document.getElementById('contactCallbackUrl');
+            if (!d) { box.innerHTML = '<span class="muted">请先在「企业微信」Tab 填写可信域名</span>'; return; }
+            if (!/^https?:\/\//i.test(d)) d = location.protocol + '//' + d;
+            const url = d.replace(/\/+$/, '') + '/callback.php?from=contact';
+            box.textContent = url;
+        }
+        function copyContactCallback() {
+            const text = document.getElementById('contactCallbackUrl').textContent;
+            if (!text || text.indexOf('请先') === 0) { weui.topTips('请先填写可信域名'); return; }
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(function () { weui.toast('✅ 已复制通讯录回调地址'); }).catch(function () { weui.topTips('复制失败，请手动选择文本复制'); });
+            } else {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0;';
+                document.body.appendChild(ta);
+                ta.select();
+                try { document.execCommand('copy'); weui.toast('✅ 已复制通讯录回调地址'); } catch (e) { weui.topTips('复制失败，请手动选择文本复制'); }
+                document.body.removeChild(ta);
+            }
+        }
+        async function saveContactCallbackSettings() {
+            const okEl = document.getElementById('contactCallbackOk');
+            const errEl = document.getElementById('contactCallbackErr');
+            okEl.classList.remove('show'); errEl.classList.remove('show');
+            const data = {
+                contact_token:   document.getElementById('contact_token').value.trim(),
+                contact_aes_key: document.getElementById('contact_aes_key').value.trim(),
+            };
+            try {
+                const resp = await fetch('/api/admin/settings/wecom', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const r = await resp.json();
+                if (r.success) {
+                    showAlert(okEl, errEl, true, '✅ 通讯录事件服务器配置已保存');
+                    weui.toast('✅ 通讯录事件服务器配置已保存');
+                } else {
+                    showAlert(okEl, errEl, false, r.error || '保存失败');
+                    weui.topTips(r.error || '保存失败');
+                }
+            } catch (e) {
+                showAlert(okEl, errEl, false, '请求失败，无法连接服务器');
+                weui.topTips('保存失败，请检查网络');
+            }
+        }
+
+        // ===== 消息口令 =====
+        async function loadKeywords() {
+            try {
+                const resp = await fetch('/api/admin/keywords');
+                const d = await resp.json();
+                document.getElementById('resetKeywords').value = d.reset_keywords || '';
+                document.getElementById('pushKeywords').value = d.push_keywords || '';
+                document.getElementById('bonusPushKeywords').value = d.bonus_push_keywords || '';
+            } catch (e) {}
+        }
+        async function saveKeywords() {
+            const data = {
+                reset_keywords: document.getElementById('resetKeywords').value.trim(),
+                push_keywords: document.getElementById('pushKeywords').value.trim(),
+                bonus_push_keywords: document.getElementById('bonusPushKeywords').value.trim(),
+            };
+            if (!data.reset_keywords || !data.push_keywords || !data.bonus_push_keywords) { weui.topTips('三项口令均不能为空'); return; }
+            try {
+                const resp = await fetch('/api/admin/keywords', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
+                });
+                const r = await resp.json();
+                if (r.success) weui.toast('✅ 口令设置已保存'); else weui.topTips(r.error || '保存失败');
+            } catch (e) { weui.topTips('保存失败'); }
+        }
+
+        // ===== 免密窗口 =====
+        async function loadFreeWindow() {
+            try {
+                const resp = await fetch('/api/admin/freewindow');
+                const d = await resp.json();
+                document.getElementById('freeWindow').value = d.minutes || 30;
+            } catch (e) {}
+        }
+        async function saveFreeWindow() {
+            const m = parseInt(document.getElementById('freeWindow').value) || 30;
+            try {
+                const resp = await fetch('/api/admin/freewindow', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ minutes: m })
+                });
+                const r = await resp.json();
+                if (r.success) weui.toast('✅ 免密设置已保存'); else weui.topTips(r.error || '保存失败');
+            } catch (e) { weui.topTips('保存失败'); }
+        }
+
+        // ===== 定时推送计划 + 定时任务参数 =====
+        let _timerCfgOpen = false;
+        function initScheduleSelects() {
+            // 每月日期 1-31
+            const daySel = document.getElementById('schDay');
+            if (daySel && daySel.options.length === 0) {
+                let html = '';
+                for (let i = 1; i <= 31; i++) html += '<option value="' + i + '">' + i + '</option>';
+                daySel.innerHTML = html;
+            }
+            // 小时 0-23
+            const hSel = document.getElementById('schHour');
+            if (hSel && hSel.options.length === 0) {
+                let html = '';
+                for (let i = 0; i <= 23; i++) html += '<option value="' + i + '">' + (i < 10 ? '0' + i : '' + i) + '</option>';
+                hSel.innerHTML = html;
+            }
+            // 分钟 0-59
+            const mSel = document.getElementById('schMin');
+            if (mSel && mSel.options.length === 0) {
+                let html = '';
+                for (let i = 0; i <= 59; i++) html += '<option value="' + i + '">' + (i < 10 ? '0' + i : '' + i) + '</option>';
+                mSel.innerHTML = html;
+            }
+        }
+        function toggleTimerCfg() {
+            _timerCfgOpen = !_timerCfgOpen;
+            const body = document.getElementById('timerCfgBody');
+            const arrow = document.getElementById('timerCfgArrow');
+            if (body) body.style.display = _timerCfgOpen ? '' : 'none';
+            if (arrow) arrow.style.transform = _timerCfgOpen ? 'rotate(180deg)' : '';
+        }
+        async function saveSchedule() {
+            const enabledEl = document.getElementById('schEnabled');
+            const dayEl = document.getElementById('schDay');
+            const hourEl = document.getElementById('schHour');
+            const minEl = document.getElementById('schMin');
+            const body = new URLSearchParams();
+            body.append('enabled', enabledEl && enabledEl.checked ? '1' : '0');
+            body.append('day',     dayEl   ? dayEl.value   : '15');
+            body.append('hour',    hourEl  ? hourEl.value  : '10');
+            body.append('minute',  minEl   ? minEl.value   : '0');
+            const setNum = function (pid, key, def) {
+                const el = document.getElementById(pid);
+                if (!el) { body.append(key, String(def)); return; }
+                let v = parseInt(el.value, 10);
+                if (isNaN(v)) v = def;
+                body.append(key, String(v));
+            };
+            setNum('timerLookback', 'timer_vacation_lookback_days', 2);
+            setNum('timerKeepAudit', 'timer_keep_audit_log_days', 180);
+            setNum('timerKeepCb',    'timer_keep_cb_log_days',    90);
+            setNum('timerKeepSlog',  'timer_keep_slog_days',      30);
+            setNum('timerKeepFb',    'timer_keep_feedback_days',  180);
+            try {
+                const resp = await fetch('/api/admin/schedule', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+                    body: body.toString()
+                });
+                const r = await resp.json();
+                if (r.success) {
+                    weui.toast('✅ 定时任务设置已保存');
+                } else {
+                    weui.topTips(r.error || '保存失败');
+                }
+            } catch (e) {
+                weui.topTips('保存失败');
+            }
+        }
+
+        // ===== 年假同步参数 =====
+        async function loadVacationSettings() {
+            try {
+                const resp = await fetch('/api/admin/settings/vacation');
+                const d = await resp.json();
+                const f = function (id, v) { const el = document.getElementById(id); if (el) el.value = v || ''; };
+                f('vacation_template_id',    d.vacation_template_id);
+                f('vacation_hire_date_idx',  d.vacation_hire_date_idx);
+                f('vacation_daterange_idx',  d.vacation_daterange_idx);
+                const ls = document.getElementById('vacation_last_sync');
+                if (ls) ls.innerHTML = d.vacation_last_sync_at
+                    ? '<span class="ad-readonly__text">' + esc(d.vacation_last_sync_at) + '</span>'
+                    : '<span class="muted">尚未同步过</span>';
+            } catch (e) {}
+        }
+        async function saveVacationSettings() {
+            const data = {
+                vacation_template_id:    document.getElementById('vacation_template_id').value.trim(),
+                vacation_hire_date_idx:  document.getElementById('vacation_hire_date_idx').value.trim(),
+                vacation_daterange_idx:  document.getElementById('vacation_daterange_idx').value.trim(),
+            };
+            if (!data.vacation_template_id) { weui.topTips('请填写年假审批模板ID'); return; }
+            const okEl  = document.getElementById('vacationOk');
+            const errEl = document.getElementById('vacationErr');
+            try {
+                const resp = await fetch('/api/admin/settings/vacation', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
+                });
+                const r = await resp.json();
+                if (r.success) {
+                    showAlert(okEl, errEl, true, '✅ 年假同步参数已保存');
+                    // 重新拉以保证 vacation_last_sync 等展示一致
+                    await loadVacationSettings();
+                } else {
+                    showAlert(okEl, errEl, false, r.error || '保存失败');
+                }
+            } catch (e) { showAlert(okEl, errEl, false, '保存失败'); }
+        }
+        async function checkVacationTemplate() {
+            const okEl  = document.getElementById('vacationOk');
+            const errEl = document.getElementById('vacationErr');
+            const preview = document.getElementById('vacationTplPreview');
+            const tbody = document.querySelector('#vacationCtlTable tbody');
+            preview.style.display = 'none';
+            tbody.innerHTML = '';
+            const payload = {
+                template_id:    document.getElementById('vacation_template_id').value.trim(),
+                hire_date_idx:  document.getElementById('vacation_hire_date_idx').value.trim(),
+                daterange_idx:  document.getElementById('vacation_daterange_idx').value.trim(),
+                sample_sp_no:   document.getElementById('vacation_sample_sp').value.trim(),
+            };
+            if (!payload.template_id) { weui.topTips('请先填写年假模板ID'); return; }
+            showAlert(okEl, errEl, null, '正在拉取审批单详情并校验…');
+            try {
+                const resp = await fetch('/api/admin/settings/vacation?action=check_template', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+                });
+                const r = await resp.json();
+                if (!r.success) { showAlert(okEl, errEl, false, r.error || '校验失败'); return; }
+                showAlert(okEl, errEl, true, '✅ 模板控件索引校验完成，结果见下方列表');
+                // hire_check.warn_only：模板本身无入职日期字段时，使用黄色警告而非红色错误
+                document.getElementById('vacationHireHint').innerHTML = r.hire_check.hint || '';
+                document.getElementById('vacationHireHint').style.color = r.hire_check.warn_only ? '#f0a020' : '#fa5151';
+                document.getElementById('vacationDrHint').innerHTML   = r.daterange_check.hint || '';
+                document.getElementById('vacationDrHint').style.color   = r.daterange_check.ok      ? '#07c160' : '#fa5151';
+                const spMap = {1:'审批中',2:'已通过',3:'已驳回',4:'已撤銷',5:'通过后撤销',6:'已通过后撤销',7:'审批删除'};
+                // applyer.name 可能为空（企微详情只给 userid，不给 name），显示 userid 兜底
+                let applyerDisplay = r.applyer ? String(r.applyer) : '';
+                if ((!applyerDisplay || applyerDisplay === '-') && r.controls && r.controls[0]) {
+                    // 兜底从 raw_http_response 提取 applyer.userid
+                    const applyerNode = (r.debug_http_response && r.debug_http_response.info && r.debug_http_response.info.applyer) || {};
+                    if (applyerNode.userid) applyerDisplay = String(applyerNode.userid);
+                }
+                if (!applyerDisplay) applyerDisplay = '-';
+                document.getElementById('vacationSpInfo').textContent =
+                    '单号：' + (r.sample_sp_no || '') + '，申请人：' + applyerDisplay + '，状态：' + (spMap[r.sp_status] || r.sp_status);
+                (r.controls || []).forEach(function (c) {
+                    const tr = document.createElement('tr');
+                    const isHire = String(c.idx) === String(r.hire_check.idx);
+                    const isDr   = String(c.idx) === String(r.daterange_check.idx);
+                    let bg = '';
+                    if (isHire) bg = '#fff3cd';
+                    else if (isDr) bg = '#cfe2ff';
+                    if (bg) tr.style.background = bg;
+                    const v0 = c.preview == null || c.preview === '' ? '<span class="muted">-</span>' : esc(String(c.preview));
+                    tr.innerHTML =
+                        '<td style="padding:8px 10px;border-bottom:1px solid var(--ad-border-2);font-family:monospace;font-size:12px;">' + esc(String(c.idx)) + '</td>' +
+                        '<td style="padding:8px 10px;border-bottom:1px solid var(--ad-border-2);">' + esc(c.title || '') +
+                        (isHire ? ' <span style="font-size:11px;background:#e6a23c;color:#fff;padding:1px 6px;border-radius:10px;margin-left:4px;">入职日期</span>' : '') +
+                        (isDr   ? ' <span style="font-size:11px;background:#409eff;color:#fff;padding:1px 6px;border-radius:10px;margin-left:4px;">休假</span>' : '') +
+                        '</td>' +
+                        '<td style="padding:8px 10px;border-bottom:1px solid var(--ad-border-2);font-family:monospace;font-size:12px;">' + esc(c.type || c.control || '') + '</td>' +
+                        '<td style="padding:8px 10px;border-bottom:1px solid var(--ad-border-2);word-break:break-all;">' + v0 + '</td>';
+                    tbody.appendChild(tr);
+                });
+                // 控件列表为空 或 apply_data 为空 时显示完整调试信息
+                var hasDebug = (r.debug_raw !== undefined) || (r.debug_http_response !== undefined) || (r.debug_http_errcode !== undefined && r.debug_http_errcode !== null);
+                if (((!r.controls || r.controls.length === 0) || !r.debug_apply_data || Object.keys(r.debug_apply_data||{}).length === 0) && hasDebug) {
+                    var dbgTr = document.createElement('tr');
+                    var lines = [];
+                    lines.push('⚠️ 控件/数据为空。以下为完整 DEBUG 信息（协助定位 301055 权限 / 单号不存在 / 模板ID不匹配 等问题）：');
+                    lines.push('—— HTTP 层 ——');
+                    lines.push('企微 errcode:  ' + (r.debug_http_errcode === null || r.debug_http_errcode === undefined ? '(未返回)' : r.debug_http_errcode) + (r.debug_http_errcode === 301055 ? '   ⚡【301055 = 自建应用未添加到审批系统应用的"可调用接口的应用"白名单，请到企微管理后台→应用管理→审批（系统应用）→API→可调用接口的应用，添加"工资条"（AgentId=1000010），保存后等待 3~5 分钟再试】' : ''));
+                    lines.push('企微 errmsg:   ' + esc(r.debug_http_errmsg || '(未返回)'));
+                    lines.push('发送的模板ID: ' + esc(r.debug_template_id_sent || ''));
+                    lines.push('发送的审批单号: ' + esc(r.debug_sp_no_used || ''));
+                    lines.push('HTTP response keys: ' + esc(JSON.stringify(r.debug_http_keys || [])));
+                    lines.push('HTTP 完整返回（raw_http_response）: ');
+                    try { lines.push(JSON.stringify(r.debug_http_response, null, 2)); }
+                    catch (e) { lines.push(String(r.debug_http_response)); }
+                    lines.push('');
+                    lines.push('—— approval_info / apply_data 层 ——');
+                    lines.push('approval_info keys: ' + esc(JSON.stringify(r.debug_info_keys || [])));
+                    lines.push('apply_data keys:      ' + esc(JSON.stringify(r.debug_apply_data_keys || [])));
+                    lines.push('apply_data 完整内容: ');
+                    try { lines.push(JSON.stringify(r.debug_apply_data, null, 2)); }
+                    catch (e) { lines.push(String(r.debug_apply_data)); }
+                    lines.push('');
+                    lines.push('approval_info 完整内容( raw ): ');
+                    try { lines.push(JSON.stringify(r.debug_raw, null, 2)); }
+                    catch (e) { lines.push(String(r.debug_raw)); }
+                    dbgTr.innerHTML = '<td colspan="4" style="padding:12px;font-size:11px;color:#fa5151;font-family:monospace;white-space:pre-wrap;word-break:break-all;line-height:1.55;background:#fff7f7;border:1px dashed #f7c9c9;">'
+                        + lines.map(function (l) { return esc(l); }).join('\n')
+                        + '</td>';
+                    tbody.appendChild(dbgTr);
+                }
+                preview.style.display = 'block';
+            } catch (e) { showAlert(okEl, errEl, false, '校验失败：' + (e && e.message ? e.message : e)); }
+        }
+
+        // ===== 催办工作时间 =====
+        // 星期选项：0=周日,1=周一...6=周六
+        const _remindDayNames = [
+            { v: 1, label: '周一' }, { v: 2, label: '周二' }, { v: 3, label: '周三' },
+            { v: 4, label: '周四' }, { v: 5, label: '周五' }, { v: 6, label: '周六' }, { v: 0, label: '周日' },
+        ];
+        function initRemindWorktimeUI() {
+            // 渲染星期复选框
+            const daysWrap = document.getElementById('remindDaysWrap');
+            daysWrap.innerHTML = '';
+            _remindDayNames.forEach(function (d) {
+                const lbl = document.createElement('label');
+                lbl.style.cssText = 'display:inline-flex;align-items:center;gap:4px;cursor:pointer;padding:4px 10px;border:1px solid #e5e5e5;border-radius:6px;font-size:13px;';
+                lbl.innerHTML = '<input type="checkbox" value="' + d.v + '"> ' + d.label;
+                daysWrap.appendChild(lbl);
+            });
+            // 渲染时间下拉 0-23
+            const startSel = document.getElementById('remindStartHour');
+            const endSel = document.getElementById('remindEndHour');
+            startSel.innerHTML = '';
+            endSel.innerHTML = '';
+            for (let i = 0; i < 24; i++) {
+                startSel.appendChild(new Option(i + '点', i));
+                endSel.appendChild(new Option(i + '点', i));
+            }
+        }
+        /** 关闭「启用限制」时，将下面两行置灰不可操作（给清晰视觉反馈） */
+        function syncRemindWorktimeDisabled() {
+            const enabled = document.getElementById('remindEnabled').checked;
+            const daysRow = document.getElementById('rwRowDays');
+            const timeRow = document.getElementById('rwRowTime');
+            if (daysRow) daysRow.classList.toggle('disabled', !enabled);
+            if (timeRow) timeRow.classList.toggle('disabled', !enabled);
+        }
+        async function loadRemindWorktime() {
+            try {
+                const resp = await fetch('/api/admin/remind_worktime');
+                const d = await resp.json();
+                const cfg = d.config || { enabled: true, days: [1,2,3,4,5], start_hour: 8, end_hour: 17 };
+                document.getElementById('remindEnabled').checked = !!cfg.enabled;
+                (cfg.days || []).forEach(function (dv) {
+                    const cb = document.querySelector('#remindDaysWrap input[value="' + dv + '"]');
+                    if (cb) cb.checked = true;
+                });
+                document.getElementById('remindStartHour').value = cfg.start_hour != null ? cfg.start_hour : 8;
+                document.getElementById('remindEndHour').value = cfg.end_hour != null ? cfg.end_hour : 17;
+                syncRemindWorktimeDisabled();
+            } catch (e) {}
+        }
+        async function saveRemindWorktime() {
+            const enabled = document.getElementById('remindEnabled').checked;
+            const days = Array.prototype.slice.call(document.querySelectorAll('#remindDaysWrap input:checked'))
+                .map(function (cb) { return parseInt(cb.value, 10); });
+            if (days.length === 0) { weui.topTips('请至少选择一个催办星期'); return; }
+            const startHour = parseInt(document.getElementById('remindStartHour').value, 10) || 0;
+            const endHour = parseInt(document.getElementById('remindEndHour').value, 10) || 0;
+            if (endHour <= startHour) { weui.topTips('结束时间必须大于开始时间'); return; }
+            try {
+                const resp = await fetch('/api/admin/remind_worktime', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled: enabled, days: days, start_hour: startHour, end_hour: endHour })
+                });
+                const r = await resp.json();
+                if (r.success) weui.toast('✅ 催办时间设置已保存'); else weui.topTips(r.error || '保存失败');
+            } catch (e) { weui.topTips('保存失败'); }
+        }
+
+        // ===== 催办调试 =====
+        function _renderRemindDetailsBlock(label, res) {
+            let html = '<div class="rdr-section-sub">' + label + '：发送 ' + res.sent + ' / ' + res.total + ' 条';
+            if (res.skip > 0) html += '（跳过 ' + res.skip + ' 条）';
+            html += '</div>';
+            if (res.error) {
+                html += '<div class="rdr-error">⚠️ SQL 错误：' + esc(res.error) + '</div>';
+            }
+            if (res.total === 0 && (!res.details || res.details.length === 0)) {
+                html += '<div class="rdr-empty" style="padding:6px;">没有符合条件的数据（status=sent 且 confirmed=0）</div>';
+            } else if (res.details && res.details.length > 0) {
+                res.details.forEach(function (item) {
+                    const statusMap = { ok: '✓ 成功', fail: '✗ 失败', skip_dedup: '↷ 跳过', skip: '↷ 跳过', info: 'ℹ 提示', warn: '⚠ 警告' };
+                    const statusText = statusMap[item.status] || item.status;
+                    html += '<div class="rdr-item">'
+                         + '<span class="rdr-status ' + (item.status || '') + '">' + statusText + '</span>'
+                         + '<span class="rdr-name">' + esc(item.name || item.userid || '') + '</span>'
+                         + '<span class="rdr-msg">' + esc(item.msg || '') + '</span>'
+                         + '</div>';
+                });
+            }
+            return html;
+        }
+
+        async function debugRemind(type) {
+            const btn = document.getElementById('debugRemindBtn');
+            const resultBox = document.getElementById('remindDebugResult');
+            const originalText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = '执行中...';
+            resultBox.style.display = 'block';
+            resultBox.innerHTML = '<div class="rdr-empty">⏳ 正在执行催办（工资+奖金），请稍候...</div>';
+            try {
+                const resp = await fetch('/api/admin/remind_debug', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: type })
+                });
+                const d = await resp.json();
+                renderRemindDebugResult(d, type);
+            } catch (e) {
+                resultBox.innerHTML = '<div class="rdr-error">❌ 请求失败：' + esc(e.message || String(e)) + '</div>';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalText;
+            }
+        }
+        function renderRemindDebugResult(d, type) {
+            const box = document.getElementById('remindDebugResult');
+            if (!d.success) {
+                box.innerHTML = '<div class="rdr-error">❌ ' + esc(d.error || '执行失败') + '</div>';
+                return;
+            }
+            let html = '';
+            if (d.type === 'all') {
+                html += '<div class="rdr-section-title">📋 催办执行结果</div>';
+                html += '<div class="rdr-summary">' + esc(d.summary || '') + '</div>';
+                if (d.salary) html += _renderRemindDetailsBlock('💼 工资催办', d.salary);
+                if (d.bonus)  html += _renderRemindDetailsBlock('🎁 奖金催办', d.bonus);
+            } else {
+                const typeLabel = type === 'salary' ? '工资催办' : '奖金催办';
+                html += '<div class="rdr-section-title">📋 ' + typeLabel + ' 执行结果</div>';
+                html += _renderRemindDetailsBlock(typeLabel, d);
+            }
+            box.innerHTML = html;
+        }
+
+        async function debugPush() {
+            const btn = document.getElementById('debugPushBtn');
+            const resultBox = document.getElementById('remindDebugResult');
+            const originalText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = '执行中...';
+            resultBox.style.display = 'block';
+            resultBox.innerHTML = '<div class="rdr-empty">⏳ 正在执行定时下发工资条，请稍候（含推送通知，可能需要几秒）...</div>';
+            try {
+                const resp = await fetch('/api/admin/push_debug', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+                const d = await resp.json();
+                renderPushDebugResult(d);
+            } catch (e) {
+                resultBox.innerHTML = '<div class="rdr-error">❌ 请求失败：' + esc(e.message || String(e)) + '</div>';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalText;
+            }
+        }
+        function renderPushDebugResult(d) {
+            const box = document.getElementById('remindDebugResult');
+            if (!d.success) {
+                box.innerHTML = '<div class="rdr-error">❌ ' + esc(d.error || '执行失败') + '</div>';
+                return;
+            }
+            let html = '<div class="rdr-section-title">📤 定时下发工资条执行结果</div>';
+            let summary = '';
+            if (d.skipped) {
+                summary = '已跳过（原因见下方详情）';
+            } else if (d.ym) {
+                summary = d.ym + '：成功推送 ' + d.sent + ' / ' + d.total + ' 人';
+                if (d.notify_ok) summary += '，下发结果通知已发送';
+            } else {
+                summary = '未实际推送（见详情）';
+            }
+            html += '<div class="rdr-summary">' + summary + '</div>';
+            if (d.error) {
+                html += '<div class="rdr-error">⚠️ 推送异常：' + esc(d.error) + '</div>';
+            }
+            if (d.details && d.details.length > 0) {
+                d.details.forEach(function (item) {
+                    const statusMap = { ok: '✓ 成功', fail: '✗ 失败', skip_dedup: '↷ 去重跳过', skip: '↷ 跳过', info: 'ℹ 提示', warn: '⚠ 警告' };
+                    const statusText = statusMap[item.status] || item.status;
+                    html += '<div class="rdr-item">'
+                         + '<span class="rdr-status ' + (item.status || '') + '">' + statusText + '</span>'
+                         + '<span class="rdr-name">&nbsp;</span>'
+                         + '<span class="rdr-msg">' + esc(item.msg || '') + '</span>'
+                         + '</div>';
+                });
+            } else {
+                html += '<div class="rdr-empty">无详情</div>';
+            }
+            box.innerHTML = html;
+        }
+
+        // ===== 定时任务密钥与调用方式 =====
+        let _cronKey = '';
+        let _cronKeyVisible = false;
+        let _cronKeyFetched = false;
+        let _appBaseUrl = '';
+        async function loadCronKeyInfo() {
+            try {
+                initScheduleSelects();
+                const resp = await fetch('/api/admin/schedule');
+                const d = await resp.json();
+                _cronKey = d.cron_key_preview || '';
+                _cronKeyFetched = false;
+                _cronKeyVisible = false;
+                _appBaseUrl = d.app_base_url || '';
+                // 定时推送计划
+                const enEl = document.getElementById('schEnabled');
+                if (enEl) enEl.checked = !!d.enabled;
+                const dEl = document.getElementById('schDay');     if (dEl) dEl.value   = d.day    != null ? d.day    : 15;
+                const hEl = document.getElementById('schHour');    if (hEl) hEl.value   = d.hour   != null ? d.hour   : 10;
+                const mEl = document.getElementById('schMin');     if (mEl) mEl.value   = d.minute != null ? d.minute : 0;
+                // 5 个定时任务参数
+                const setVal = function (id, v, def) { const el = document.getElementById(id); if (el) el.value = v != null ? v : def; };
+                setVal('timerLookback', d.timer_vacation_lookback_days, 2);
+                setVal('timerKeepAudit', d.timer_keep_audit_log_days, 180);
+                setVal('timerKeepCb',    d.timer_keep_cb_log_days,    90);
+                setVal('timerKeepSlog',  d.timer_keep_slog_days,      30);
+                setVal('timerKeepFb',    d.timer_keep_feedback_days,  180);
+                renderCronKey();
+            } catch (e) {}
+        }
+        function renderCronKey() {
+            const valEl = document.getElementById('cronKeyVal');
+            const eyeEl = document.getElementById('cronKeyEye');
+            const allEl  = document.getElementById('cronCallAll');
+            const pushEl = document.getElementById('cronCallPush');
+            const remindEl = document.getElementById('cronCallRemind');
+            if (!_cronKey) {
+                valEl.textContent = '未配置（建议在 config.local.php 设置 CRON_KEY）';
+                valEl.style.color = '#dc2626';
+                eyeEl.style.display = 'none';
+                if (allEl)     allEl.textContent     = 'cron.php?task=all';
+                pushEl.textContent     = 'cron.php?task=push';
+                remindEl.textContent   = 'cron.php?task=remind';
+            } else {
+                valEl.style.color = '#111827';
+                eyeEl.style.display = '';
+                valEl.textContent = _cronKeyVisible ? _cronKey : '••••••••（点击眼睛显示预览）';
+                eyeEl.textContent = _cronKeyVisible ? '🙈' : '👁';
+                const base = _appBaseUrl || '';
+                const keyForDisplay = _cronKeyVisible ? _cronKey : (_cronKey.indexOf('*') !== -1 ? '密钥' : _cronKey);
+                if (allEl)     allEl.textContent     = base + '/cron.php?task=all&key='    + keyForDisplay;
+                pushEl.textContent     = base + '/cron.php?task=push&key='   + keyForDisplay;
+                remindEl.textContent   = base + '/cron.php?task=remind&key=' + keyForDisplay;
+            }
+        }
+        async function ensureFullKey() {
+            if (!_cronKeyFetched) {
+                try {
+                    const resp = await fetch('/api/admin/schedule?full=1');
+                    const d = await resp.json();
+                    if (d.cron_key_full) {
+                        _cronKey = d.cron_key_full;
+                        _appBaseUrl = d.app_base_url || _appBaseUrl;
+                        _cronKeyFetched = true;
+                    }
+                } catch (e) {}
+            }
+            return _cronKeyFetched ? _cronKey : '';
+        }
+        async function toggleCronKey() {
+            await ensureFullKey();
+            _cronKeyVisible = !_cronKeyVisible;
+            renderCronKey();
+        }
+        async function copyCronKey() {
+            const key = await ensureFullKey();
+            if (!key) { weui.topTips('未配置密钥'); return; }
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(key).then(function () { weui.toast('已复制密钥'); }).catch(function () { weui.topTips('复制失败'); });
+            } else {
+                const ta = document.createElement('textarea');
+                ta.value = key; document.body.appendChild(ta); ta.select();
+                try { document.execCommand('copy'); weui.toast('已复制密钥'); } catch (e) { weui.topTips('复制失败'); }
+                document.body.removeChild(ta);
+            }
+        }
+        async function copyCronCall(task) {
+            const key = await ensureFullKey();
+            if (!key) { weui.topTips('未配置密钥'); return; }
+            const base = _appBaseUrl || '';
+            const url = base + '/cron.php?task=' + task + '&key=' + key;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url).then(function () { weui.toast('已复制完整地址'); }).catch(function () { weui.topTips('复制失败'); });
+            } else {
+                const ta = document.createElement('textarea');
+                ta.value = url; document.body.appendChild(ta); ta.select();
+                try { document.execCommand('copy'); weui.toast('已复制完整地址'); } catch (e) { weui.topTips('复制失败'); }
+                document.body.removeChild(ta);
+            }
+        }
+
+        // ===== 站点设置 =====
+        let _logoChanged = false;
+        async function loadSiteSettings() {
+            try {
+                const resp = await fetch('/api/admin/site_settings');
+                const d = await resp.json();
+                document.getElementById('site_title').value = d.site_title || '';
+                document.getElementById('site_subtitle').value = d.site_subtitle || '';
+                document.getElementById('theme_color').value = d.theme_color || '#07c160';
+                document.getElementById('theme_color_text').value = d.theme_color || '#07c160';
+                document.getElementById('announcement').value = d.announcement || '';
+                document.getElementById('site_company').value = d.company_name || '';
+                document.getElementById('site_website').value = d.company_website || '';
+                if (d.logo_url) {
+                    document.getElementById('logoPreview').innerHTML =
+                        '<img src="' + esc(d.logo_url) + '" style="max-width:80px;max-height:80px;border-radius:8px;">';
+                } else {
+                    document.getElementById('logoPreview').innerHTML = '<span style="color:#999;font-size:13px;">未上传</span>';
+                }
+                _logoChanged = false;
+                updateSitePreview();
+            } catch (e) {}
+        }
+        function updateSitePreview() {
+            const title = document.getElementById('site_title').value.trim() || '工资查询';
+            const subtitle = document.getElementById('site_subtitle').value.trim();
+            const color = document.getElementById('theme_color').value || '#07c160';
+            const ann = document.getElementById('announcement').value.trim();
+            const cn = document.getElementById('site_company').value.trim() || '劲旋风航空';
+            const cw = document.getElementById('site_website').value.trim() || 'jxfpropeller.com';
+
+            document.getElementById('prev_title').textContent = title;
+            const subEl = document.getElementById('prev_subtitle');
+            subEl.textContent = subtitle || '团结奋进 知难而进 不断改进';
+            subEl.style.display = subtitle ? 'block' : 'none';
+
+            // 主题色渐变
+            const c2 = shadeColor(color, -10);
+            document.getElementById('prev_header').style.background =
+                'linear-gradient(180deg,' + color + ' 0%,' + c2 + ' 100%)';
+
+            // Logo 同步
+            const logoBox = document.getElementById('prev_logo');
+            const logoImg = logoBox.querySelector('img');
+            const currentLogoImg = (document.querySelector('#logoPreview img') || {}).src;
+            if (currentLogoImg) {
+                logoBox.innerHTML = '<img src="' + currentLogoImg + '" style="width:100%;height:100%;object-fit:cover;">';
+            } else if (!logoImg) {
+                logoBox.textContent = '💰';
+            }
+
+            // 公告
+            const annBox = document.getElementById('prev_announcement');
+            if (ann) {
+                annBox.style.display = 'block';
+                document.getElementById('prev_ann_text').textContent = ann;
+            } else {
+                annBox.style.display = 'none';
+            }
+
+            document.getElementById('prev_company').textContent = cn;
+            document.getElementById('prev_website').textContent = cw;
+            document.getElementById('prev_year').textContent = new Date().getFullYear();
+        }
+        function shadeColor(hex, percent) {
+            const f = parseInt(hex.slice(1), 16);
+            const t = percent < 0 ? 0 : 255;
+            const p = Math.abs(percent) / 100;
+            const R = f >> 16, G = (f >> 8) & 0x00FF, B = f & 0x0000FF;
+            return '#' + (
+                0x1000000 +
+                (Math.round((t - R) * p) + R) * 0x10000 +
+                (Math.round((t - G) * p) + G) * 0x100 +
+                (Math.round((t - B) * p) + B)
+            ).toString(16).slice(1);
+        }
+        async function saveSiteSettings() {
+            const formData = new FormData();
+            formData.append('site_title', document.getElementById('site_title').value.trim());
+            formData.append('site_subtitle', document.getElementById('site_subtitle').value.trim());
+            formData.append('theme_color', document.getElementById('theme_color').value);
+            formData.append('announcement', document.getElementById('announcement').value.trim());
+            formData.append('company_name', document.getElementById('site_company').value.trim());
+            formData.append('company_website', document.getElementById('site_website').value.trim());
+            const logoFile = document.getElementById('logoFile').files[0];
+            if (logoFile) formData.append('logo', logoFile);
+
+            try {
+                const resp = await fetch('/api/admin/site_settings', {
+                    method: 'POST', body: formData
+                });
+                const r = await resp.json();
+                if (r.success) weui.toast('✅ 站点设置已保存'); else weui.topTips(r.error || '保存失败');
+            } catch (e) { weui.topTips('保存失败'); }
+        }
+
+        // 实时预览
+        document.addEventListener('input', function(e) {
+            var ids = ['site_title','site_subtitle','theme_color','theme_color_text','announcement','site_company','site_website'];
+            if (ids.indexOf(e.target.id) >= 0) {
+                if (e.target.id === 'theme_color') {
+                    document.getElementById('theme_color_text').value = e.target.value;
+                } else if (e.target.id === 'theme_color_text') {
+                    if (/^#[0-9a-fA-F]{6}$/.test(e.target.value)) {
+                        document.getElementById('theme_color').value = e.target.value;
+                    }
+                }
+                updateSitePreview();
+            }
+        });
+        document.addEventListener('change', function(e) {
+            if (e.target.id === 'logoFile' && e.target.files && e.target.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(ev) {
+                    document.getElementById('logoPreview').innerHTML =
+                        '<img src="' + ev.target.result + '" style="max-width:80px;max-height:80px;border-radius:8px;">';
+                    updateSitePreview();
+                };
+                reader.readAsDataURL(e.target.files[0]);
+                _logoChanged = true;
+            }
+        });
+
+        // ===== 后台密码 =====
+        async function loadAdminPassword() {
+            try {
+                const resp = await fetch('/api/auth/me');
+                const u = await resp.json();
+                if (u.admin_login) document.getElementById('adm_login').value = u.admin_login;
+                document.getElementById('adm_name').value = u.name || '';
+                // 加载部门列表并设置当前选中
+                loadDepartments(u.dept_id || 0);
+                const wb = document.getElementById('wecomBound');
+                const btnUnbind = document.getElementById('btnUnbindWecom');
+                if (u.wecom_userid) {
+                    wb.value = u.wecom_userid;
+                    btnUnbind.style.display = '';
+                } else {
+                    wb.value = '';
+                    wb.placeholder = '未绑定';
+                    btnUnbind.style.display = 'none';
+                }
+            } catch (e) {}
+        }
+        async function loadDepartments(selectedId) {
+            try {
+                const resp = await fetch('/api/admin/contacts');
+                const d = await resp.json();
+                const sel = document.getElementById('adm_dept');
+                sel.innerHTML = '<option value="">未分配</option>';
+                const depts = (d && Array.isArray(d.departments)) ? d.departments : [];
+                // 过滤掉业务特殊部门（已离职），不允许作为正常部门选择
+                const filteredDepts = depts.filter(function(dp) { return dp.name !== '已离职' && dp.name !== '未匹配'; });
+                // 构建树结构，支持多级部门
+                const deptMap = {};
+                const roots = [];
+                filteredDepts.forEach(function(dp) {
+                    deptMap[dp.dept_id] = { ...dp, children: [] };
+                });
+                filteredDepts.forEach(function(dp) {
+                    if (dp.parent_id && deptMap[dp.parent_id]) {
+                        deptMap[dp.parent_id].children.push(dp.dept_id);
+                    } else {
+                        roots.push(dp.dept_id);
+                    }
+                });
+                function renderDept(id, depth) {
+                    const dp = deptMap[id];
+                    if (!dp) return;
+                    const opt = document.createElement('option');
+                    opt.value = dp.dept_id;
+                    opt.textContent = (depth > 0 ? '　'.repeat(depth) + '└ ' : '') + dp.name;
+                    if (selectedId && dp.dept_id == selectedId) opt.selected = true;
+                    sel.appendChild(opt);
+                    (dp.children || []).forEach(function(cid) { renderDept(cid, depth + 1); });
+                }
+                roots.forEach(function(rid) { renderDept(rid, 0); });
+            } catch (e) {}
+        }
+        async function changeAdminProfile() {
+            const name = document.getElementById('adm_name').value.trim();
+            const deptId = document.getElementById('adm_dept').value;
+            if (!name) { weui.topTips('请填写姓名'); return; }
+            try {
+                const resp = await fetch('/api/admin/profile', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: name, dept_id: deptId || 0 })
+                });
+                const r = await resp.json();
+                if (r.success) weui.toast('✅ 资料已更新');
+                else weui.topTips(r.error || '修改失败');
+            } catch (e) { weui.topTips('修改失败'); }
+        }
+        function bindWecom() {
+            // 跳转企微 OAuth（带 bind 标记），callback 把当前企微 ID 写入 wecom_userid 后跳回设置页
+            window.location.href = '/api/auth/login?bind=1&redirect=/admin/settings';
+        }
+        async function unbindWecom() {
+            if (!window.confirm('确定解绑企业微信？解绑后只能用账号密码登录后台。')) return;
+            try {
+                const resp = await fetch('/api/auth/unbind-wecom', { method: 'POST' });
+                const r = await resp.json();
+                if (r.success) { weui.toast('✅ 已解绑'); loadAdminPassword(); }
+                else { weui.topTips(r.error || '解绑失败'); }
+            } catch (e) { weui.topTips('解绑失败'); }
+        }
+        async function changeAdminPassword() {
+            const login = document.getElementById('adm_login').value.trim();
+            const oldp = document.getElementById('adm_old').value;
+            const np = document.getElementById('adm_new').value;
+            if (!login) { weui.topTips('请填写后台登录账号'); return; }
+            if (np.length < 8 || !/[A-Za-z]/.test(np) || !/[0-9]/.test(np)) { weui.topTips('新密码至少 8 位，需含字母和数字'); return; }
+            const body = new URLSearchParams({ admin_login: login, new_password: np });
+            if (oldp) body.append('old_password', oldp);
+            try {
+                const resp = await fetch('/api/admin/password', { method: 'POST', body: body });
+                const r = await resp.json();
+                if (r.success) {
+                    weui.toast('✅ 密码已更新');
+                    document.getElementById('adm_old').value = '';
+                    document.getElementById('adm_new').value = '';
+                } else { weui.topTips(r.error || '修改失败'); }
+            } catch (e) { weui.topTips('修改失败'); }
+        }
+
+        // ===== 通讯录同步 =====
+        async function syncDepartment() {
+            showLoading('同步部门中...');
+            try {
+                const resp = await fetch('/api/admin/sync/department', { method: 'POST' });
+                const ct = resp.headers.get('content-type') || '';
+                let d;
+                if (ct.indexOf('application/json') >= 0) { d = await resp.json(); }
+                else { const txt = await resp.text(); throw new Error('服务端返回非 JSON（HTTP ' + resp.status + '）：' + txt.slice(0, 220)); }
+                hideLoading();
+                const tip = d.success ? '✅ ' + (d.message || '同步完成') : '⚠️ ' + (d.error || d.message || '同步失败');
+                showAlert(document.getElementById('syncOk'), document.getElementById('syncErr'), !!d.success, tip);
+                if (d.success) { weui.toast('✅ 部门同步完成'); loadOrgOverview(); }
+                else weui.topTips(d.error || d.message || '同步失败');
+            } catch (e) {
+                hideLoading();
+                showAlert(document.getElementById('syncOk'), document.getElementById('syncErr'), false, '同步失败：' + (e.message || e));
+                weui.topTips('同步失败：' + (e.message || e));
+            }
+        }
+        async function syncUser() {
+            showLoading('同步成员中（耗时较长）...');
+            try {
+                const resp = await fetch('/api/admin/sync/user', { method: 'POST' });
+                const ct = resp.headers.get('content-type') || '';
+                let d;
+                if (ct.indexOf('application/json') >= 0) { d = await resp.json(); }
+                else { const txt = await resp.text(); throw new Error('服务端返回非 JSON（HTTP ' + resp.status + '）：' + txt.slice(0, 220)); }
+                hideLoading();
+                const tip = d.success ? '✅ ' + (d.message || '同步完成') : '⚠️ ' + (d.error || d.message || '同步失败');
+                showAlert(document.getElementById('syncOk'), document.getElementById('syncErr'), !!d.success, tip);
+                if (d.success) { weui.toast('✅ 成员同步完成'); loadOrgOverview(); }
+                else weui.topTips(d.error || d.message || '同步失败');
+            } catch (e) {
+                hideLoading();
+                showAlert(document.getElementById('syncOk'), document.getElementById('syncErr'), false, '同步失败：' + (e.message || e));
+                weui.topTips('同步失败：' + (e.message || e));
+            }
+        }
+
+        async function loadOrgOverview() {
+            try {
+                const resp = await fetch('/api/admin/stats/overview');
+                const d = await resp.json();
+                document.getElementById('orgOverview').innerHTML = ''
+                    + '<div class="ad-stats">'
+                    + '<div class="ad-stat"><div class="ad-stat__num">' + (d.total_employees || 0) + '</div><div class="ad-stat__label">员工总数</div></div>'
+                    + '<div class="ad-stat"><div class="ad-stat__num">' + (d.total_departments || 0) + '</div><div class="ad-stat__label">部门总数</div></div>'
+                    + '</div>';
+            } catch (e) {
+                document.getElementById('orgOverview').innerHTML = '<div class="ad-empty">加载失败</div>';
+            }
+        }
+
+        // ===== 工资条下发模板（已迁移至下方统一消息模板，保留空函数兼容） =====
+        function onSalaryTplType() {}
+        function loadSalaryTpl() {}
+        function renderSalaryTplPreview() {}
+        function insertTplChip(el) {}
+        function saveSalaryTpl() { weui.toast('请使用下方「消息通知模板」统一编辑'); }
+
+        // ===== 统一消息模板（5 类内置） =====
+        // 每类模板的：示例变量 + 默认描述 + 示例链接
+        function getBaseUrl() {
+            let d = (document.getElementById('server_domain') ? document.getElementById('server_domain').value : '').trim();
+            if (d && !/^https?:\/\//i.test(d)) d = location.protocol + '//' + d;
+            return (d || (location.origin || (location.protocol + '//' + location.host))).replace(/\/+$/, '');
+        }
+        const MSG_TPL_META = {
+            salary_send: {
+                desc: '工资下发通知（员工）',
+                vars: ['姓名', '部门', '年', '月', '年月', '链接'],
+                _getSample: function() { return { '姓名': '张三', '部门': '研发部', '年': '2026', '月': '07', '年月': '202607', '链接': getBaseUrl() + '/employee/salary?ym=202607' }; },
+                _getLink: function() { return getBaseUrl() + '/employee/salary?ym=202607'; },
+                showTitle: true,
+                showType: true,
+                showLink: true,
+            },
+            push_result: {
+                desc: '工资下发结果通知（管理员/财务）',
+                vars: ['年', '月', '成功数', '总数'],
+                _getSample: function() { return { '年': '2026', '月': '07', '成功数': '138', '总数': '139' }; },
+                _getLink: function() { return ''; },
+                showTitle: false,
+                showType: true,
+                showLink: false,
+            },
+            salary_remind: {
+                desc: '工资催办确认通知（员工）',
+                vars: ['姓名', '部门', '年', '月', '年月', '链接'],
+                _getSample: function() { return { '姓名': '张三', '部门': '研发部', '年': '2026', '月': '07', '年月': '202607', '链接': getBaseUrl() + '/employee/salary?ym=202607' }; },
+                _getLink: function() { return getBaseUrl() + '/employee/salary?ym=202607'; },
+                showTitle: true,
+                showType: true,
+                showLink: true,
+            },
+            feedback_to_hr_salary: {
+                desc: '工资反馈通知（人事收）',
+                vars: ['姓名', '账号', '年', '月', '年月', '链接'],
+                _getSample: function() { return { '姓名': '张三', '账号': 'ZhangSan', '年': '2026', '月': '07', '年月': '2026年07月', '链接': getBaseUrl() + '/admin/feedback_list' }; },
+                _getLink: function() { return getBaseUrl() + '/admin/feedback_list'; },
+                showTitle: true,
+                showType: true,
+                showLink: true,
+            },
+            feedback_to_hr_bonus: {
+                desc: '奖金反馈通知（人事收）',
+                vars: ['姓名', '账号', '年', '奖金类型', '链接'],
+                _getSample: function() { return { '姓名': '张三', '账号': 'ZhangSan', '年': '2026', '奖金类型': '年终奖', '链接': getBaseUrl() + '/admin/feedback_list' }; },
+                _getLink: function() { return getBaseUrl() + '/admin/feedback_list'; },
+                showTitle: true,
+                showType: true,
+                showLink: true,
+            },
+            feedback_reply_salary: {
+                desc: '工资反馈回复通知（员工收）',
+                vars: ['姓名', '年', '月', '年月', '链接'],
+                _getSample: function() { return { '姓名': '张三', '年': '2026', '月': '07', '年月': '2026年07月', '链接': getBaseUrl() + '/employee/feedback#feedback-1' }; },
+                _getLink: function() { return getBaseUrl() + '/employee/feedback#feedback-1'; },
+                showTitle: true,
+                showType: true,
+                showLink: true,
+            },
+            feedback_reply_bonus: {
+                desc: '奖金反馈回复通知（员工收）',
+                vars: ['姓名', '年', '奖金类型', '链接'],
+                _getSample: function() { return { '姓名': '张三', '年': '2026', '奖金类型': '年终奖', '链接': getBaseUrl() + '/employee/feedback#feedback-1' }; },
+                _getLink: function() { return getBaseUrl() + '/employee/feedback#feedback-1'; },
+                showTitle: true,
+                showType: true,
+                showLink: true,
+            },
+            bonus_push_result: {
+                desc: '奖金下发结果通知（管理员/财务）',
+                vars: ['年', '奖金类型', '成功数', '总数'],
+                _getSample: function() { return { '年': '2026', '奖金类型': '年终奖', '成功数': '138', '总数': '139' }; },
+                _getLink: function() { return ''; },
+                showTitle: false,
+                showType: true,
+                showLink: false,
+            },
+            bonus_send: {
+                desc: '奖金下发通知（员工）',
+                vars: ['姓名', '部门', '年', '奖金类型', '链接'],
+                _getSample: function() { return { '姓名': '张三', '部门': '研发部', '年': '2026', '奖金类型': '年终奖', '链接': getBaseUrl() + '/employee/bonus?id=123' }; },
+                _getLink: function() { return getBaseUrl() + '/employee/bonus?id=123'; },
+                showTitle: true,
+                showType: true,
+                showLink: true,
+            },
+            bonus_remind: {
+                desc: '奖金催办确认通知（员工）',
+                vars: ['姓名', '部门', '年', '奖金类型', '链接'],
+                _getSample: function() { return { '姓名': '张三', '部门': '研发部', '年': '2026', '奖金类型': '年终奖', '链接': getBaseUrl() + '/employee/bonus?id=123' }; },
+                _getLink: function() { return getBaseUrl() + '/employee/bonus?id=123'; },
+                showTitle: true,
+                showType: true,
+                showLink: true,
+            },
+        };
+        let _msgTplList = [];
+        let _currentMsgTplId = null;
+        // 从模板标题/内容中自动检测 {变量} 通配符（支持中文变量名）
+        function detectTplVars(title, content) {
+            const text = (title || '') + ' ' + (content || '');
+            const found = [];
+            const seen = {};
+            const re = /\{([^}]+)\}/gu;
+            let m;
+            while ((m = re.exec(text)) !== null) {
+                const v = m[1].trim();
+                if (v && !seen[v]) {
+                    seen[v] = true;
+                    found.push(v);
+                }
+            }
+            return found;
+        }
+        // 通用示例值映射（覆盖绝大多数业务模板变量）
+        function getDefaultSample() {
+            return {
+                '姓名': '张三', '账号': 'ZhangSan', '部门': '研发部',
+                '年': '2026', '月': '07', '年月': '202607',
+                '年月提示': '对 2026年07月 工资条',
+                '链接': getBaseUrl() + '/employee/salary?ym=202607',
+                '成功数': '138', '总数': '139',
+                '奖金类型': '年终奖',
+            };
+        }
+        async function loadMsgTemplates() {
+            try {
+                const resp = await fetch('/api/admin/message_templates');
+                _msgTplList = await resp.json();
+            } catch (e) { _msgTplList = []; }
+            const sel = document.getElementById('mtTplSelect');
+            sel.innerHTML = '';
+            _msgTplList.forEach(tpl => {
+                const meta = tpl.tpl_key ? MSG_TPL_META[tpl.tpl_key] : null;
+                const opt = document.createElement('option');
+                opt.value = tpl.id;
+                opt.textContent = meta ? meta.desc : (tpl.name || '自定义模板');
+                sel.appendChild(opt);
+            });
+            const firstBuiltin = _msgTplList.find(t => t.tpl_key && MSG_TPL_META[t.tpl_key]);
+            if (firstBuiltin) {
+                sel.value = firstBuiltin.id;
+                selectMsgTemplate(firstBuiltin);
+            }
+        }
+        function onMsgTplChange() {
+            const id = document.getElementById('mtTplSelect').value;
+            const tpl = _msgTplList.find(t => String(t.id) === String(id));
+            if (tpl) selectMsgTemplate(tpl);
+        }
+        function selectMsgTemplate(tpl) {
+            if (!tpl) return;
+            const meta = MSG_TPL_META[tpl.tpl_key] || null;
+            _currentMsgTplId = tpl.id;
+            document.getElementById('mtMsgType').value = tpl.msgtype || 'text';
+            document.getElementById('mtTitle').value = tpl.title || '';
+            document.getElementById('mtContent').value = tpl.content || '';
+            document.getElementById('mtTplTypeRow').style.display = meta && meta.showType ? '' : 'none';
+            document.getElementById('mtTitleRow').style.display = meta && meta.showTitle ? '' : 'none';
+            document.getElementById('mtLinkRow').style.display = meta && meta.showLink ? '' : 'none';
+            const linkEl = document.getElementById('mtLinkUrl');
+            if (meta && meta.showLink) {
+                linkEl.textContent = meta._getLink ? meta._getLink() : '';
+            } else {
+                linkEl.textContent = meta ? '（纯文本消息，无跳转链接）' : '—';
+            }
+            if (meta) {
+                renderTplChips(meta.vars, meta._getSample ? meta._getSample() : null);
+            } else {
+                // 自定义模板：自动检测 {变量} 并提供通用示例值
+                const vars = detectTplVars(tpl.title, tpl.content);
+                const sample = getDefaultSample();
+                renderTplChips(vars, sample);
+            }
+            renderMsgTplPreview();
+        }
+        // 渲染通配符 chip：点击插入到模板内容光标处，悬浮显示示例值
+        function renderTplChips(vars, sample) {
+            const hintEl = document.getElementById('mtVarsHint');
+            const chipsEl = document.getElementById('mtVarsChips');
+            hintEl.textContent = '可用通配符（点击插入，悬浮查看示例）：';
+            chipsEl.innerHTML = '';
+            (vars || []).forEach(function (v) {
+                const chip = document.createElement('span');
+                chip.className = 'tpl-chip';
+                chip.textContent = '{' + v + '}';
+                const sampleVal = sample && sample[v] ? sample[v] : '';
+                chip.setAttribute('data-tip', sampleVal ? ('示例：' + sampleVal) : '（无示例）');
+                chip.onclick = function () { insertTplVar('{' + v + '}'); };
+                chipsEl.appendChild(chip);
+            });
+        }
+        // 在模板内容 textarea 光标处插入通配符
+        function insertTplVar(text) {
+            const ta = document.getElementById('mtContent');
+            const start = ta.selectionStart;
+            const end = ta.selectionEnd;
+            ta.value = ta.value.slice(0, start) + text + ta.value.slice(end);
+            ta.focus();
+            const pos = start + text.length;
+            ta.setSelectionRange(pos, pos);
+            renderMsgTplPreview();
+        }
+        function renderMsgTplPreview() {
+            const sel = document.getElementById('mtTplSelect');
+            const tpl = _msgTplList.find(t => String(t.id) === String(sel.value));
+            const meta = tpl ? (MSG_TPL_META[tpl.tpl_key] || null) : null;
+            const sample = (meta && meta._getSample) ? meta._getSample() : getDefaultSample();
+            const type = document.getElementById('mtMsgType').value;
+            const title = document.getElementById('mtTitle').value || '';
+            const content = document.getElementById('mtContent').value || '';
+            // 用 /\{([^}]+)\}/gu 匹配所有变量（含中文），而非 /\{\w+\}/gu（仅 ASCII）
+            const outContent = content.replace(/\{([^}]+)\}/gu, function (_, k) { return (sample[k] !== undefined) ? sample[k] : ('{' + k + '}'); });
+            const card = document.getElementById('mtCardPreview');
+            const box = document.getElementById('mtPreview');
+            const linkUrl = (meta && meta._getLink) ? meta._getLink() : '';
+            const showLink = meta ? !!meta.showLink : false;
+            const showTitle = meta ? !!meta.showTitle : !!title;
+            if (type === 'template_card' && showTitle && title) {
+                const titleOut = title.replace(/\{([^}]+)\}/gu, function (_, k) { return (sample[k] !== undefined) ? sample[k] : ('{' + k + '}'); });
+                const linkHtml = (showLink && linkUrl) ? '<div style="font-size:11px;color:#999;margin-bottom:6px;word-break:break-all;">' + esc(linkUrl) + '</div>' : '';
+                box.innerHTML = linkHtml + '<div style="font-size:14px;font-weight:bold;color:#1a1a1a;margin-bottom:6px;">' + esc(titleOut) + '</div>' + '<div style="font-size:13px;color:#555;line-height:1.6;">' + esc(outContent) + '</div>';
+                card.style.border = '1px solid #e0e0e0';
+                card.style.background = '#fafafa';
+                card.style.padding = '14px';
+                card.style.borderRadius = '8px';
+            } else if (type === 'template_card') {
+                const linkHtml = (showLink && linkUrl) ? '<div style="font-size:11px;color:#999;margin-bottom:6px;word-break:break-all;">' + esc(linkUrl) + '</div>' : '';
+                box.innerHTML = linkHtml + '<div style="font-size:13px;color:#555;line-height:1.6;">' + esc(outContent) + '</div>';
+                card.style.border = '1px solid #e0e0e0';
+                card.style.background = '#fafafa';
+                card.style.padding = '14px';
+                card.style.borderRadius = '8px';
+            } else {
+                box.textContent = outContent;
+                card.style.border = 'none';
+                card.style.background = 'transparent';
+                card.style.padding = '0';
+                card.style.borderRadius = '0';
+            }
+        }
+        document.addEventListener('input', function (e) {
+            if (e.target.id === 'mtTitle' || e.target.id === 'mtContent' || e.target.id === 'mtMsgType') renderMsgTplPreview();
+        });
+        async function saveMsgTemplate() {
+            if (!_currentMsgTplId) { weui.topTips('请先选择要编辑的模板'); return; }
+            const tpl = _msgTplList.find(t => t.id === _currentMsgTplId);
+            const body = new URLSearchParams();
+            body.append('op', 'update');
+            body.append('id', String(_currentMsgTplId));
+            body.append('tpl_key', tpl ? (tpl.tpl_key || '') : '');
+            body.append('name', tpl ? (tpl.name || '消息模板') : '消息模板');
+            body.append('msgtype', document.getElementById('mtMsgType').value);
+            body.append('title', document.getElementById('mtTitle').value);
+            body.append('content', document.getElementById('mtContent').value);
+            try {
+                const resp = await fetch('/api/admin/message_templates', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: body
+                });
+                const r = await resp.json();
+                if (r.success) {
+                    weui.toast('✅ 模板已保存');
+                    loadMsgTemplates();
+                } else {
+                    weui.topTips(r.error || '保存失败');
+                }
+            } catch (e) { weui.topTips('保存失败'); }
+        }
+
+        // ===== 初始化加载 =====
+        document.addEventListener('DOMContentLoaded', function () {
+            // 绑定失败回跳提示（如未用后台账号密码登录就点绑定）
+            if (/[?&]bind_err=1\b/.test(location.search)) {
+                const e = document.getElementById('bindErr');
+                if (e) { e.textContent = '绑定失败：请先用「后台账号密码」登录，再点击「绑定企业微信」。'; e.style.display = 'block'; }
+            }
+            // Hash Tab 记忆：初始化时按 hash 切到对应 Tab（切之前先加载，确保 DOM ready）
+            var initTab = _getTabFromHash();
+            // 浏览器前进/后退时同步切 Tab
+            window.addEventListener('hashchange', function () {
+                var t = _getTabFromHash();
+                if (t) switchTab(t, { fromHash: true });
+            });
+            loadWecomSettings();
+            loadKeywords();
+            loadFreeWindow();
+            initRemindWorktimeUI();
+            loadRemindWorktime();
+            loadCronKeyInfo();
+            loadAdminPassword();
+            loadSalaryTpl();
+            loadMsgTemplates();
+            // 数据加载完毕后切初始 Tab（保证 sync/site 的副作用触发时 DOM 已就绪）
+            if (initTab) switchTab(initTab, { fromHash: true });
+        });
+    </script>
+
+    <script>
+    (function () {
+        function addEye(inp) {
+            if (inp.dataset.eyeReady) return;
+            inp.dataset.eyeReady = '1';
+            var wrap = document.createElement('span');
+            wrap.className = 'pwd-eye-wrap';
+            inp.parentNode.insertBefore(wrap, inp);
+            wrap.appendChild(inp);
+            var eye = document.createElement('span');
+            eye.className = 'pwd-eye';
+            eye.setAttribute('role', 'button');
+            eye.setAttribute('aria-label', '显示或隐藏密码');
+            eye.textContent = '👁';
+            wrap.appendChild(eye);
+            eye.addEventListener('click', function () {
+                if (inp.type === 'password') { inp.type = 'text'; eye.textContent = '🙈'; }
+                else { inp.type = 'password'; eye.textContent = '👁'; }
+            });
+        }
+        function init() { document.querySelectorAll('input[type=password]').forEach(addEye); }
+        if (document.readyState !== 'loading') init();
+        else document.addEventListener('DOMContentLoaded', init);
+    })();
+    </script>
+</body>
+</html>

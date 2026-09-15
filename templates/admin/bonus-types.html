@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0">
+<title>奖金类型管理</title>
+<link rel="stylesheet" href="/assets/weui.min.css?v=20260807a">
+<link rel="stylesheet" href="/assets/admin.css?v=20260807a">
+<script src="/assets/weui.min.js?v=20260807a"></script>
+<script src="/assets/admin.js?v=20260807a"></script>
+<style>
+body{background:#f5f5f5;font-family:-apple-system,"PingFang SC",sans-serif;margin:0;}
+.page{max-width:1100px;margin:0 auto;padding:15px;}
+.panel{background:#fff;border-radius:10px;padding:12px 14px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.06);}
+/* 顶栏用户信息 */
+.ad-appbar__user{font-size:13px;opacity:.92;padding:0 6px;white-space:nowrap;}
+.ad-appbar__user .u-name{font-weight:600;}
+/* 新增类型区 */
+.add-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.add-bar label{font-size:13px;color:#666;white-space:nowrap;}
+.add-bar input{font-size:13px;padding:6px 10px;border:1px solid #ddd;border-radius:6px;outline:none;flex:1;min-width:180px;font-family:inherit;}
+.add-bar input:focus{border-color:#07c160;}
+.add-bar .abtn{font-size:13px;padding:6px 16px;border-radius:6px;cursor:pointer;border:none;background:#07c160;color:#fff;font-family:inherit;}
+.add-bar .abtn:hover{background:#06ad56;}
+/* 表格：与 audit_log 一致 */
+.bt-table{width:100%;border-collapse:collapse;font-size:13px;}
+.bt-table th,
+.bt-table td{border:1px solid #e5e5e5;padding:6px 8px;text-align:left;vertical-align:middle;word-break:break-all;}
+.bt-table th{background:#fafafa;color:#666;font-weight:600;white-space:nowrap;}
+/* 拖拽图标仅作视觉装饰，不加 title 避免悬浮 tooltip */
+.bt-table th .drag-ic{display:inline-block;color:#bbb;margin-right:4px;font-size:12px;user-select:none;cursor:default;}
+/* 每5行一组，5种颜色循环：白、浅粉、浅绿、浅米、浅蓝 */
+.bt-table tbody tr.row-c0{background:#fff;}
+.bt-table tbody tr.row-c1{background:#fff5f5;}
+.bt-table tbody tr.row-c2{background:#f3fbf3;}
+.bt-table tbody tr.row-c3{background:#fffdf0;}
+.bt-table tbody tr.row-c4{background:#f0f6ff;}
+.bt-table tbody tr:hover{background:#eafaf0 !important;}
+/* 内置/自定义标签 */
+.tag-builtin{display:inline-block;background:#fff3e0;color:#e08a00;border:1px solid #ffe0b2;border-radius:10px;padding:2px 8px;font-size:11px;font-weight:500;margin-left:6px;}
+.tag-custom{display:inline-block;background:#eef4ff;color:#3a6ee8;border:1px solid #d6e4ff;border-radius:10px;padding:2px 8px;font-size:11px;margin-left:6px;}
+/* 删除按钮 */
+.btn-del{background:#fdecec;color:#fa5151;border:1px solid #fcc8c8;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;font-family:inherit;}
+.btn-del:hover{background:#fbd6d6;}
+.type-key{font-family:Consolas,Monaco,monospace;font-size:12px;color:#888;}
+</style>
+</head>
+<body>
+<header class="ad-appbar">
+  <a class="ad-appbar__back" href="/admin/dashboard" aria-label="返回首页">‹</a>
+  <div class="ad-appbar__title"><span class="ic">🏷️</span><span>奖金类型管理</span></div>
+  <div class="ad-appbar__user" id="userInfo"></div>
+  <div class="ad-appbar__actions">
+    <a class="ad-appbar__btn" href="/admin/dashboard">首页</a>
+    <a class="ad-appbar__btn" href="javascript:doLogout()">退出</a>
+  </div>
+</header>
+<div class="page">
+  <!-- 新增类型 -->
+  <div class="panel">
+    <div class="add-bar">
+      <label>新增类型</label>
+      <input id="newTypeName" type="text" placeholder="输入奖金类型名称，如：季度奖金" onkeydown="if(event.key==='Enter') addType();">
+      <button class="abtn" onclick="addType()">➕ 添加</button>
+    </div>
+  </div>
+  <!-- 类型列表 -->
+  <div class="panel">
+    <table class="bt-table">
+      <thead>
+        <tr>
+          <th><span class="drag-ic">⠿</span>排序值</th>
+          <th><span class="drag-ic">⠿</span>类型名称</th>
+          <th><span class="drag-ic">⠿</span>类型标识</th>
+          <th><span class="drag-ic">⠿</span>操作</th>
+        </tr>
+      </thead>
+      <tbody id="rows">
+        <tr><td colspan="4" style="text-align:center;color:#999;padding:20px;">加载中...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+<script>
+// 用于 onclick 内联拼接时转义单引号，避免破坏字符串
+function escAttr(s){ return esc(s).replace(/'/g,'&#39;'); }
+
+/**
+ * 检查登录态，401 跳转登录页
+ * @returns {Promise<object|null>} 当前用户信息，未登录返回 null
+ */
+async function checkAuth(){
+  try{
+    var r=await fetch('/api/auth/me');
+    if(r.status===401){
+      window.location.href='/api/auth/login?redirect=/admin/bonus_types';
+      return null;
+    }
+    return await r.json();
+  }catch(e){ return null; }
+}
+
+/**
+ * 拉取并渲染奖金类型列表
+ */
+async function load(){
+  var tbody=document.getElementById('rows');
+  tbody.innerHTML='<tr><td colspan="4" style="text-align:center;color:#999;padding:20px;">加载中...</td></tr>';
+  try{
+    var r=await fetch('/api/bonus/types');
+    var d=await r.json();
+    if(!d.success){
+      tbody.innerHTML='<tr><td colspan="4" style="text-align:center;color:#fa5151;padding:20px;">'+esc(d.error||'加载失败')+'</td></tr>';
+      return;
+    }
+    var list=d.list||[];
+    if(list.length===0){
+      tbody.innerHTML='<tr><td colspan="4" style="text-align:center;color:#999;padding:20px;">暂无奖金类型</td></tr>';
+      return;
+    }
+    tbody.innerHTML=list.map(function(x,i){
+      // 每5行换一色，5种颜色循环
+      var colorIdx=Math.floor(i/5)%5;
+      // 内置类型（year_end）禁止删除，仅显示"内置"标签
+      var isBuiltin = x.type_key==='year_end';
+      var tag = isBuiltin
+        ? '<span class="tag-builtin">内置</span>'
+        : '<span class="tag-custom">自定义</span>';
+      var action = isBuiltin
+        ? '<span style="color:#bbb;font-size:12px;">—</span>'
+        : '<button class="btn-del" onclick="deleteType('+x.id+',\''+escAttr(x.type_name)+'\')">删除</button>';
+      return '<tr class="row-c'+colorIdx+'">'
+        + '<td>'+esc(x.sort_order)+'</td>'
+        + '<td>'+esc(x.type_name)+tag+'</td>'
+        + '<td><span class="type-key">'+esc(x.type_key)+'</span></td>'
+        + '<td>'+action+'</td>'
+        + '</tr>';
+    }).join('');
+  }catch(e){
+    tbody.innerHTML='<tr><td colspan="4" style="text-align:center;color:#fa5151;padding:20px;">加载失败：'+esc(e.message||e)+'</td></tr>';
+  }
+}
+
+/**
+ * 新增奖金类型
+ */
+async function addType(){
+  var name=document.getElementById('newTypeName').value.trim();
+  if(!name){
+    weui.topTips('请填写类型名称');
+    return;
+  }
+  try{
+    var r=await fetch('/api/bonus/types',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({op:'add',type_name:name})
+    });
+    var d=await r.json();
+    if(d.success){
+      weui.toast('✅ 已添加',1200);
+      document.getElementById('newTypeName').value='';
+      load();
+    }else{
+      // 后端会校验重名等情况，直接展示错误消息
+      weui.topTips(d.error||'添加失败');
+    }
+  }catch(e){
+    weui.topTips('网络错误');
+  }
+}
+
+/**
+ * 删除奖金类型（二次确认）。关联记录由后端校验，前端展示错误消息
+ * @param {number} id 类型 ID
+ * @param {string} name 类型名称，用于确认提示
+ */
+function deleteType(id,name){
+  weui.confirm('确定删除奖金类型「'+name+'」吗？', async function(){
+    try{
+      var r=await fetch('/api/bonus/types',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({op:'delete',id:id})
+      });
+      var d=await r.json();
+      if(d.success){
+        weui.toast('✅ 已删除',1200);
+        load();
+      }else{
+        // 关联记录、内置类型等错误由后端返回
+        weui.topTips(d.error||'删除失败');
+      }
+    }catch(e){
+      weui.topTips('网络错误');
+    }
+  });
+}
+
+document.addEventListener('DOMContentLoaded', async function(){
+  var me=await checkAuth();
+  if(!me) return;
+  var info=document.getElementById('userInfo');
+  if(me.name){
+    info.innerHTML='<span class="u-name">'+esc(me.name)+'</span>';
+  }
+  load();
+});
+</script>
+</body>
+</html>

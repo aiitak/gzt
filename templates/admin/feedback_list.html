@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0">
+    <title>反馈处理</title>
+<link rel="stylesheet" href="/assets/weui.min.css?v=20260807a">
+<link rel="stylesheet" href="/assets/admin.css?v=20260807a">
+<script src="/assets/weui.min.js?v=20260807a"></script>
+<script src="/assets/admin.js?v=20260807a"></script>
+<script src="/assets/pinyin.js?v=20260807a"></script>
+    <style>
+        body { background: #f5f5f5; }
+        .page { max-width: 800px; margin: 0 auto; padding: 15px; }
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .card-title {
+            font-size: 16px; font-weight: bold;
+            margin-bottom: 12px; padding-bottom: 10px;
+            border-bottom: 2px solid #07c160;
+        }
+        .tabs {
+            display: flex; margin-bottom: 12px;
+            background: #fff; border-radius: 8px; overflow: hidden;
+            border: 1px solid #eee;
+        }
+        .tabs .tab {
+            flex: 1; padding: 8px; text-align: center;
+            cursor: pointer; font-size: 14px;
+            border-bottom: 2px solid transparent;
+            transition: all 0.15s;
+        }
+        .tabs .tab.active { color: #07c160; border-bottom-color: #07c160; font-weight: bold; }
+        .search-bar {
+            display: flex; align-items: center; gap: 8px;
+            margin-bottom: 12px; flex-wrap: wrap;
+        }
+        .search-bar input {
+            flex: 1; min-width: 150px; padding: 7px 12px; border: 1px solid #ddd;
+            border-radius: 20px; font-size: 13px; outline: none;
+            transition: border-color 0.15s;
+        }
+        .search-bar input:focus { border-color: #07c160; }
+        .search-bar .reset-btn {
+            font-size: 12px; color: #999; cursor: pointer; text-decoration: none;
+        }
+        .search-bar .reset-btn:hover { color: #07c160; }
+        .search-bar select {
+            padding: 6px 10px; border: 1px solid #ddd; border-radius: 16px;
+            font-size: 12px; outline: none; background: #fff; cursor: pointer;
+        }
+        .search-bar select:focus { border-color: #07c160; }
+        .view-controls {
+            display: flex; gap: 6px; margin-bottom: 12px;
+        }
+        .view-btn {
+            flex: 1; padding: 6px 10px; font-size: 12px; text-align: center;
+            background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 6px;
+            cursor: pointer; transition: all 0.15s; text-decoration: none; color: #666;
+        }
+        .view-btn:hover { background: #e8f8e8; border-color: #07c160; color: #07c160; }
+        .view-btn.active { background: #07c160; color: #fff; border-color: #07c160; }
+
+        .month-group { margin-bottom: 12px; }
+        .month-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 14px;
+            background: linear-gradient(135deg, #e8f8e8 0%, #f0faf4 100%);
+            border-radius: 8px; cursor: pointer;
+            border: 1px solid #d4edda;
+            transition: all 0.2s;
+        }
+        .month-header:hover { background: linear-gradient(135deg, #d4edda 0%, #e8f8e8 100%); }
+        .month-header .month-label { font-size: 14px; font-weight: bold; color: #07c160; }
+        .month-header .month-count {
+            font-size: 12px; color: #fff; background: #07c160;
+            padding: 2px 8px; border-radius: 10px; margin-left: 8px;
+        }
+        .month-header .chevron {
+            font-size: 16px; color: #999; transition: transform 0.25s;
+        }
+        .month-group.collapsed .chevron { transform: rotate(-90deg); }
+        .month-group.collapsed .month-items { display: none; }
+
+        .feedback-item {
+            padding: 12px 14px;
+            border-bottom: 1px solid #f0f0f0;
+            background: #fafafa;
+            border-radius: 6px;
+            margin-top: 8px;
+        }
+        .feedback-item:last-child { border-bottom: none; }
+        .fb-header {
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 12px; color: #999; margin-bottom: 6px;
+        }
+        .fb-content { font-size: 14px; margin-bottom: 6px; color: #333; line-height: 1.5; }
+        .fb-meta { font-size: 12px; color: #999; }
+        .fb-actions { margin-top: 8px; }
+        .fb-actions .weui-btn { font-size: 13px; padding: 4px 12px; }
+        .reply-box {
+            display: none;
+            margin-top: 10px;
+            padding: 10px;
+            background: #fff;
+            border-radius: 6px;
+            border: 1px solid #e0e0e0;
+        }
+        .status-badge {
+            display: inline-block; padding: 2px 8px;
+            border-radius: 8px; font-size: 11px; font-weight: 500;
+        }
+        .status-badge.pending { background: #fff3e0; color: #ff9800; }
+        .status-badge.replied { background: #e8f8e8; color: #07c160; }
+        .empty { text-align: center; padding: 40px; color: #999; }
+        .summary-bar {
+            display: flex; gap: 10px; margin-bottom: 12px;
+        }
+        .summary-item {
+            flex: 1; text-align: center; padding: 8px;
+            background: #f8f9fa; border-radius: 6px;
+        }
+        .summary-item .num { font-size: 18px; font-weight: bold; color: #07c160; }
+        .summary-item .lbl { font-size: 11px; color: #999; }
+    </style>
+</head>
+<body>
+    <header class="ad-appbar">
+        <a class="ad-appbar__back" href="/admin/dashboard" aria-label="返回">‹</a>
+        <div class="ad-appbar__title"><span class="ic">💬</span><span>员工反馈</span></div>
+        <div class="ad-appbar__actions">
+            <a class="ad-appbar__btn" href="javascript:doLogout()">退出</a>
+        </div>
+    </header>
+    <div class="page">
+        <div class="card">
+            <div class="card-title">💬 员工反馈</div>
+
+            <div class="summary-bar">
+                <div class="summary-item"><div class="num" id="totalCount">0</div><div class="lbl">总数</div></div>
+                <div class="summary-item"><div class="num" id="pendingCount" style="color:#ff9800;">0</div><div class="lbl">待处理</div></div>
+                <div class="summary-item"><div class="num" id="repliedCount">0</div><div class="lbl">已回复</div></div>
+            </div>
+
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('pending')">待处理</div>
+                <div class="tab" onclick="switchTab('all')">全部</div>
+            </div>
+
+            <div class="search-bar">
+                <input id="searchInput" type="text" placeholder="搜索员工姓名/拼音首字母/全拼..." oninput="onSearch()">
+                <select id="monthFilter" onchange="onMonthFilter()">
+                    <option value="">全部月份</option>
+                </select>
+                <a class="reset-btn" href="javascript:resetSearch()" id="resetBtn" style="display:none;">重置</a>
+            </div>
+
+            <div class="view-controls">
+                <a class="view-btn" id="expandAllBtn" href="javascript:toggleAllGroups(true)">展开全部</a>
+                <a class="view-btn" id="collapseAllBtn" href="javascript:toggleAllGroups(false)">折叠全部</a>
+                <a class="view-btn" id="pendingOnlyBtn" href="javascript:togglePendingOnly()">只看待处理</a>
+            </div>
+
+            <div id="feedbackList" class="loading" style="text-align:center;padding:20px;color:#999;">加载中...</div>
+        </div>
+    </div>
+
+    <script>
+        let currentTab = 'pending';
+        let allFeedbacks = [];
+        let searchKeyword = '';
+        let selectedMonth = '';
+        let pendingOnly = false;
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            const resp = await fetch('/api/auth/me');
+            if (resp.status === 401) {
+                window.location.href = '/api/auth/login?redirect=/admin/feedback_list';
+                return;
+            }
+            // 保存当前用户角色，用于判断是否显示删除按钮（仅管理员可删除反馈）
+            try {
+                const me = await resp.clone().json();
+                window._currentUserRoles = me.roles || [];
+            } catch (e) {}
+            var initTab=_getTabFromHash();
+            window.addEventListener('hashchange', function(){
+                var t=_getTabFromHash();
+                if(t) switchTab(t,{fromHash:true});
+            });
+            loadFeedback();
+            if(initTab) switchTab(initTab,{fromHash:true});
+        });
+
+        function switchTab(tab, opts) {
+            opts = opts || {};
+            currentTab = tab;
+            document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`.tabs .tab[onclick*="${tab}"]`).classList.add('active');
+            renderFeedback();
+            if(!opts.fromHash){
+                var target='#tab='+tab;
+                if(location.hash!==target){ history.replaceState(null,'',target); }
+            }
+        }
+        function _getTabFromHash(){
+            var m=/^#tab=([a-zA-Z0-9_-]+)$/.exec(location.hash||'');
+            if(!m) return null;
+            var valid={pending:1,all:1};
+            return valid[m[1]]?m[1]:null;
+        }
+
+        function onSearch() {
+            searchKeyword = document.getElementById('searchInput').value.trim().toLowerCase();
+            document.getElementById('resetBtn').style.display = (searchKeyword || selectedMonth) ? 'inline' : 'none';
+            renderFeedback();
+        }
+
+        function onMonthFilter() {
+            selectedMonth = document.getElementById('monthFilter').value;
+            document.getElementById('resetBtn').style.display = (searchKeyword || selectedMonth) ? 'inline' : 'none';
+            renderFeedback();
+        }
+
+        function resetSearch() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('monthFilter').value = '';
+            searchKeyword = '';
+            selectedMonth = '';
+            pendingOnly = false;
+            document.getElementById('pendingOnlyBtn').classList.remove('active');
+            document.getElementById('resetBtn').style.display = 'none';
+            renderFeedback();
+        }
+
+        function togglePendingOnly() {
+            pendingOnly = !pendingOnly;
+            document.getElementById('pendingOnlyBtn').classList.toggle('active', pendingOnly);
+            renderFeedback();
+        }
+
+        function toggleAllGroups(expand) {
+            document.querySelectorAll('.month-group').forEach(g => {
+                g.classList.toggle('collapsed', !expand);
+            });
+        }
+
+        async function loadFeedback() {
+            try {
+                const resp = await fetch('/api/feedback/pending');
+                allFeedbacks = await resp.json();
+                populateMonthFilter();
+                renderFeedback();
+            } catch (e) {
+                document.getElementById('feedbackList').innerHTML = '<div class="empty">加载失败</div>';
+            }
+        }
+
+        function populateMonthFilter() {
+            const sel = document.getElementById('monthFilter');
+            const months = [...new Set(allFeedbacks.map(f => f.year_month).filter(Boolean))].sort().reverse();
+            const currentVal = sel.value;
+            sel.innerHTML = '<option value="">全部月份</option>' +
+                months.map(m => `<option value="${esc(m)}">${esc(m)}月</option>`).join('') +
+                '<option value="__bonus__">奖金反馈</option>';
+            sel.value = currentVal;
+        }
+
+        function renderFeedback() {
+            let filtered = allFeedbacks;
+            if (currentTab === 'pending') {
+                filtered = filtered.filter(f => f.status === 'pending');
+            }
+            if (selectedMonth === '__bonus__') {
+                filtered = filtered.filter(f => f.bonus && f.bonus.id);
+            } else if (selectedMonth) {
+                filtered = filtered.filter(f => f.year_month === selectedMonth);
+            }
+            if (pendingOnly) {
+                filtered = filtered.filter(f => f.status === 'pending');
+            }
+            if (searchKeyword) {
+                filtered = filtered.filter(f => {
+                    if ((f.user_name || '').toLowerCase().includes(searchKeyword)) return true;
+                    if (typeof matchPinyinQuery === 'function' && matchPinyinQuery(searchKeyword, f.user_name || '')) return true;
+                    return false;
+                });
+            }
+
+            document.getElementById('totalCount').textContent = allFeedbacks.length;
+            document.getElementById('pendingCount').textContent = allFeedbacks.filter(f => f.status === 'pending').length;
+            document.getElementById('repliedCount').textContent = allFeedbacks.filter(f => f.status === 'replied').length;
+
+            const container = document.getElementById('feedbackList');
+            container.innerHTML = '';
+
+            if (!filtered || filtered.length === 0) {
+                container.innerHTML = '<div class="empty"><div style="font-size:36px;">' +
+                    (searchKeyword || selectedMonth ? '🔍' : '🎉') + '</div><div>' +
+                    (searchKeyword || selectedMonth ? '无匹配反馈' : (currentTab === 'pending' ? '暂无待处理反馈' : '暂无反馈')) +
+                    '</div></div>';
+                return;
+            }
+
+            // 按月份/奖金分组
+            const groups = {};
+            filtered.forEach(f => {
+                let groupKey;
+                if (f.bonus && f.bonus.id) {
+                    groupKey = 'bonus_' + f.bonus.year + '_' + f.bonus.bonus_type;
+                } else {
+                    groupKey = f.year_month || '未指定';
+                }
+                if (!groups[groupKey]) groups[groupKey] = [];
+                groups[groupKey].push(f);
+            });
+
+            // 排序：奖金反馈放前面，按年份降序
+            const sortedKeys = Object.keys(groups).sort((a, b) => {
+                if (a.startsWith('bonus_') && !b.startsWith('bonus_')) return -1;
+                if (!a.startsWith('bonus_') && b.startsWith('bonus_')) return 1;
+                if (a === '未指定') return 1;
+                if (b === '未指定') return -1;
+                return b.localeCompare(a);
+            });
+
+            sortedKeys.forEach((key, idx) => {
+                const groupItems = groups[key];
+                const pendingInGroup = groupItems.filter(f => f.status === 'pending').length;
+                const group = document.createElement('div');
+                group.className = 'month-group' + (idx > 0 ? ' collapsed' : '');
+
+                let groupLabel;
+                if (key.startsWith('bonus_')) {
+                    const parts = key.replace('bonus_', '').split('_');
+                    groupLabel = '🎁 ' + parts[0] + '年 ' + parts.slice(1).join('_');
+                } else {
+                    groupLabel = esc(key) + '月';
+                }
+
+                group.innerHTML = `
+                    <div class="month-header" onclick="toggleGroup(this)">
+                        <div>
+                            <span class="month-label">${groupLabel}</span>
+                            <span class="month-count">${groupItems.length}${pendingInGroup > 0 ? ' 待' + pendingInGroup : ''}</span>
+                        </div>
+                        <span class="chevron">▼</span>
+                    </div>
+                    <div class="month-items"></div>
+                `;
+
+                const itemsContainer = group.querySelector('.month-items');
+                groupItems.forEach(f => {
+                    const item = document.createElement('div');
+                    item.className = 'feedback-item';
+                    const statusClass = f.status === 'replied' ? 'replied' : 'pending';
+                    const statusText = f.status === 'replied' ? '已回复' : '待处理';
+                    const canDelete = (window._currentUserRoles || []).indexOf('admin') >= 0;
+                    const bonusTag = (f.bonus && f.bonus.id) ? `<span style="background:#fff8e1;color:#f57c00;font-size:11px;padding:1px 6px;border-radius:4px;margin-left:6px;">🎁 ${esc(f.bonus.year + '年 ' + f.bonus.bonus_type)}</span>` : '';
+                    item.innerHTML = `
+                        <div class="fb-header">
+                            <span>👤 ${esc(f.user_name)}${bonusTag}</span>
+                            <span class="status-badge ${statusClass}">${statusText}</span>
+                        </div>
+                        <div class="fb-content">${esc(f.content)}</div>
+                        <div class="fb-meta">${esc(f.created_at || '')} | #${f.id}</div>
+                        <div class="fb-actions">
+                            ${f.status === 'pending' ? `<a href="javascript:;" class="weui-btn weui-btn_mini weui-btn_primary" onclick="showReplyBox(${f.id})">回复</a>` : ''}
+                            ${canDelete ? `<a href="javascript:;" class="weui-btn weui-btn_mini weui-btn_warn" onclick="deleteFeedback(${f.id})">删除</a>` : ''}
+                        </div>
+                        <div class="reply-box" id="reply-${f.id}">
+                            <textarea id="replyContent-${f.id}" style="width:100%;border:1px solid #ddd;border-radius:4px;padding:8px;font-size:14px;min-height:60px;" placeholder="请输入回复内容..."></textarea>
+                            <div style="margin-top:8px;">
+                                <a href="javascript:;" class="weui-btn weui-btn_mini weui-btn_primary" onclick="submitReply(${f.id})">提交回复</a>
+                                <a href="javascript:;" class="weui-btn weui-btn_mini weui-btn_default" onclick="hideReplyBox(${f.id})">取消</a>
+                            </div>
+                        </div>
+                    `;
+                    itemsContainer.appendChild(item);
+                });
+
+                container.appendChild(group);
+            });
+        }
+
+        function toggleGroup(header) {
+            header.parentElement.classList.toggle('collapsed');
+        }
+
+        function showReplyBox(id) {
+            document.querySelectorAll('.reply-box').forEach(b => b.style.display = 'none');
+            document.getElementById('reply-' + id).style.display = 'block';
+        }
+
+        function hideReplyBox(id) {
+            document.getElementById('reply-' + id).style.display = 'none';
+        }
+
+        var _replying = false;
+        async function submitReply(id) {
+            if (_replying) return;
+            const content = document.getElementById('replyContent-' + id).value.trim();
+            if (!content) {
+                weui.topTips('请输入回复内容');
+                return;
+            }
+            _replying = true;
+            try {
+                const resp = await fetch('/api/feedback/reply', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({feedback_id: id, content: content})
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    if (data.notify === 'fail') {
+                        weui.topTips('回复成功，但通知发送失败：' + (data.notify_err || '未知原因'), 3000);
+                    } else if (data.notify === 'skip') {
+                        weui.topTips('回复成功（该用户无法接收企微通知）', 2000);
+                    } else {
+                        weui.toast('✅ 回复已发送', 1500);
+                    }
+                    setTimeout(loadFeedback, 1500);
+                } else {
+                    weui.topTips(data.error || '回复失败');
+                }
+            } catch (e) {
+                weui.topTips('网络错误');
+            } finally {
+                _replying = false;
+            }
+        }
+
+        var _deleting = false;
+        function deleteFeedback(id) {
+            if (_deleting) return;
+            weui.confirm('确定要删除这条反馈吗？删除后无法恢复。', async function() {
+                _deleting = true;
+                try {
+                    const resp = await fetch('/api/feedback/delete', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({feedback_id: id})
+                    });
+                    const data = await resp.json();
+                    if (data.success) {
+                        weui.toast('已删除', 1200);
+                        setTimeout(loadFeedback, 1200);
+                    } else {
+                        weui.topTips(data.error || '删除失败');
+                    }
+                } catch (e) {
+                    weui.topTips('网络错误');
+                } finally {
+                    _deleting = false;
+                }
+            }, function() {}, { title: '删除反馈' });
+        }
+    </script>
+</body>
+</html>

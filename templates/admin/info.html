@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>部署说明 - 工资条系统</title>
+    <link rel="stylesheet" href="/assets/admin.css?v=20260804a">
+    <style>
+        :root {
+            --ad-bg: #f0f2f5;
+            --ad-card: #ffffff;
+            --ad-text: #1a1a1a;
+            --ad-text-2: #4a5568;
+            --ad-text-3: #718096;
+            --ad-border: #e2e8f0;
+            --ad-border-2: #edf2f7;
+            --ad-primary: #07c160;
+            --ad-primary-dark: #06ad56;
+            --ad-primary-soft: #e8f8f0;
+            --ad-warn: #ffa726;
+            --ad-danger: #e64340;
+            --ad-danger-soft: #fef2f2;
+            --ad-radius: 12px;
+            --ad-radius-sm: 8px;
+            --ad-shadow: 0 2px 8px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+            --ad-font: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif;
+        }
+        body { background: var(--ad-bg); margin: 0; padding: 24px 24px 24px 88px; font-family: var(--ad-font); color: var(--ad-text); line-height: 1.75; }
+        .doc-wrap { max-width: 960px; margin: 0 auto; }
+        @media (max-width: 768px) {
+            body { padding: 16px; }
+            .float-nav { display: none; }
+            .doc-card { padding: 24px 20px; }
+        }
+        .doc-card { background: var(--ad-card); border-radius: var(--ad-radius); box-shadow: var(--ad-shadow); padding: 40px 48px; margin-bottom: 24px; }
+        .doc-card h1 { font-size: 26px; margin: 0 0 8px; color: var(--ad-text); font-weight: 700; letter-spacing: -0.5px; }
+        .doc-card .subtitle { color: var(--ad-text-3); font-size: 14px; margin-bottom: 32px; padding-bottom: 20px; border-bottom: 1px solid var(--ad-border-2); line-height: 1.8; }
+        .doc-card h2 { font-size: 20px; margin: 40px 0 16px; padding: 0 0 0 14px; border-left: 4px solid var(--ad-primary); color: var(--ad-text); font-weight: 600; line-height: 1.4; }
+        .doc-card h3 { font-size: 16px; margin: 28px 0 12px; color: var(--ad-text); font-weight: 600; padding-bottom: 6px; border-bottom: 1px solid var(--ad-border-2); }
+        .doc-card p { margin: 12px 0; color: var(--ad-text-2); line-height: 1.8; }
+        .doc-card ul, .doc-card ol { margin: 12px 0; padding-left: 24px; color: var(--ad-text-2); }
+        .doc-card li { margin: 8px 0; line-height: 1.75; }
+        .doc-card code { background: var(--ad-primary-soft); color: var(--ad-primary-dark); padding: 2px 7px; border-radius: 4px; font-size: 13px; font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; word-break: break-all; }
+        .doc-card pre { background: #1f2329; color: #e6e8eb; padding: 20px 22px; border-radius: var(--ad-radius-sm); overflow-x: auto; margin: 18px 0; font-size: 13px; line-height: 1.75; box-shadow: inset 0 2px 4px rgba(0,0,0,0.15); }
+        .doc-card pre code { background: none; color: inherit; padding: 0; font-size: 13px; line-height: 1.75; }
+        .doc-card blockquote { border-left: 4px solid var(--ad-warn); background: #fff8eef0; padding: 14px 18px; margin: 18px 0; border-radius: 0 10px 10px 0; color: var(--ad-text-2); line-height: 1.8; }
+        .doc-card blockquote p { margin: 6px 0; }
+        .doc-card table { width: 100%; border-collapse: separate; border-spacing: 0; margin: 18px 0; font-size: 14px; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+        .doc-card th { background: #f7fafc; color: var(--ad-text); font-weight: 600; padding: 12px 14px; text-align: left; border-bottom: 2px solid var(--ad-border); font-size: 13px; white-space: nowrap; }
+        .doc-card td { padding: 12px 14px; border-bottom: 1px solid var(--ad-border-2); color: var(--ad-text-2); vertical-align: top; line-height: 1.65; }
+        .doc-card tr:nth-child(even) td { background: #fafbfc; }
+        .doc-card tr:hover td { background: var(--ad-primary-soft) !important; }
+        .doc-card tr:last-child td { border-bottom: none; }
+        .doc-card strong { color: var(--ad-text); font-weight: 600; }
+        .doc-card a { color: var(--ad-primary); text-decoration: none; transition: color 0.15s; }
+        .doc-card a:hover { text-decoration: underline; }
+        /* 修复记录表特殊样式 */
+        .doc-card table.fix-table th { background: linear-gradient(180deg, #f7fafc 0%, #edf2f7 100%); }
+        .doc-card table.fix-table td:first-child { font-weight: 600; color: var(--ad-primary-dark); text-align: center; width: 44px; }
+        .doc-card table.fix-table td:nth-child(2) { font-weight: 500; color: var(--ad-text); white-space: nowrap; }
+        .doc-card table.fix-table td:nth-child(3) { color: var(--ad-text-3); font-size: 13px; font-family: "SFMono-Regular", Consolas, monospace; white-space: nowrap; }
+        .doc-card table.fix-table td:last-child { color: var(--ad-text-2); }
+        /* 浮动导航 */
+        .float-nav { position: fixed; top: 24px; left: 24px; z-index: 100; display: flex; flex-direction: column; gap: 8px; }
+        .float-nav-toggle { width: 44px; height: 44px; border-radius: 50%; background: var(--ad-card); box-shadow: var(--ad-shadow); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; color: var(--ad-primary); transition: transform 0.2s; }
+        .float-nav-toggle:hover { transform: scale(1.08); }
+        .float-nav-toggle.active { transform: rotate(90deg); }
+        .float-nav-panel { background: var(--ad-card); border-radius: var(--ad-radius); box-shadow: 0 8px 32px rgba(0,0,0,0.12); padding: 18px 20px; min-width: 220px; max-height: 70vh; overflow-y: auto; display: none; border: 1px solid var(--ad-border-2); }
+        .float-nav-panel.show { display: block; animation: fadeIn 0.2s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+        .float-nav-panel h3 { margin: 0 0 12px; font-size: 13px; color: var(--ad-text-3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .float-nav-panel ul { list-style: none; padding: 0; margin: 0; }
+        .float-nav-panel li { margin: 3px 0; }
+        .float-nav-panel li a { color: var(--ad-text-2); font-size: 14px; text-decoration: none; display: block; padding: 6px 12px; border-radius: 6px; transition: all 0.15s; border-left: 3px solid transparent; }
+        .float-nav-panel li a:hover { color: var(--ad-primary); background: var(--ad-primary-soft); border-left-color: var(--ad-primary); }
+        .float-nav-actions { display: flex; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--ad-border-2); }
+        .float-nav-actions a { flex: 0 0 auto; text-align: center; padding: 7px 16px; border-radius: 8px; font-size: 13px; text-decoration: none; transition: all 0.15s; }
+        .float-nav-actions a.home { background: var(--ad-primary-soft); color: var(--ad-primary-dark); }
+        .float-nav-actions a.home:hover { background: var(--ad-primary); color: #fff; }
+        .float-back-top { width: 44px; height: 44px; border-radius: 50%; background: var(--ad-card); box-shadow: var(--ad-shadow); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; color: var(--ad-text-2); transition: all 0.2s; opacity: 0; visibility: hidden; }
+        .float-back-top.show { opacity: 1; visibility: visible; }
+        .float-back-top:hover { transform: scale(1.08); color: var(--ad-primary); }
+        .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; }
+        .tag-green { background: var(--ad-primary-soft); color: var(--ad-primary-dark); }
+        .tag-orange { background: #fff8eef0; color: #e8810a; }
+        .tag-red { background: var(--ad-danger-soft); color: var(--ad-danger); }
+        /* 版本分组样式 */
+        .version-group { margin-top: 28px; }
+        .version-group h3 { display: flex; align-items: center; gap: 10px; }
+        .version-group h3::before { content: ''; display: inline-block; width: 4px; height: 18px; background: var(--ad-primary); border-radius: 2px; }
+        .version-desc { font-size: 13px; color: var(--ad-text-3); margin-bottom: 12px; }
+    </style>
+</head>
+<body>
+<div class="doc-wrap">
+
+    <div class="float-nav">
+        <button class="float-nav-toggle" onclick="var p=document.getElementById('floatPanel');var b=this;p.classList.toggle('show');b.classList.toggle('active');" title="目录导航">&#9776;</button>
+        <div class="float-nav-panel" id="floatPanel">
+            <h3>目录导航</h3>
+            <ul>
+                <li><a href="#s1">一、数据库</a></li>
+                <li><a href="#s2">二、创建网站</a></li>
+                <li><a href="#s3">三、伪静态规则</a></li>
+                <li><a href="#s4">四、初始化系统</a></li>
+                <li><a href="#s5">五、企微后台配置</a></li>
+                <li><a href="#s6">六、计划任务</a></li>
+                <li><a href="#s7">七、使用流程</a></li>
+                <li><a href="#s8">八、Excel 格式</a></li>
+                <li><a href="#s8b">九、状态流转</a></li>
+                <li><a href="#s9">十、目录结构</a></li>
+                <li><a href="#s10">十一、本地启动</a></li>
+                <li><a href="#s11">十二、修复记录</a></li>
+            </ul>
+            <div class="float-nav-actions">
+                <a href="/admin/dashboard" class="home">回到主页</a>
+            </div>
+        </div>
+        <button class="float-back-top" id="backTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="回到顶部">&#8593;</button>
+    </div>
+
+    <div class="doc-card">
+        <h1>工资条系统 · 部署手册</h1>
+        <p class="subtitle">适用于 <strong>1Panel + OpenResty + PHP 8.x</strong> 环境，零 Docker、零 Composer 依赖。<br>
+        支持 <strong>SQLite 单文件数据库</strong>（默认，小团队推荐）或 <strong>MySQL / MariaDB</strong>（独立服务，大规模推荐）。<br>
+        系统依赖的 PHP 扩展：<code>pdo_sqlite</code> 或 <code>pdo_mysql</code>（按数据库选其一）、<code>zip</code>（解析 Excel）、<code>openssl</code>（回调解密）、<code>curl</code>（推荐，调用企微 API）、<code>json</code>（默认开启）、<code>mbstring</code>（推荐，多字节字符处理）。</p>
+
+        <!-- 一 -->
+        <h2 id="s1">一、数据库（可选 SQLite 或 MySQL/MariaDB）</h2>
+        <p>本系统支持两种数据库，安装向导第一步可自由选择：</p>
+        <table>
+            <thead>
+                <tr><th style="width:120px">类型</th><th>适用场景</th><th>准备工作</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><span class="tag tag-green">SQLite</span></td>
+                    <td>员工 ≤ 200 人，单机部署，备份即复制文件</td>
+                    <td>无需任何准备，安装时自动创建数据文件</td>
+                </tr>
+                <tr>
+                    <td><span class="tag tag-orange">MySQL/MariaDB</span></td>
+                    <td>员工 ≥ 200 人，高并发，已有机房/云数据库</td>
+                    <td>在 1Panel 创建数据库，记录主机/端口/库名/账号/密码</td>
+                </tr>
+            </tbody>
+        </table>
+        <p><strong>SQLite 数据目录说明</strong>：数据库文件默认创建于 <strong>站点根目录之外一层</strong> 的 <code>salary_data/app.sqlite3</code>（如 <code>/www/sites/你的域名/salary_data/app.sqlite3</code>），避免被 Web 直接下载。</p>
+        <p><strong>SQLite 数据目录写入失败的处理</strong>：部分面板/主机会限制 PHP 在「站点根目录之外一层」建目录（<code>open_basedir</code> 或目录权限问题），安装向导会报「无法创建数据目录」。此时有两种解法，任选其一：</p>
+        <ol>
+            <li><strong>手动指定目录（推荐，最稳）</strong>：在 install.php 表单的「数据目录」框里填一个 PHP 可写的<strong>绝对路径</strong>（例如 <code>/www/private/你的域名</code> 或任意不在 Web 根目录内的私有目录），提交即可。</li>
+            <li><strong>自动回退</strong>：留空表单里的「数据目录」，安装向导会依次尝试：① 网站根目录内的 <code>salary_data/</code>；② 系统临时目录。自动选用第一个可写的位置，并在成功页明确告知实际落在哪里。</li>
+        </ol>
+        <blockquote>
+            <p><strong>Nginx 用户注意</strong>：若 SQLite 数据库最终落在网站根目录内（自动回退①或手动指定了根目录内路径），仅靠 <code>.htaccess</code> 无法阻止 Nginx 直接下载 <code>.db</code> 文件。请在 1Panel 站点「配置文件 / 额外配置」中加入禁止访问规则：</p>
+            <pre><code>location ^~ /salary_data/ { return 403; }</code></pre>
+            <p>若手动指定到站点根目录<strong>之外</strong>的私有目录，则无需此规则。</p>
+        </blockquote>
+
+        <!-- 二 -->
+        <h2 id="s2">二、创建网站（1Panel）</h2>
+        <ol>
+            <li>进入 1Panel → <strong>网站</strong> → 创建网站，运行环境选择 <strong>PHP</strong>（1Panel 会自动带 OpenResty + PHP-FPM）。</li>
+            <li>把本项目全部文件上传到网站根目录（保持目录结构：<code>api.php</code>、<code>index.php</code>、<code>admin.php</code>、<code>callback.php</code>、<code>cron.php</code>、<code>install.php</code>、<code>handlers/</code>、<code>templates/</code> …）。</li>
+            <li>网站主目录指向本项目根。</li>
+        </ol>
+
+        <!-- 三 -->
+        <h2 id="s3">三、伪静态 / 重写规则（关键）</h2>
+        <p>在网站设置 → <strong>伪静态</strong> 中粘贴以下规则（让前端零改动即可访问 <code>/api/</code>、<code>/employee/</code>、<code>/admin/</code>）：</p>
+        <pre><code>location /api/ {
+    rewrite ^/api/(.*)$ /api.php?path=$1 last;
+}
+location = /employee/ {
+    rewrite ^ /employee/router.php?page=salary last;
+}
+location /employee/ {
+    rewrite ^/employee/(.+)$ /employee/router.php?page=$1&$args? last;
+}
+location = /admin/ {
+    rewrite ^ /admin/router.php?page=dashboard last;
+}
+location /admin/ {
+    rewrite ^/admin/(.+)$ /admin/router.php?page=$1&$args? last;
+}</code></pre>
+        <blockquote>
+            <p>若不使用重写规则，也可把前端 <code>fetch</code> 路径改为 <code>/api.php?path=...</code>，并直接用 <code>index.php</code>/<code>admin.php</code> 作为页面入口（本仓库已内置作为备选入口）。</p>
+        </blockquote>
+
+        <!-- 四 -->
+        <h2 id="s4">四、初始化系统（三步式安装向导）</h2>
+        <p>浏览器访问 <code>https://你的域名/install.php</code>，安装向导分三步：</p>
+        <ol>
+            <li><strong>Step 1：PHP 环境检测</strong> —— 自动检测 PHP 版本（≥ 7.4，推荐 8.x）和必备扩展（pdo_sqlite / pdo_mysql、zip、openssl、curl、json、mbstring），并检测关键目录的写入权限。所有项通过后才能进入下一步。</li>
+            <li><strong>Step 2：选择数据库类型 + 测试连接</strong>
+                <ul>
+                    <li>选择 <strong>SQLite</strong>：可自定义数据目录（留空走默认/自动回退）。</li>
+                    <li>选择 <strong>MySQL / MariaDB</strong>：填写主机、端口、库名、用户名、密码，点「测试连接」验证。</li>
+                </ul>
+                测试通过后点「下一步」进入 Step 3。
+            </li>
+            <li><strong>Step 3：管理员账号与密钥</strong> —— 填写后台登录账号、密码（独立于企业微信登录）；系统自动生成 JWT 密钥和 CRON_KEY 定时任务密钥。点「立即安装」即自动建表、写入配置、创建管理员账号，并生成 <code>config.local.php</code>。</li>
+        </ol>
+        <blockquote><p>安装完成后再次访问 <code>install.php</code> 会提示「已安装」。企业微信参数（corpid/agentid/secret 等）可登录后台「系统设置」随时修改，无需重装。</p></blockquote>
+
+        <!-- 五 -->
+        <h2 id="s5">五、企业微信后台配置</h2>
+        <p>在 <strong>企业微信管理后台 → 应用管理 → 自建应用</strong>：</p>
+        <ol>
+            <li><strong>可信域名 / 网页授权及 JS-SDK</strong>：填写本系统域名（如 <code>salary.yourcompany.com</code>）。</li>
+            <li><strong>应用主页</strong>：填写 <code>https://你的域名/index.php</code>（员工端入口）。</li>
+            <li><strong>接收消息</strong>（可选，用于员工发「重置密码」关键词触发）：
+                <ul>
+                    <li>回调 URL：<code>https://你的域名/callback.php</code></li>
+                    <li>Token / EncodingAESKey：在后台「系统设置 → 企业微信」Tab 填写，与企微后台一致。</li>
+                </ul>
+            </li>
+        </ol>
+
+        <h3>📡 通讯录事件服务器（推荐配置）</h3>
+        <p>在 <strong>企业微信管理后台 → 管理工具 → 通讯录同步 → 接收事件服务器</strong>，开启后实时同步通讯录变更（员工入职/离职/调岗、部门增删改）到本系统，无需手动点「同步」：</p>
+        <ol>
+            <li>回调 URL：<code>https://你的域名/callback.php?from=contact</code>
+                <ul>
+                    <li>注意 URL 末尾的 <code>?from=contact</code> 参数不可省略，系统据此区分「通讯录事件」和「自建应用消息」（两套 Token/AESKey 相互独立）。</li>
+                </ul>
+            </li>
+            <li>Token / EncodingAESKey：在企微后台随机生成，复制到本系统后台「系统设置 → 通讯录同步」Tab 的「📡 通讯录事件服务器」卡片中保存。</li>
+            <li>在企微后台把本系统服务器公网 IP 加入「可信 IP」白名单。</li>
+        </ol>
+        <blockquote><p>配置后系统自动处理 <code>create_user / update_user / delete_user / create_party / update_party / delete_party</code> 六种事件：用户新增/变更拉取详情 UPSERT；用户删除仅清空 wecom_userid（保留历史工资条可查）；部门删除先把下属员工 dept_id 置 0 再删部门。</p></blockquote>
+        <blockquote><p>员工打开应用即走企业微信网页授权（OAuth），自动登录，无需账号密码。</p></blockquote>
+
+        <!-- 六 -->
+        <h2 id="s6">六、配置计划任务（1Panel）</h2>
+        <p>进入 1Panel → <strong>计划任务</strong>，新建两条 Shell 任务（把 <code>域名</code> 换成实际地址，<code>CRON_KEY</code> 换成 <code>config.local.php</code> 中的密钥）：</p>
+        <ol>
+            <li><strong>催办未确认</strong>（建议每小时）：
+                <pre><code>curl -s "https://你的域名/cron.php?task=remind&key=CRON_KEY"</code></pre>
+            </li>
+            <li><strong>定时下发 / 每月自动推送</strong>（建议每分钟）：
+                <pre><code>curl -s "https://你的域名/cron.php?task=push&key=CRON_KEY"</code></pre>
+            </li>
+        </ol>
+        <ul>
+            <li><code>remind</code>：仅工作日 8:00–17:00 执行，每小时向「已下发未确认」的员工发一次提醒（1 小时内不重复）。</li>
+            <li><code>push</code>：执行后台设置的「定时推送」规则（每月指定日自动下发最近上传的工资表）。</li>
+            <li><code>CRON_KEY</code>：安装时自动生成的定时任务密钥，见 <code>config.local.php</code>。配置后所有 cron 请求必须携带 <code>?key=...</code> 否则返回 403。</li>
+        </ul>
+
+        <!-- 七 -->
+        <h2 id="s7">七、使用流程</h2>
+        <ol>
+            <li>管理员进入 <code>/admin/dashboard</code> → <strong>系统设置</strong> → 同步通讯录。</li>
+            <li><strong>角色管理</strong>：把财务、人事分配给对应同事。</li>
+            <li><strong>上传工资条</strong>：下载 Excel 模板（格式见上传页说明），上传后点「推送工资条」。</li>
+            <li><strong>反馈负责人分配</strong>：设置员工/部门的反馈由哪位人事处理。</li>
+            <li>员工在企业微信中打开应用，首次设置查看密码 → 查看工资条 → 确认签收；有反馈可提交反馈。</li>
+        </ol>
+
+        <!-- 八 -->
+        <h2 id="s8">八、Excel 格式要求</h2>
+
+        <h3>工资条 Excel</h3>
+        <ul>
+            <li>第一行合并单元格：<code>【2026年05月薪资】</code>（用于识别年份月份）</li>
+            <li>第一列：<strong>企业微信成员 ID 或员工姓名</strong>（匹配规则：纯字母 → 按企微成员ID匹配；纯汉字 → 按员工姓名匹配）</li>
+            <li>必须包含 <strong>「实发工资」</strong> 列</li>
+            <li>支持多层表头与合并单元格</li>
+            <li>员工端<strong>展示所有列</strong>：扣除类字段自动以红色负数显示（如 <code>-¥1,200.00</code>），收入字段显示为正数</li>
+            <li>同月同员工重复上传时，旧记录自动被覆盖更新</li>
+        </ul>
+
+        <h3>奖金 Excel</h3>
+        <ul>
+            <li>第一行合并单元格：<code>【2024年年终奖】</code>（格式：<code>【xxxx年{类型名}】</code>，用于识别年份和奖金类型）</li>
+            <li>第一列：<strong>企业微信成员 ID 或员工姓名</strong>（匹配规则同工资条：纯字母 → 企微成员ID；纯汉字 → 员工姓名）</li>
+            <li>必须包含 <strong>「实发奖金」</strong> 列，缺失则上传报错</li>
+            <li>支持可选 <strong>「备注」</strong> 列：内容存入 <code>bonus.remark</code> 字段，不会被视为金额明细项；员工端在有备注时底部显示备注卡片（保留换行）</li>
+            <li>扣除类字段以正数录入，员工端自动以红色负数显示（如 <code>-¥1,200.00</code>）</li>
+            <li>支持多层表头与合并单元格</li>
+            <li>同员工同年同类型重复上传时，旧记录被覆盖更新（含金额、明细和备注）</li>
+            <li>未匹配到通讯录的员工自动创建 <code>HIST_</code> 前缀存档账号</li>
+            <li>奖金类型系统内置「年终奖」（year_end），管理员可在后台新增自定义类型</li>
+        </ul>
+
+        <!-- 八补充 -->
+        <h2 id="s8b">九、工资条状态流转</h2>
+        <p>工资条共有三种状态，定义在 <code>config.php</code> 的 <code>SALARY_DRAFT</code> / <code>SALARY_SENT</code> / <code>SALARY_CONFIRMED</code> 常量中：</p>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:18%;">状态</th>
+                    <th style="width:14%;">常量</th>
+                    <th style="width:42%;">含义</th>
+                    <th style="width:14%;">员工可见</th>
+                    <th style="width:12%;">确认标记</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>草稿</strong></td>
+                    <td><code>draft</code></td>
+                    <td>HR 已上传 Excel，尚未下发给员工（内部暂存）</td>
+                    <td>❌ 不可见</td>
+                    <td>—</td>
+                </tr>
+                <tr>
+                    <td><strong>已下发</strong></td>
+                    <td><code>sent</code></td>
+                    <td>已通过企微消息推送给员工，等待员工查看并确认签收</td>
+                    <td>✅ 可见</td>
+                    <td><code>confirmed=0</code></td>
+                </tr>
+                <tr>
+                    <td><strong>已确认</strong></td>
+                    <td><code>confirmed</code></td>
+                    <td>员工已点"确认签收"按钮完成签收</td>
+                    <td>✅ 可见</td>
+                    <td><code>confirmed=1</code></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>状态流转图</h3>
+        <blockquote>
+            <p><strong>HR 上传 Excel</strong> → <code>draft</code> → <strong>HR 手动下发 / 定时任务自动推送</strong> → <code>sent</code> → <strong>员工点"确认签收"</strong> → <code>confirmed</code></p>
+            <p><strong>重新上传已确认工资条</strong> → 状态回退到 <code>draft</code>（同时清除 <code>confirmed</code>、<code>confirmed_at</code>、<code>pushed_at</code>，避免 <code>status=confirmed AND confirmed=0</code> 矛盾）</p>
+        </blockquote>
+
+        <h3>关键规则</h3>
+        <ul>
+            <li><strong>员工端访问限制</strong>：员工查询 <code>draft</code> 状态工资条时，<code>handlers/salary.php</code> 直接返回"工资条尚未下发"，员工端无法查看</li>
+            <li><strong>自动推送</strong>：<code>cron.php?task=all</code> 统一入口按时间窗口分发，内部调度催办/推送/年假同步/日志清理 4 类任务；推送时自动挑选最新的 <code>draft</code> 月度工资条下发给员工（原子抢占 <code>draft→sent</code> 防止并发重复推送）。全局并发锁 + last_run 栅栏，避免多实例或短间隔重复执行。</li>
+            <li><strong>手动下发</strong>：HR 可在管理后台「工资条列表」点"下发"按钮，主动推送给指定月份/员工</li>
+            <li><strong>重新上传回退</strong>：HR 重新上传已 <code>confirmed</code> 的工资条时，状态强制回退到 <code>draft</code>，需重新走"下发→确认"流程</li>
+            <li><strong>历史账号过滤</strong>：所有状态相关查询都用 <code>userid NOT LIKE 'HIST_%'</code> 排除历史导入账号</li>
+        </ul>
+
+        <!-- 九 -->
+        <h2 id="s9">十、目录结构</h2>
+        <pre><code>GZX/
+├── index.php            # 员工端入口（重定向到 /employee/salary）
+├── admin.php            # 管理端入口（重定向到 /admin/dashboard）
+├── api.php              # 统一 API 入口（?path=模块/操作 或 /api/模块/操作）
+├── callback.php         # 企业微信 OAuth 回调 + 消息回调
+├── cron.php             # 定时任务统一入口（task=all 按时间窗分发：催办/推送/年假同步/日志清理）
+├── install.php          # 初始化向导
+├── router.php           # 开发环境路由脚本（php -S 127.0.0.1:8080 router.php）
+├── version.php          # 版本探针（用于前端缓存击穿）
+├── config.php           # 默认配置常量
+├── config.local.php     # 本地覆盖配置（含 DB 路径/JWT 密钥，本地开发用，生产勿提交）
+├── db.php               # PDO 单例 + 自动建表（db_ensure_schema）
+├── functions.php        # 工具函数 + 消息模板
+├── auth.php             # JWT 签发/校验 + 会话管理
+├── settings.php         # settings 键值表读写
+├── wecom.php            # 企业微信 API 封装
+├── excel.php            # XLSX 解析引擎（ZipArchive + XML，零 Composer 依赖）
+├── handlers/            # API 业务逻辑
+│   ├── auth.php         # 认证/密码
+│   ├── salary.php       # 员工工资条查看/确认
+│   ├── bonus.php        # 奖金上传/下发/催办/类型管理
+│   ├── feedback.php     # 反馈提交/回复
+│   └── admin.php        # 管理端：上传/下发/统计/同步/角色/消息/定时
+├── admin/router.php     # 管理端页面路由
+├── employee/router.php  # 员工端页面路由
+├── templates/admin/     # 管理端 19 个 HTML 页面
+├── templates/employee/  # 员工端 8 个 HTML 页面
+├── assets/              # 静态资源（admin.css/js、weui.min.css/js、echarts.min.js）
+└── sql/                 # 建表 SQL
+    ├── schema_sqlite.sql # SQLite 建表（install.php + db_ensure_schema 引用）
+    └── schema_mysql.sql  # MySQL/MariaDB 建表</code></pre>
+
+        <!-- 十 -->
+        <h2 id="s10">十一、本地开发快速启动</h2>
+        <p>无需 1Panel，本机有 PHP 8.x + pdo_sqlite + zip 扩展即可：</p>
+        <pre><code># 进入项目目录
+cd GZX
+
+# 启动 PHP 内置开发服务器（使用 router.php 支持伪静态）
+php -S 127.0.0.1:8080 router.php
+
+# 浏览器访问
+# http://127.0.0.1:8080/install.php    → 初始化向导
+# http://127.0.0.1:8080/admin/dashboard → 管理后台
+# http://127.0.0.1:8080/employee/salary → 员工端
+# http://127.0.0.1:8080/admin/info        → 部署说明</code></pre>
+
+        <!-- 十一 -->
+        <h2 id="s11">十二、重要修复记录</h2>
+
+        <div class="version-group">
+            <h3>2026-08-25 版本（v2026082401）</h3>
+            <p class="version-desc">年假「计算方式」三态下拉、特殊规则两年+1天、切换刷新无回退、数据口径统一、催办列自动迁移、审计日志中文补齐、Excel 导出与测试计划生成</p>
+            <table class="fix-table">
+                <thead>
+                    <tr><th>#</th><th style="width:22%;">修复项</th><th style="width:20%;">影响文件</th><th>说明</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>57</td><td>年假总览「计算方式」三态下拉替代豁免滑块</td><td>templates/admin/vacation-overview.html / handlers/admin/vacation.php</td><td>列由「年假豁免」改为「计算方式」，候选值：<code>常规 / 两年+1天 / 豁免</code>；选「两年+1天」弹窗配置 起算年/基础天/封顶；选「豁免」直接写 vacation_exempt=1；新增接口 <code>/api/admin/vacation/overview_set_rule</code></td></tr>
+                    <tr><td>58</td><td>users 表 4 列 + salary/bonus 2×2 列自动迁移</td><td>db.php / schema_mysql.sql / schema_sqlite.sql</td><td><code>vacation_rule_type / vacation_special_start / vacation_special_days / vacation_special_cap</code> 4 列支持特殊规则；<code>salary.status + salary.confirmed</code>、<code>bonus.status + bonus.confirmed</code> 共 4 列补齐催办任务缺失列，<code>db_migrate_columns()</code> admin 登录 1 次自动 ADD COLUMN，无需手工 SQL</td></tr>
+                    <tr><td>59</td><td>特殊规则「两年+1天」计算分支</td><td>functions.php / handlers/admin/vacation.php</td><td><code>vacation_calc_balance()</code> 新增 <code>type=1</code>：<code>entitlement = min( special_days + floor((forYear-startYear)/2), special_cap )</code>，不受入职日期/工龄门槛限制；<code>eligible</code> 固定返回 true，前端用独立分支渲染</td></tr>
+                    <tr><td>60</td><td>计算方式切换后不刷新 + 空白处点击回退</td><td>templates/admin/vacation-overview.html / handlers/admin/vacation.php</td><td>所有 <code>&lt;td&gt;</code> 加 <code>data-field="xxx"</code> 精确列标识；<code>refreshRowDisplay()</code> 重写用 <code>querySelector</code> 定位；后端 <code>overview_set_rule</code> 返回 <code>details[0].balance_data</code> 最新重算值；<code>showSpecialRuleForm</code> 增加 <code>isSaving</code> 锁 + 保存/取消显式移除 outsideClick 监听，不再触发值回滚</td></tr>
+                    <tr><td>61</td><td>三处「员工总数」统计口径统一</td><td>handlers/admin/salary.php / functions.php</td><td>数据概览 / 通讯录 / 年假总览 统一过滤：<code>wecom_userid IS NOT NULL AND userid NOT LIKE 'HIST_%' AND COALESCE(departments.name,'') NOT IN ('已离职','未匹配')</code>；数据概览 total_employees SQL 新增 LEFT JOIN departments，三页面数值完全相等</td></tr>
+                    <tr><td>62</td><td>审计日志中文映射补齐</td><td>templates/admin/audit_log.html</td><td><code>vacation_set_rule</code>（年假：设置计算方式）加入操作类型下拉；<code>timer_run</code> 详情列 sp_status 1/2/3/4/6 翻译为「审批中/已通过/已驳回/已撤销/通过后撤销」；审批回调 skipped_tpl 显示模板中文名（如「非年假模板：调休」）而非数字</td></tr>
+                    <tr><td>63</td><td>年假总览导出 Excel + 人事测试用例生成</td><td>handlers/admin/vacation.php / 本地生成脚本</td><td><code>/api/admin/vacation/overview_export</code> 导出 12 列含 姓名/部门/入职日期/计算方式/资格/应享/已休/手动调整/剩余余额/审批单数/计算说明；另产出「年假功能测试计划_20260825.xlsx」（13 模块 52 条）和「年假功能验收清单_20260825.xlsx」（6 模块 56 条）给人事逐条打勾备案</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="version-group">
+            <h3>2026-08-24 版本</h3>
+            <p class="version-desc">定时任务统一入口 task=all、审批调试工具 Tab、控件扁平化、模板库扫描缓存、复制按钮 HTTP 兼容、看样例按钮 Tab 跳转</p>
+            <table class="fix-table">
+                <thead>
+                    <tr><th>#</th><th style="width:22%;">修复项</th><th style="width:20%;">影响文件</th><th>说明</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>48</td><td>定时任务统一入口 cron.php?task=all</td><td>cron.php / handlers/admin.php / settings.php / settings.html</td><td>单入口按时间窗口分发 4 个子任务：remind 催办 / push 下发 / vacation_sync 年假同步 / log_clean 日志清理；<code>timer_global_lock</code> 全局 10 分钟并发锁；每项独立 last_run_* 栅栏；settings 页新增 5 个天数参数可配（回看天数/日志保留天数等）；旧 task=remind/push 保留兼容兜底</td></tr>
+                    <tr><td>49</td><td>年假规则页新增「审批调试」Tab</td><td>templates/admin/vacation-rules.html / handlers/admin/vacation.php / wecom.php</td><td>Tab 1 模板库：按时间窗扫描审批单号聚合生成模板库，控件扁平化显示完整名称，分页 + 每页条数，1 小时结果缓存 + 强制扫描按钮；Tab 2 测试模块：输入审批单号返回详情 + 原始 JSON 查看 + 控件索引校验；模板 ID 复制按钮 HTTP 环境降级为 execCommand 兜底</td></tr>
+                    <tr><td>50</td><td>控件名称显示完整（去除 +2 省略号）</td><td>templates/admin/vacation-rules.html</td><td>控件扁平化表格把所有子控件 <code>title[].text</code> 用顿号拼接完整展示，不再只显示第一个 +N 省略</td></tr>
+                    <tr><td>51</td><td>看样例审批点击无反应</td><td>templates/admin/vacation-rules.html</td><td>onclick 内联事件替换为事件委托绑定；自动切换到「审批调试」Tab 并把单号填入输入框后触发查询，防止目标 Tab 隐藏导致结果不可见</td></tr>
+                    <tr><td>52</td><td>模板 ID 复制按钮 navigator.clipboard HTTP 失败</td><td>templates/admin/vacation-rules.html</td><td>复制逻辑先尝试 <code>navigator.clipboard.writeText</code>，catch 后降级为 <code>document.execCommand('copy') + textarea</code>，HTTP/HTTPS 环境均可用；按钮点击区域扩大为 36×28px</td></tr>
+                    <tr><td>53</td><td>非年假审批回调不过滤</td><td>handlers/admin/vacation.php / callback.php</td><td>template_id 为空或与后台配置模板不匹配时标记 <code>sync_status=skipped_tpl</code>；所有状态（审批中/通过/驳回/撤销/通过后撤销）均写入 approval_callback_logs 与 audit_log（op_user='审批回调'），便于排查回调是否到达</td></tr>
+                    <tr><td>54</td><td>回调日志 sp_status 数字转中文</td><td>templates/admin/audit_log.html</td><td>操作详情 JSON 中的 sp_status 字段在渲染时按企微枚举（1=审批中/2=已通过/3=已驳回/4=已撤销/6=通过后撤销）翻译成中文，不再显示纯数字</td></tr>
+                    <tr><td>55</td><td>员工端年份选择范围过大</td><td>templates/employee/vacation.html</td><td><code>initYearSelect()</code> 从 ±3 年改为仅去年/今年/明年 3 个候选；调整页 / 总览页 / 同步参数 所有年份下拉同步收口，避免员工误选过远年份导致计算为空</td></tr>
+                    <tr><td>56</td><td>年假总览/调整搜索字母命中已离职部门</td><td>templates/admin/vacation-overview.html / vacation-adjust.html</td><td>前端 <code>matchPinyinQuery</code> 仅匹配员工姓名 / userid / wecom_userid 三字段，不再额外匹配 dept_name；部门筛选严格走 deptSel 下拉框且自动排除「已离职/未匹配」部门</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="version-group">
+            <h3>2026-08-06 版本</h3>
+            <p class="version-desc">消息模板拆分、分页统一、角色管理修复、奖金反馈完善</p>
+            <table class="fix-table">
+                <thead>
+                    <tr><th>#</th><th style="width:22%;">修复项</th><th style="width:20%;">影响文件</th><th>说明</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>34</td><td>消息模板拆分与清理</td><td>db.php / handlers/admin.php / functions.php</td><td>拆分 feedback_to_hr/feedback_reply 为工资/奖金两类（tpl_key: feedback_to_hr_salary/bonus、feedback_reply_salary/bonus）；新增 bonus_push_result 模板；按名称模糊删除"年终奖通知"残留模板</td></tr>
+                    <tr><td>35</td><td>奖金反馈消息区分工资/奖金类型</td><td>handlers/feedback.php</td><td>SQL 联查 bonus 表，按 salary_id/bonus_id 判断类型生成对应文案；消息模板用 {类型} 占位符动态切换"工资条"/"奖金"</td></tr>
+                    <tr><td>36</td><td>消息链接统一鉴权</td><td>templates/employee/feedback.html / handlers/feedback.php</td><td>所有消息携带的链接先做鉴权判断，未设置密码时跳转密码输入页，防止 OAuth 链接绕过密码验证</td></tr>
+                    <tr><td>37</td><td>管理后台分页样式统一</td><td>assets/admin.css / assets/admin.js / 5 个 HTML 页面</td><td>通讯录/奖金/工资/操作日志/消息记录统一分页栏：靠左单行排列，下拉框 60px，选项 10/20/50/100，每页条数记忆到 localStorage</td></tr>
+                    <tr><td>38</td><td>推送后下拉框不刷新</td><td>templates/admin/upload.html</td><td>pushSalary 成功回调中新增 loadPushAllMonths() 调用，无需手动刷新页面即可继续重新推送</td></tr>
+                    <tr><td>39</td><td>角色管理选择器多选失效</td><td>templates/admin/roles.html</td><td>pickItem 改用 item.id 替代数组索引存储选中项，修复选择成员/部门/人事三个选择器的多选状态显示和确认结果</td></tr>
+                    <tr><td>40</td><td>反馈负责人分配多人丢失</td><td>templates/admin/roles.html / handlers/admin.php</td><td>前端将多个 hr_userid 作为数组一次性提交；后端取消"先删后插"，改为查重后批量插入，保留多人分配</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="version-group">
+            <h3>2026-08-04 版本</h3>
+            <p class="version-desc">拼音搜索、安全加固、密码页优化、品牌展示范围调整</p>
+            <table class="fix-table">
+                <thead>
+                    <tr><th>#</th><th style="width:22%;">修复项</th><th style="width:20%;">影响文件</th><th>说明</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>26</td><td>拼音搜索（首字母/全拼/中文混合）</td><td>assets/pinyin.js + 全站 7 个搜索框</td><td>新增 2 万汉字拼音映射表；matchPinyinQuery 统一匹配函数；覆盖成员选择/反馈列表/工资条/统计/上传通知等全部搜索框</td></tr>
+                    <tr><td>27</td><td>安全漏洞：反馈回复链接绕过密码验证</td><td>auth.php / handlers/salary.php</td><td>新增 password_verified() + require_password() 函数；所有工资数据接口强制密码校验；HMAC-SHA256 签名 + hash_equals 防时序攻击</td></tr>
+                    <tr><td>28</td><td>密码设置页标题和跳转错误</td><td>templates/employee/password.html</td><td>动态切换标题（设置密码/修改密码）；首次设置成功跳转工资条首页，修改密码成功刷新当前页</td></tr>
+                    <tr><td>29</td><td>工资条详情页密码验证流程优化</td><td>templates/employee/detail.html</td><td>loadSalaryList 处理 need_password 响应；验证/设置密码成功后自动重载列表和详情；无数据场景显示空态避免遮罩卡死</td></tr>
+                    <tr><td>30</td><td>工资条首页图表接口引用未定义变量</td><td>templates/employee/salary.html</td><td>loadChart 改用全局 latestYM 变量；删除 _ym_hint 死代码</td></tr>
+                    <tr><td>31</td><td>历史/图表页未处理密码验证响应</td><td>templates/employee/history.html / chart.html</td><td>新增 need_password/need_setup 分支处理，引导用户设置或验证密码</td></tr>
+                    <tr><td>32</td><td>员工端品牌展示范围调整</td><td>templates/employee/*.html</td><td>移除 6 个员工端页面的品牌 Logo 与 Header；仅保留 login.html；password.html 图标恢复 🔐 emoji</td></tr>
+                    <tr><td>33</td><td>密码设置页统一跳转首页</td><td>templates/employee/password.html</td><td>无论首次设置还是修改密码，成功后统一跳转 /employee/salary</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="version-group">
+            <h3>2026-08-02 版本</h3>
+            <p class="version-desc">MySQL 双库兼容、通讯录实时同步、安全加固、性能优化</p>
+            <table class="fix-table">
+                <thead>
+                    <tr><th>#</th><th style="width:22%;">修复项</th><th style="width:20%;">影响文件</th><th>说明</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>12</td><td>支持 MySQL / MariaDB 双数据库</td><td>db.php / install.php / schema_mysql.sql</td><td>UPSERT 语法按 DB_TYPE 自动适配；新建 schema_mysql.sql；db_upsert_sql() 统一封装</td></tr>
+                    <tr><td>13</td><td>三步式安装向导</td><td>install.php</td><td>新增 PHP 环境检测；支持 SQLite/MySQL 二选一；修复 Step 2 POST 幽灵 BUG</td></tr>
+                    <tr><td>14</td><td>通讯录事件服务器实时同步</td><td>callback.php / wecom.php / settings.php</td><td>新增独立 contact_token/aes_key；处理 6 种事件：create/update/delete user/party</td></tr>
+                    <tr><td>15</td><td>安全加固：CSRF / XSS / 文件上传</td><td>handlers/admin.php / functions.php</td><td>写操作校验 POST；security_headers() 防 MIME 嗅探和点击劫持；上传白名单 .xlsx</td></tr>
+                    <tr><td>16</td><td>免密 Cookie HMAC 签名验证</td><td>handlers/salary.php</td><td>HMAC-SHA256 签名 userid，hash_equals 时序安全比较防伪造</td></tr>
+                    <tr><td>17</td><td>密码修改强制验证原密码</td><td>handlers/auth.php</td><td>get_admin_session() 验证 Cookie；首次设置时隐藏原密码字段</td></tr>
+                    <tr><td>18</td><td>同步成员保留原角色</td><td>handlers/admin.php</td><td>UPSERT 显式指定 updateCols 仅更新 name 和 dept_id</td></tr>
+                    <tr><td>19</td><td>重新上传工资条状态机矛盾</td><td>handlers/admin.php</td><td>统一回退到 draft，清除 confirmed/confirmed_at/pushed_at</td></tr>
+                    <tr><td>20</td><td>催办消息用错 userid</td><td>cron.php / handlers/admin.php</td><td>优先 wecom_userid，回退 userid；定时任务显式时区 Asia/Shanghai</td></tr>
+                    <tr><td>21</td><td>生产环境错误信息泄露</td><td>api.php</td><td>仅 DEBUG 返回详细错误，生产环境 error_log 记录</td></tr>
+                    <tr><td>22</td><td>性能优化：N+1 / 缓存 / 索引</td><td>handlers/admin.php / settings.php / db.php</td><td>settings 请求级缓存；6 处 N+1 改批量查询；salary 表加复合索引</td></tr>
+                    <tr><td>23</td><td>反馈回复通知收不到</td><td>handlers/feedback.php / wecom.php</td><td>回复时通过企微发送模板卡片消息，含直接查看链接</td></tr>
+                    <tr><td>24</td><td>工资图表始终显示 12 个月</td><td>templates/employee/chart.html</td><td>CSS clamp() + JS 动态计算，响应式自适应</td></tr>
+                    <tr><td>25</td><td>站点信息参数化</td><td>settings.php / admin.php / settings.html</td><td>settings 表存配置；CSS 变量 --theme 统一主题色</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="version-group">
+            <h3>2026-08-01 版本</h3>
+            <p class="version-desc">初始版本关键修复项</p>
+            <table class="fix-table">
+                <thead>
+                    <tr><th>#</th><th style="width:22%;">修复项</th><th style="width:20%;">影响文件</th><th>说明</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>1</td><td>feedback 接口 $db 未定义</td><td>handlers/feedback.php</td><td>函数开头补 <code>$db = get_db()</code></td></tr>
+                    <tr><td>2</td><td>确认签收参数错误</td><td>handlers/salary.php</td><td>从 id 解析年月，兼容两种传参方式</td></tr>
+                    <tr><td>3</td><td>详情不返回扣除类字段</td><td>handlers/salary.php + salary.html</td><td>返回全部 items，前端扣除项以红色负数显示</td></tr>
+                    <tr><td>4</td><td>HR 角色匹配漏多角色用户</td><td>handlers/feedback.php</td><td>改用 <code>user_has_any_role()</code> 遍历匹配</td></tr>
+                    <tr><td>5</td><td>定时开关按钮点击无效</td><td>assets/admin.css</td><td>重写 CSS：input 铺满 + z-index:2</td></tr>
+                    <tr><td>6</td><td>SQLite 专属 SQL 跨 DB 不兼容</td><td>handlers/admin.php</td><td>改为 <code>year * 100 + month</code> 数值比较</td></tr>
+                    <tr><td>7</td><td>建表逻辑重复 ~180 行</td><td>functions.php</td><td>删除重复的 salary_ensure_schema() / ensure_column()</td></tr>
+                    <tr><td>8</td><td>e() 函数与 functions.php 冲突</td><td>install.php</td><td>删除本地 e() 定义</td></tr>
+                    <tr><td>9</td><td>move_uploaded_file 返回值未检查</td><td>handlers/admin.php</td><td>增加返回值判断，失败时报错返回</td></tr>
+                    <tr><td>10</td><td>扣除关键词仅 5 个</td><td>functions.php</td><td>扩展到 22 个（养老/医疗/失业等）</td></tr>
+                    <tr><td>11</td><td>Excel 第一列匹配规则不明确</td><td>handlers/admin.php</td><td>纯字母 → 企微成员ID；纯汉字 → 员工姓名</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<script>
+window.addEventListener('scroll', function() {
+    var btn = document.getElementById('backTop');
+    if (window.scrollY > 300) { btn.classList.add('show'); }
+    else { btn.classList.remove('show'); }
+});
+// 点击面板外区域关闭目录导航，避免遮挡内容
+document.addEventListener('click', function(e) {
+    var panel = document.getElementById('floatPanel');
+    var toggle = document.querySelector('.float-nav-toggle');
+    if (!panel || !panel.classList.contains('show')) return;
+    if (!panel.contains(e.target) && !toggle.contains(e.target)) {
+        panel.classList.remove('show');
+        toggle.classList.remove('active');
+    }
+});
+// 按 Esc 关闭面板
+document.addEventListener('keydown', function(e) {
+    if (e.key !== 'Escape') return;
+    var panel = document.getElementById('floatPanel');
+    var toggle = document.querySelector('.float-nav-toggle');
+    if (panel && panel.classList.contains('show')) {
+        panel.classList.remove('show');
+        toggle.classList.remove('active');
+    }
+});
+</script>
+</body>
+</html>

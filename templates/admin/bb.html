@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>版本记录 - 工资条系统</title>
+    <link rel="stylesheet" href="/assets/admin.css?v=20260804a">
+    <style>
+        :root {
+            --ad-bg: #f0f2f5;
+            --ad-card: #ffffff;
+            --ad-text: #1a1a1a;
+            --ad-text-2: #4a5568;
+            --ad-text-3: #718096;
+            --ad-border: #e2e8f0;
+            --ad-border-2: #edf2f7;
+            --ad-primary: #07c160;
+            --ad-primary-dark: #06ad56;
+            --ad-primary-soft: #e8f8f0;
+            --ad-warn: #ffa726;
+            --ad-danger: #e64340;
+            --ad-danger-soft: #fef2f2;
+            --ad-radius: 12px;
+            --ad-radius-sm: 8px;
+            --ad-shadow: 0 2px 8px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+            --ad-font: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif;
+        }
+        body { background: var(--ad-bg); margin: 0; padding: 24px 24px 24px 88px; font-family: var(--ad-font); color: var(--ad-text); line-height: 1.75; }
+        .doc-wrap { max-width: 1040px; margin: 0 auto; }
+        @media (max-width: 768px) {
+            body { padding: 16px; }
+            .float-nav { display: none; }
+            .doc-card { padding: 20px 16px; }
+            .ver-grid { grid-template-columns: 1fr !important; }
+            .ver-meta { display: block !important; }
+            .ver-meta span + span { margin-top: 4px; }
+        }
+        .doc-card { background: var(--ad-card); border-radius: var(--ad-radius); box-shadow: var(--ad-shadow); padding: 32px 36px; margin-bottom: 24px; }
+        .doc-card h1 { font-size: 26px; margin: 0 0 8px; color: var(--ad-text); font-weight: 700; letter-spacing: -0.5px; }
+        .doc-card .subtitle { color: var(--ad-text-3); font-size: 14px; margin-bottom: 24px; padding-bottom: 18px; border-bottom: 1px solid var(--ad-border-2); line-height: 1.8; }
+        .doc-card h2 { font-size: 20px; margin: 16px 0 14px; padding: 0 0 0 14px; border-left: 4px solid var(--ad-primary); color: var(--ad-text); font-weight: 600; line-height: 1.4; }
+        .doc-card h3 { font-size: 16px; margin: 18px 0 10px; color: var(--ad-text); font-weight: 600; padding-bottom: 6px; border-bottom: 1px solid var(--ad-border-2); }
+        .doc-card p { margin: 10px 0; color: var(--ad-text-2); line-height: 1.8; }
+        .doc-card ul, .doc-card ol { margin: 10px 0; padding-left: 22px; color: var(--ad-text-2); }
+        .doc-card li { margin: 6px 0; line-height: 1.7; }
+        .doc-card code { background: var(--ad-primary-soft); color: var(--ad-primary-dark); padding: 2px 7px; border-radius: 4px; font-size: 13px; font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; word-break: break-all; }
+        .doc-card strong { color: var(--ad-text); font-weight: 600; }
+        .doc-card a { color: var(--ad-primary); text-decoration: none; }
+        .doc-card a:hover { text-decoration: underline; }
+        .tag { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 500; line-height: 1.5; }
+        .tag-green { background: var(--ad-primary-soft); color: var(--ad-primary-dark); }
+        .tag-orange { background: #fff8eef0; color: #e8810a; }
+        .tag-red { background: var(--ad-danger-soft); color: var(--ad-danger); }
+        .tag-blue { background: #e8f0fe; color: #1967d2; }
+        .tag-gray { background: #f1f3f4; color: #5f6368; }
+        .tag-purple { background: #f3e8fd; color: #7b1fa2; }
+
+        /* 头部概览卡 */
+        .kv-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 18px; }
+        .kv-item { background: #fafbfc; border: 1px solid var(--ad-border-2); border-radius: 10px; padding: 12px 14px; }
+        .kv-item .kv-k { font-size: 12px; color: var(--ad-text-3); margin-bottom: 4px; }
+        .kv-item .kv-v { font-size: 15px; color: var(--ad-text); font-weight: 600; font-family: "SFMono-Regular", Consolas, monospace; }
+
+        /* 版本时间线 */
+        .ver-block { position: relative; padding: 0 0 6px 28px; margin-bottom: 18px; }
+        .ver-block::before {
+            content: ''; position: absolute; left: 8px; top: 8px; bottom: -10px;
+            width: 2px; background: linear-gradient(180deg, var(--ad-primary) 0%, #c9e9d8 60%, transparent 100%);
+            border-radius: 2px;
+        }
+        .ver-block:last-child::before { background: linear-gradient(180deg, var(--ad-primary) 0%, #c9e9d8 100%); }
+        .ver-dot {
+            position: absolute; left: 0; top: 6px; width: 18px; height: 18px; border-radius: 50%;
+            background: var(--ad-primary); color: #fff; display: flex; align-items: center; justify-content: center;
+            font-size: 10px; box-shadow: 0 0 0 4px var(--ad-primary-soft);
+        }
+        .ver-block.breaking .ver-dot { background: var(--ad-danger); box-shadow: 0 0 0 4px var(--ad-danger-soft); }
+        .ver-block.feature .ver-dot { background: #1976d2; box-shadow: 0 0 0 4px #e3f2fd; }
+        .ver-block.hotfix .ver-dot { background: var(--ad-warn); box-shadow: 0 0 0 4px #fff3e0; }
+
+        .ver-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+        .ver-head .ver-ver { font-size: 16px; font-weight: 700; color: var(--ad-text); }
+        .ver-head .ver-date { color: var(--ad-text-3); font-size: 13px; font-family: "SFMono-Regular", Consolas, monospace; }
+        .ver-head .ver-scope { margin-left: auto; font-size: 12px; color: var(--ad-text-3); }
+        .ver-meta { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--ad-text-3); margin-bottom: 8px; }
+        .ver-meta span b { color: var(--ad-text); font-weight: 500; }
+        .ver-body { background: #fafbfc; border: 1px solid var(--ad-border-2); border-radius: 10px; padding: 12px 14px 4px; }
+        .ver-body h4 { margin: 6px 0 6px; font-size: 13px; color: var(--ad-primary-dark); font-weight: 600; }
+        .ver-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 24px; margin-bottom: 12px; }
+        .ver-grid .col-1, .ver-grid .col-2 { min-width: 0; }
+        .ver-grid .file-list { font-size: 12px; line-height: 1.8; color: var(--ad-text-2); word-break: break-all; }
+        .ver-grid .file-list code { padding: 1px 6px; font-size: 12px; }
+        .risk-list li { font-size: 12px; }
+
+        /* 浮动导航 & 回顶 */
+        .float-nav { position: fixed; top: 24px; left: 24px; z-index: 100; display: flex; flex-direction: column; gap: 8px; }
+        .float-nav-toggle { width: 44px; height: 44px; border-radius: 50%; background: var(--ad-card); box-shadow: var(--ad-shadow); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; color: var(--ad-primary); transition: transform 0.2s; }
+        .float-nav-toggle:hover { transform: scale(1.08); }
+        .float-nav-toggle.active { transform: rotate(90deg); }
+        .float-nav-panel { background: var(--ad-card); border-radius: var(--ad-radius); box-shadow: 0 8px 32px rgba(0,0,0,0.12); padding: 18px 20px; min-width: 260px; max-height: 70vh; overflow-y: auto; display: none; border: 1px solid var(--ad-border-2); }
+        .float-nav-panel.show { display: block; animation: fadeIn 0.2s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+        .float-nav-panel h3 { margin: 0 0 12px; font-size: 13px; color: var(--ad-text-3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .float-nav-panel ul { list-style: none; padding: 0; margin: 0; }
+        .float-nav-panel li { margin: 3px 0; }
+        .float-nav-panel li a { color: var(--ad-text-2); font-size: 14px; text-decoration: none; display: block; padding: 6px 12px; border-radius: 6px; transition: all 0.15s; border-left: 3px solid transparent; }
+        .float-nav-panel li a:hover { color: var(--ad-primary); background: var(--ad-primary-soft); border-left-color: var(--ad-primary); }
+        .float-nav-actions { display: flex; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--ad-border-2); }
+        .float-nav-actions a { flex: 0 0 auto; text-align: center; padding: 7px 16px; border-radius: 8px; font-size: 13px; text-decoration: none; transition: all 0.15s; }
+        .float-nav-actions a.home { background: var(--ad-primary-soft); color: var(--ad-primary-dark); }
+        .float-nav-actions a.info { background: #e8f0fe; color: #1967d2; }
+        .float-nav-actions a.home:hover { background: var(--ad-primary); color: #fff; }
+        .float-nav-actions a.info:hover { background: #1967d2; color: #fff; }
+        .float-back-top { width: 44px; height: 44px; border-radius: 50%; background: var(--ad-card); box-shadow: var(--ad-shadow); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; color: var(--ad-text-2); transition: all 0.2s; opacity: 0; visibility: hidden; }
+        .float-back-top.show { opacity: 1; visibility: visible; }
+        .float-back-top:hover { transform: scale(1.08); color: var(--ad-primary); }
+    </style>
+</head>
+<body>
+<div class="doc-wrap">
+
+    <div class="float-nav">
+        <button class="float-nav-toggle" onclick="var p=document.getElementById('floatPanel');var b=this;p.classList.toggle('show');b.classList.toggle('active');" title="版本目录">&#9776;</button>
+        <div class="float-nav-panel" id="floatPanel">
+            <h3>版本目录</h3>
+            <ul>
+                <li><a href="#top">📌 概览（当前版本）</a></li>
+                <li><a href="#v2026082401">v2026082401 · 年假·计算方式/特殊规则/数据一致性</a></li>
+                <li><a href="#v2026082301">v2026082301 · 定时任务统一入口</a></li>
+                <li><a href="#v2026082201">v2026082201 · 年假全量闭环</a></li>
+                <li><a href="#v2026082200">v2026082200 · 年假上线 + 同步修复</a></li>
+                <li><a href="#v20260804a">v20260804a · 安装向导 / 部署说明</a></li>
+                <li><a href="#conv">🧭 版本号规范 & 发布清单</a></li>
+            </ul>
+            <div class="float-nav-actions">
+                <a href="/admin/dashboard" class="home">回到主页</a>
+                <a href="/admin/info" class="info">部署说明</a>
+            </div>
+        </div>
+        <button class="float-back-top" id="backTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="回到顶部">&#8593;</button>
+    </div>
+
+    <!-- 概览卡 -->
+    <div class="doc-card" id="top">
+        <h1>📒 工资条系统 · 版本记录</h1>
+        <p class="subtitle">
+            后台管理员可查看；发布新版本时在本页追加一条「版本块」，并同步更新 <code>config.php</code> 的
+            <code>APP_VERSION</code> + <code>sql/schema_*.sql</code> 的 <code>SCHEMA_VERSION</code> +
+            <code>db.php</code> 的 <code>EXPECTED_SCHEMA_VERSION</code>。
+            与 <a href="/admin/info">部署说明</a> 配套使用：本页负责「改了什么、要注意什么」，部署说明负责「怎么装上去」。
+        </p>
+
+        <div class="kv-row">
+            <div class="kv-item"><div class="kv-k">当前 APP_VERSION</div><div class="kv-v" id="appVer">v2026082401</div></div>
+            <div class="kv-item"><div class="kv-k">当前 SCHEMA_VERSION（MySQL/SQLite）</div><div class="kv-v">2026082401</div></div>
+            <div class="kv-item"><div class="kv-k">最新发布日期</div><div class="kv-v">2026-08-25</div></div>
+            <div class="kv-item"><div class="kv-k">本页访问权限</div><div class="kv-v"><span class="tag tag-green">仅 admin</span></div></div>
+        </div>
+
+        <h2 id="latest">最新版本（建议先看升级注意）</h2>
+        <div class="ver-block feature">
+            <div class="ver-dot">★</div>
+            <div class="ver-head">
+                <span class="ver-ver">v2026082401</span>
+                <span class="tag tag-blue">功能</span>
+                <span class="tag tag-orange">修复</span>
+                <span class="tag tag-purple">数据一致性</span>
+                <span class="tag tag-green">待部署</span>
+                <span class="ver-scope">覆盖：年假计算方式/特殊规则(两年+1天)/切换刷新无回退/数据口径统一/催办列补齐/审计日志中文/导出Excel</span>
+            </div>
+            <div class="ver-meta">
+                <span>📅 <b>2026-08-25</b></span>
+                <span>👤 <b>工程端</b>（TRAE 协同实现）</span>
+                <span>🧩 <b>DB 自动迁移：</b>users 4 列 + salary/bonus 2×2 列（后台登录 1 次自动触发，无需手动 SQL）</span>
+            </div>
+            <div class="ver-body">
+                <h4>🔹 主要变更</h4>
+                <ul>
+                    <li><b>年假总览「计算方式」新交互：</b>原「年假豁免」滑块替换为三态下拉：<code>常规 / 两年+1天 / 豁免</code>。选「两年+1天」时弹出参数表单（<code>special_start</code> 起算年、<code>special_days</code> 基础天数、<code>special_cap</code> 封顶）；选「豁免」立即生效。接口：<code>/api/admin/vacation/overview_set_rule</code>，<code>details[0].balance_data</code> 返回最新重算结果。</li>
+                    <li><b>users 表 4 列 Schema（<code>db_migrate_columns</code> 自动迁移）：</b><code>vacation_rule_type TINYINT DEFAULT 0</code>（0=常规 1=两年+1天）、<code>vacation_special_start DATE</code>、<code>vacation_special_days INT</code>、<code>vacation_special_cap INT DEFAULT 15</code>；<code>vacation_exempt</code> 继续保留，切换为"豁免"时写入 vacation_exempt=1 + rule_type=0，避免双写冲突。</li>
+                    <li><code>vacation_calc_balance()</code> 新增 type=1 分支：<code>entitlement = min( special_days + floor( (forYear - startYear) / 2 ), special_cap )</code>，**不依赖入职日期、不受常规工龄门槛限制**。<code>eligible=true</code> 固定返回，避免前端用常规 <code>eligible=false</code> 显示"-"。</li>
+                    <li><b>前端刷新无回退修复（本次重点回归）：</b>
+                      <ul>
+                        <li>表格渲染 <code>renderList()</code> 所有 <code>&lt;td&gt;</code> 加 <code>data-field="entitlement/used_days/balance/..."</code> 标识列，不再依赖数组索引 <code>cells[5..10]</code>。</li>
+                        <li><code>refreshRowDisplay()</code> 重写：用 <code>tr.querySelector('td[data-field="xxx"]')</code> 精确查找；为 <code>special</code> 类型新增独立分支，强制显示后端重算结果。</li>
+                        <li>切换「两年+1天」弹窗：<code>isSaving</code> 状态锁 + 保存/取消时显式移除全局 <code>outsideClickClose</code> 监听；保存后点击页面空白处不再导致下拉框值回滚。</li>
+                      </ul>
+                    </li>
+                    <li><b>三处「员工总数」口径统一修复：</b>通讯录 / 年假总览 / 数据概览 统一使用：<code>wecom_userid IS NOT NULL AND userid NOT LIKE 'HIST_%' AND COALESCE(departments.name,'') NOT IN ('已离职','未匹配')</code>。数据概览 <code>total_employees</code> SQL 新增 LEFT JOIN departments 并过滤，与通讯录、年假总览三处结果一致。</li>
+                    <li><b>催办任务列补齐（<code>Unknown column 'status'/'confirmed'</code> 修复）：</b><code>db_migrate_columns()</code> 自动为 <code>salary</code> 表和 <code>bonus</code> 表各补 2 列：<code>status TINYINT DEFAULT 0</code>、<code>confirmed TINYINT DEFAULT 0</code>；工资催办 / 奖金催办 SQL 查询不再报列不存在，催办任务 0 条"假成功"消失。</li>
+                    <li><b>审计日志中文映射补齐：</b><code>vacation_set_rule</code>（年假：设置计算方式）加入 <code>OP_TYPE_MAP</code>；<code>timer_run</code> 详情列做状态码 1/2/3/4/6 中文翻译（审批中/已通过/已驳回/已撤销/通过后撤销）；审批回调 <code>skipped_tpl</code> 显示 <code>非年假模板：调休</code> 模板名，而非纯数字。</li>
+                    <li><b>年假总览导出 Excel + 测试计划/验收清单生成：</b>后台 <code>/api/admin/vacation/overview_export</code> 导出列含 姓名/部门/入职日期/计算方式/资格/应享/已休/手动调整/剩余余额/审批单数/计算说明；另产出本地用「年假功能测试计划_YYYYMMDD.xlsx」（13 模块 52 条）和「年假功能验收清单_YYYYMMDD.xlsx」（6 模块 56 条，人事逐条打勾备案）。</li>
+                </ul>
+                <div class="ver-grid">
+                    <div class="col-1">
+                        <h4>📁 主要涉及文件</h4>
+                        <div class="file-list">
+                            <code>config.php</code>（APP_VERSION=2026082401，保持与 bb.html 一致）<br>
+                            <code>db.php</code>（EXPECTED_SCHEMA_VERSION=2026082401；users 4 列 + salary/bonus status/confirmed 2×2 列 自动迁移）<br>
+                            <code>functions.php</code>（vacation_calc_balance 新增 type=1 分支；vacation_calc_entitlement 首年次年拆分；三处总数 SQL 口径统一）<br>
+                            <code>handlers/admin/vacation.php</code>（新增 overview_set_rule handler + 返回 details.balance_data；overview_export 导出）<br>
+                            <code>handlers/admin/salary.php</code>（data概览 total_employees 口径统一）<br>
+                            <code>templates/admin/vacation-overview.html</code>（豁免滑块→三态下拉；data-field 精确列；refreshRowDisplay 重写；isSaving 无回退）<br>
+                            <code>templates/admin/vacation-adjust.html</code>（豁免滑块同步适配 vacation_rule_type 字段；手动调整区 hide/show 逻辑）<br>
+                            <code>templates/admin/audit_log.html</code>（vacation_set_rule / timer_run 状态码中文映射补齐）<br>
+                            <code>sql/schema_mysql.sql + sql/schema_sqlite.sql</code>（users 表 4 列 + SCHEMA_VERSION 同步）
+                        </div>
+                    </div>
+                    <div class="col-2">
+                        <h4>🧪 升级后的验收清单（8 分钟自测）</h4>
+                        <ul>
+                            <li>后台登录 1 次后，确认 users 有 4 个新字段；salary/bonus 表各有 status+confirmed 2 列（可在 <code>/admin/vacation_overview</code> 查看不报错 = 迁移成功）。</li>
+                            <li>数据概览/通讯录/年假总览 三处员工总数完全相等，已离职部门员工、HIST_、admin 本地账号均不出现。</li>
+                            <li>年假总览 正常员工 → 计算方式切「两年+1天」→ 填 起点2026-01-01 基础3 封顶15 → 保存后：资格=特殊规则、应享=3、余额/已休/手动/审批/操作列 全部立即更新；点击页面空白处下拉框不回退（重点回归，用例 C-001）。</li>
+                            <li>连续切换 常规→两年+1天→豁免→常规 三次均不报错。</li>
+                            <li>后台 <code>/admin/vacation_overview</code> → 导出 Excel 行数=分页总计；特殊规则员工应享不为"-"。</li>
+                            <li>打开审计日志页：操作类型下拉能看到「年假：设置计算方式」；触发过审批回调的行能看到「sp_status 中文」+ 非年假模板名。</li>
+                            <li>手动触发 <code>cron.php?task=remind&amp;key=CRON_KEY</code>：不再报 <code>Unknown column 'salary.status'</code>。</li>
+                            <li>员工端 豁免/特殊规则 两种账号 登录「我的年假」：余额卡片正常显示（豁免="—"、特殊=实际值）。</li>
+                        </ul>
+                    </div>
+                </div>
+                <h4>⚠️ 升级注意 / 已知风险</h4>
+                <ul class="risk-list">
+                    <li><span class="tag tag-green">自动迁移</span> <strong>本版本的 DB 变更 100% 由 db_migrate_columns 自动处理</strong>：后台 admin 登录一次即自动触发 ADD COLUMN（InnoDB 140 行量级毫秒级完成）；不需要手工执行任何 SQL。若部署环境 MySQL 5.6/5.7 有主从复制延迟，可提前在从库执行相同 ADD COLUMN（不会重复）。</li>
+                    <li><span class="tag tag-orange">数据回滚</span> 若误把某员工切为特殊规则后想撤销：直接总览该行下拉切回「常规」即可，系统按入职日期重算所有年份，流水不会丢失。手动调整对账单仍独立存在。</li>
+                    <li><span class="tag tag-red">浏览器缓存</span> vacation-overview.html 的 <code>data-field</code> 新列和事件委托重写后，老浏览器缓存的 JS/CSS 会导致"点击无反应/切不动"现象；上线后通知管理员 <code>Ctrl+F5</code> 强刷一次，或在 <code>assets/admin.css</code> 后缀加 <code>?v=2026082401</code>。</li>
+                    <li><span class="tag tag-gray">缓存</span> 前端拼音搜索 60 秒缓存：搜索非中文后立即在后台改员工计算方式，结果页可能短暂显示旧数据（改完立即改回也会），翻页或切年份会拉全量刷新。不是 Bug。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- 历史版本 -->
+    <div class="doc-card">
+        <h2 id="v2026082301">⏰ v2026082301 · 定时任务统一入口（task=all）+ 全局锁 + 年假增量同步 + 日志清理</h2>
+        <div class="ver-block feature">
+            <div class="ver-dot">★</div>
+            <div class="ver-head">
+                <span class="ver-ver">基础设施主版本</span>
+                <span class="tag tag-blue">Feature</span>
+                <span class="tag tag-purple">架构</span>
+                <span class="ver-date">2026-08-23（方案 A：单入口内部按时间窗口分发）</span>
+            </div>
+            <div class="ver-meta">
+                <span>🎯 <b>关键交付：</b>单入口 cron.php?task=all 分发 4 类任务 + 全局并发锁 + last_run 时间栅栏 + settings 页可配置 5 个天数参数</span>
+            </div>
+            <div class="ver-body">
+                <h4>🔹 架构决策（方案 A 已落地）</h4>
+                <ul>
+                    <li>不复用 timer.php 新入口，直接复用现有 <code>cron.php</code>，新增 <code>task=all</code> 分发；<code>task</code> 缺省/为空时默认走 all，保持向后兼容。</li>
+                    <li>4 个子任务统一入口调度：① remind 催办（按窗口）② push 定时下发（按日期匹配 + 窗口）③ vacation_sync 年假增量同步 ④ log_clean 日志清理；每项独立 try/catch，单项失败不影响其他。</li>
+                    <li>全局并发锁：基于 settings 表 K-V <code>timer_global_lock</code>（值=JSON{pid,acquired_at}）+ 600 秒超时自动释放，防止多实例/短间隔重复触发。</li>
+                    <li>last_run 栅栏：每类子任务各存 <code>timer_last_run_{remind|push|vacation_sync|log_clean}</code>，下次运行计算「上次成功时间 → now」窗口，避免每次全量扫描。</li>
+                    <li>聚合审计日志：入口统一写一条 <code>op_type=timer_run</code>（detail=各子任务结果 JSON），子任务兜底各自写自己的类型。</li>
+                </ul>
+                <h4>🔹 后台可配置 5 个天数参数（默认值如下）</h4>
+                <ul>
+                    <li><code>timer_remind_ahead_days</code> = 3：催办提前天数（距设置里的每月推送日期前几天开始催办）。</li>
+                    <li><code>timer_push_retry_window_days</code> = 2：推送重试窗口天数（每月推送日期前后几天内仍视为当月，未推送则补发）。</li>
+                    <li><code>timer_vacation_sync_days</code> = 30：年假同步回看天数（last_run 缺失时首次回退窗口）。</li>
+                    <li><code>timer_log_retention_days</code> = 90：日志保留天数（超期 audit_log / approval_callback_logs / slog 清理）。</li>
+                    <li><code>timer_vacation_sync_min_days</code> = 7：同步最早回退天数（防止 last_run 过久拉取过大范围时的下限兜底）。</li>
+                </ul>
+            </div>
+        </div>
+
+        <h2 id="v2026082201">🏖️ v2026082201 · 年假计算规则 / Schema 对齐 / 员工端 UX 闭环</h2>
+        <div class="ver-block feature">
+            <div class="ver-dot">★</div>
+            <div class="ver-head">
+                <span class="ver-ver">功能主版本</span>
+                <span class="tag tag-blue">Feature</span>
+                <span class="ver-date">2026-08-22（白天讨论 → 晚间同步发版）</span>
+            </div>
+            <div class="ver-meta">
+                <span>🎯 <b>关键交付：</b>双档封顶年假计算公式 + 两份 schema 全量重写 + 密码过期自愈</span>
+            </div>
+            <div class="ver-body">
+                <h4>🔹 业务规则变化（仅针对年假）</h4>
+                <ul>
+                    <li>满 3 年才有年假：入职满 3 年当年按「剩余月数 / 12 × 基础天数」折算；次年起基础天数 + 每年递增天数独立累加（不再和首年挂钩）。</li>
+                    <li>双档封顶：若递增结果 <b>大于 cap1 且小于 cap2_min</b>，取 <b>cap1</b>；若 <b>≥ cap2_min</b>，取 <b>cap2_max</b>。默认：cap1=10，cap2_min=20，cap2_max=15。</li>
+                    <li>向下取整：结果 ≥ 3 天时才做按精度（默认 2 位）截断的向下取整；首年折算天然小于 3，保留小数。</li>
+                </ul>
+                <h4>🔹 Schema 文件一致性规范（新增 SOP）</h4>
+                <ul>
+                    <li>每次加表 / 加列 / 加索引 / 改种子数据，必须同时改 3 处：① <code>db.php</code> 自动迁移 ② <code>sql/schema_mysql.sql</code> ③ <code>sql/schema_sqlite.sql</code>，然后同步三处版本号常量（<code>SCHEMA_VERSION × 2 + EXPECTED_SCHEMA_VERSION × 1</code>），<strong>版本号同天格式：<code>YYYYMMDDNN</code>，NN 从 01 递增</strong>。</li>
+                    <li>本页同时追加一条版本块。</li>
+                </ul>
+            </div>
+        </div>
+
+        <h2 id="v2026082200">🛠️ v2026082200 · 年假总览 / 调整 / 规则上线 + 同步修复合集</h2>
+        <div class="ver-block hotfix">
+            <div class="ver-dot">!</div>
+            <div class="ver-head">
+                <span class="ver-ver">Bug 修复合集</span>
+                <span class="tag tag-orange">Hotfix</span>
+                <span class="tag tag-purple">新模块</span>
+                <span class="ver-date">2026-08-22（上午连续 11 个问题修复与功能补齐）</span>
+            </div>
+            <div class="ver-meta">
+                <span>🎯 <b>关键修复：</b>服务器 500（列名不匹配）、40058/301025 企微参数、手动同步占位符数量、控件索引解析、入职日期翻页编辑失效、年假/工资条拼音搜索、未登录不跳转</span>
+            </div>
+            <div class="ver-body">
+                <h4>🔹 已解决 Bug 清单（摘要）</h4>
+                <ul>
+                    <li>后台 <code>/admin/vacation_overview</code> 服务器内部错误：<code>vacation_ledger</code> 列名与查询不匹配 → <code>functions.php</code> 修正 SQL 列并确保 <code>GROUP BY</code> 前 <code>SUM(delta)</code>。</li>
+                    <li>手动同步错误 1：函数参数顺序错误 / INSERT 占位符数量错 / 字段名拼写错 → 独立调试页 <code>_test_vacation_sync.php</code> 先定位，随后同步到 <code>wecom.php</code> + <code>handlers/admin/vacation.php</code> 的 <code>sync_full</code>。</li>
+                    <li>40058 / 301025：企微 <code>getapprovalinfo</code> <code>filters</code> 必须是对象数组，且 <code>sp_status</code> 同 key 多对象会触发 invalid filter → 改为仅 <code>template_id</code> 服务端过滤，其余状态在本地精筛。</li>
+                    <li>控件列表为空：<code>approval_info</code> 真实字段名是 <code>info</code>；type 推断直接使用 <code>control</code> 字段。</li>
+                    <li>按年批量同步：自动拆分 ≤ 31 天窗口 + 合并去重，前端支持「干跑模式」与结果 Modal。</li>
+                    <li>vacation-adjust 顶部 CSS 源码显示：去掉重复的 <code>&lt;style&gt;</code> 包裹。</li>
+                    <li>拼音搜索：<code>vacation-overview.html</code> 与 <code>vacation-adjust.html</code> 复用 <code>/assets/pinyin.js</code> 的 <code>matchPinyinQuery</code>，统一一行紧凑布局。</li>
+                    <li>年假总览翻页后入职日期无法编辑：tbody 事件委托替换逐行 <code>onclick</code> 绑定。</li>
+                    <li>员工端未登录不跳登录页：<code>checkLogin()</code> + <code>loadData()</code> 处理 HTTP 401/403 / 业务错误关键词 / 网络异常 / currentUser 为空，均跳登录页。年份范围改成仅去年/今年/明年。</li>
+                    <li>审批详情弹窗时间只显示日期：<code>wecom.php</code> DateRange 解析补 <code>start_dt/end_dt</code>（YYYY-MM-DD HH:MM），写入表时用带时分值；老数据（长度 10）自动补 08:00/17:00。</li>
+                    <li>调试页 403：鉴权从 <code>$_SESSION['admin_id']</code> 改为项目实际 JWT cookie 模式。</li>
+                </ul>
+                <div class="ver-grid">
+                    <div class="col-1">
+                        <h4>📁 主要涉及文件</h4>
+                        <div class="file-list">
+                            <code>functions.php</code>（vacation_calc_balance / vacation_process_sp_detail / _vacation_floor_precision / ensure_column）<br>
+                            <code>wecom.php</code>（wecom_get_approval_list 自动拆 31 天 + wecom_approval_flatten_control_at）<br>
+                            <code>handlers/admin/vacation.php</code>（sync_full / sync_incremental / vacation-adjust handler）<br>
+                            <code>handlers/admin/vacation.php</code> admin 表接口：LEFT JOIN 补时分、假期范围列、请假天数列<br>
+                            <code>templates/admin/vacation-overview.html</code>（拼音搜索 / 按年同步 Modal / 入职日期事件委托 / 分页样式对齐 salary_list）<br>
+                            <code>templates/admin/vacation-adjust.html</code>（紧凑一行布局 / 拼音搜索 / 表格假期范围+请假天数列）<br>
+                            <code>templates/admin/vacation-rules.html</code>（三列 cap1/cap2_min/cap2_max UI + 3 组入职日期预览）<br>
+                            <code>templates/employee/vacation.html</code>（checkLogin/loadData/initYearSelect/审批行点击详情卡）<br>
+                            <code>_test_vacation_sync.php</code>、<code>_test_vacation_calc.php</code>（临时验证脚本，稳定后清理）
+                        </div>
+                    </div>
+                    <div class="col-2">
+                        <h4>🧪 回归验证范围</h4>
+                        <ul>
+                            <li>后台 <code>/admin/vacation_overview</code>：不再 500；拼音搜索部门/员工命中；翻页后入职日期仍可编辑；按年同步（干跑+执行）不重复进流水。</li>
+                            <li>后台 <code>/admin/vacation_adjust</code>：年份-员工-查询一行显示；拼音搜索员工姓名/首字母命中；手动调整负数小数正常。</li>
+                            <li>后台 <code>/admin/vacation_rules</code>：调整 cap1/cap2_min/cap2_max 后立即生效。</li>
+                            <li>员工端 <code>/employee/vacation</code>：点击「审批通过」行可弹完整 sp_no + 开始/结束（含时分）+ 总计天数卡片。切换年份只有 3 项。</li>
+                            <li>_test_vacation_calc 断言脚本：3 组入职日期 × 21 个年份点全通过。</li>
+                        </ul>
+                    </div>
+                </div>
+                <h4>⚠️ 回滚策略</h4>
+                <ul class="risk-list">
+                    <li>若上线后发现年假余额错误：先在 <code>/admin/vacation_rules</code> 恢复默认规则（min_years=3 / base=3 / step=1 / cap1=10 / cap2_min=20 / cap2_max=15），再在 <code>/admin/vacation_adjust</code> 用手动调整对异常员工做 delta 补偿。数据库不做删除回滚（流水只追加，避免丢失审批审计）。</li>
+                    <li>若同步问题导致重复流水：用 <code>/admin/vacation_adjust</code> 的反向手动调整抵消并留 remark（不要直接删 vacation_ledger）。</li>
+                </ul>
+            </div>
+        </div>
+
+        <h2 id="v20260804a">🚀 v20260804a · 基础版 + 安装向导 / 部署说明</h2>
+        <div class="ver-block">
+            <div class="ver-dot">·</div>
+            <div class="ver-head">
+                <span class="ver-ver">基础基线版本</span>
+                <span class="tag tag-green">稳定</span>
+                <span class="ver-date">2026-08-04（部署说明 CSS 版本 <code>v=20260804a</code>）</span>
+            </div>
+            <div class="ver-meta">
+                <span>🎯 <b>核心能力：</b>工资条/奖金上传 + 签收统计 + 消息记录 + 角色权限 + 操作审计 + 企微 OAuth + 员工登录（JWT + 查看密码）</span>
+            </div>
+            <div class="ver-body">
+                <h4>🔹 功能基线</h4>
+                <ul>
+                    <li>工资条模块：<code>/admin/upload</code> 上传 Excel（.xlsx）→ 发送、签收统计、回收站、历史导入。</li>
+                    <li>奖金模块：<code>/admin/bonus_list</code> / <code>/admin/bonus_upload</code> / <code>/admin/bonus_types</code>。</li>
+                    <li>角色 & 页面权限：<code>admin / finance / hr</code> 三角色 + <code>settings.role_page_access</code> 自定义矩阵（admin 始终全权限）。</li>
+                    <li>员工端：<code>/employee/salary</code>（工资条详情 + 查看密码 verify free_window_minutes 过期重验证）。</li>
+                    <li>双登录（admin router 前置通用）：后台账号密码 + 企微扫码，任一有效即可。</li>
+                </ul>
+                <div class="ver-grid">
+                    <div class="col-1">
+                        <h4>📁 主要文件（安装向导相关）</h4>
+                        <div class="file-list">
+                            <code>install.php</code>（三步向导：PHP 扩展检测 → DB 选择与测试连接 → 初始管理员账号）<br>
+                            <code>sql/schema_mysql.sql</code> / <code>sql/schema_sqlite.sql</code>（由 v2026082201 全量重写前的基线版本）<br>
+                            <code>templates/admin/info.html</code>（部署手册 12 节：含伪静态 / 计划任务 / 企微配置 / Excel 格式 / 状态流转 / 目录结构 / 本地启动 / 修复记录）<br>
+                            <code>cron.php</code>（计划任务入口：可按 1Panel 每 5 分钟触发）<br>
+                            <code>callback.php</code>（企微回调：验签 + 解密 + 业务回调分发）
+                        </div>
+                    </div>
+                    <div class="col-2">
+                        <h4>🧪 基线验收</h4>
+                        <ul>
+                            <li>install.php 三步可走完：SQLite 自动建目录；MySQL 输入正确连接信息可测试通过。</li>
+                            <li>初始管理员能登录 <code>/admin/dashboard</code>；<code>/admin/info</code> 仅 admin 打开，finance/hr 访问被 403 拦截。</li>
+                            <li>伪静态规则生效：<code>/api/</code>、<code>/employee/</code>、<code>/admin/</code> 三类路径全部可访问，不依赖 query 入口。</li>
+                            <li>计划任务 cron.php 能正确返回 JSON（不触发致命错误）。</li>
+                            <li>企微回调回调能正确验签（callback_key/callback_token 与后台一致）。</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h2 id="conv">🧭 版本号规范 & 发布清单（后续每版按此走）</h2>
+        <div class="ver-block">
+            <div class="ver-dot">▣</div>
+            <div class="ver-body">
+                <table>
+                    <thead>
+                        <tr><th style="width:160px">字段</th><th>规范 / 说明</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>APP_VERSION</code></td>
+                            <td>格式：<code>YYYYMMDDNN</code>。写在 <code>config.php</code> 顶部，用于日志 / version.php / 客户端缓存识别。每次上线必 +1。</td>
+                        </tr>
+                        <tr>
+                            <td><code>SCHEMA_VERSION</code></td>
+                            <td>格式：<code>YYYYMMDDNN</code>。SQL 注释写在 <code>sql/schema_mysql.sql</code>、<code>sql/schema_sqlite.sql</code> 首行；
+                                与 <code>db.php</code> 常量 <code>EXPECTED_SCHEMA_VERSION</code> 必须完全相同；
+                                只有改了 DB 才更新（纯代码修复不必动 SCHEMA_VERSION，但仍要动 APP_VERSION）。
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>版本类型标记</td>
+                            <td><span class="tag tag-green">稳定</span> 基线 / <span class="tag tag-blue">Feature</span> 新增能力 /
+                                <span class="tag tag-orange">Hotfix</span> 修 Bug / <span class="tag tag-red">Breaking</span> 破坏性变更
+                                （破坏性变更必须先讨论、再执行、再升级说明；例：改 <code>vacation_ledger</code> PK、改余额公式语义）。
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>本页 bb.html 更新</td>
+                            <td>每一个 APP_VERSION 都要在本页新增一个「版本块」，固定写：版本号 + 发布日期 + 作者 + 主要变更 + 主要文件 + 验收清单 + 升级注意/风险。</td>
+                        </tr>
+                        <tr>
+                            <td>发布前自检清单</td>
+                            <td>
+                                <ul>
+                                    <li><code>php -l</code> 过所有修改过的 .php。</li>
+                                    <li>有 DB 变更：<code>schema_sqlite.sql</code> PDO <code>:memory:</code> 加载、表/索引/种子全齐。</li>
+                                    <li>权限变更：<code>get_page_definitions()</code> 新页面已加、<code>admin/router.php</code> 的 <code>$allowed</code> 数组已加。</li>
+                                    <li>影响员工端：员工端未登录 → 跳登录、密码过期 → 正确流程、不显示空。</li>
+                                    <li>影响余额/流水计算：<code>_test_vacation_calc</code> 类脚本全通过 + 至少一组实际数据对比。</li>
+                                </ul>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+(function() {
+    // 版本号从 config APP_VERSION 输出兜底，失败就用静态默认（bb.html 本身是模板直接渲染，不会经过 PHP include 变量处理）
+    var appVerEl = document.getElementById('appVer');
+    // 通过 fetch /version.php 拿到真实 APP_VERSION 显示，保持单一可信源
+    if (appVerEl && window.fetch) {
+        fetch('/version.php', { credentials: 'same-origin' })
+            .then(function(r) { return r.ok ? r.text() : Promise.reject(new Error('status ' + r.status)); })
+            .then(function(txt) {
+                var m = String(txt || '').match(/APP_VERSION\s*[:=]\s*['"]?([0-9A-Za-z\-_.]+)/i);
+                if (m && m[1]) appVerEl.textContent = 'v' + m[1];
+            })
+            .catch(function() {});
+    }
+
+    // 回顶按钮
+    var backTop = document.getElementById('backTop');
+    if (backTop) {
+        var toggle = function() {
+            if (window.scrollY > 220) backTop.classList.add('show');
+            else backTop.classList.remove('show');
+        };
+        window.addEventListener('scroll', toggle, { passive: true });
+        toggle();
+    }
+})();
+</script>
+</body>
+</html>

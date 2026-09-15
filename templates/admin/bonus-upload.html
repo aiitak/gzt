@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0">
+<title>上传奖金</title>
+<link rel="stylesheet" href="/assets/weui.min.css?v=20260807a">
+<link rel="stylesheet" href="/assets/admin.css?v=20260807a">
+<script src="/assets/weui.min.js?v=20260807a"></script>
+<script src="/assets/admin.js?v=20260807a"></script>
+<script src="/assets/pinyin.js?v=20260807a"></script>
+<style>
+ body{background:#f5f5f5;font-family:-apple-system,"PingFang SC",sans-serif;margin:0;}
+ .page{max-width:1100px;margin:0 auto;padding:15px;}
+ .panel{background:#fff;border-radius:10px;padding:12px 14px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.06);}
+ .panel h3{margin:4px 0 10px;font-size:15px;}
+
+ /* 下载模板小按钮 */
+ .tpl-mini{display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border:1px solid #07c160;border-radius:6px;background:#fff;color:#07c160;font-size:12px;cursor:pointer;text-decoration:none;white-space:nowrap;}
+ .tpl-mini:hover{background:#f0fff0;}
+
+ /* 格式说明 */
+ .fmt-list{font-size:13px;color:#555;line-height:1.8;padding:0;margin:8px 0 0;list-style:none;}
+ .fmt-list li{padding:4px 0 4px 22px;position:relative;}
+ .fmt-list li::before{content:"✓";position:absolute;left:0;top:4px;color:#07c160;font-weight:700;}
+ .fmt-list li strong{color:#333;}
+ .fmt-list code{background:#fdecec;color:#d33;padding:1px 5px;border-radius:3px;font-size:12px;}
+ .fmt-list .hint{color:#07c160;font-size:12px;margin-top:2px;}
+ .fmt-list .danger{color:#e64340;}
+
+ /* 上传区域 */
+ .upload-area{border:2px dashed #ddd;border-radius:12px;padding:42px 20px;text-align:center;cursor:pointer;transition:border-color .3s,background .3s;}
+ .upload-area:hover,.upload-area.dragover{border-color:#07c160;background:#f0fff7;}
+ .upload-area .icon{font-size:50px;}
+ .upload-area .text{font-size:14px;color:#999;margin-top:10px;}
+ .upload-area .sub{font-size:12px;color:#bbb;margin-top:4px;}
+ .file-info{padding:10px 12px;background:#f8f8f8;border-radius:8px;margin-top:12px;display:none;font-size:13px;}
+ .file-info .name{color:#333;}
+ .file-info .status{color:#07c160;}
+
+ /* 上传结果 */
+ .result-box{margin-top:14px;padding:16px;border-radius:10px;display:none;font-size:13px;line-height:1.7;}
+ .result-box.success{background:#e8f8e8;}
+ .result-box.error{background:#fef0f0;}
+ .result-box .title{font-size:15px;font-weight:700;margin-bottom:8px;}
+ .result-box .row{display:flex;gap:8px;}
+ .result-box .row b{color:#333;}
+ .result-box .err-list{margin-top:8px;max-height:180px;overflow:auto;background:rgba(255,255,255,.6);border-radius:6px;padding:8px 10px;}
+ .result-box .err-list .err-item{color:#e64340;font-size:12px;padding:2px 0;}
+ .result-box .goto{display:inline-block;margin-top:10px;padding:8px 18px;background:#07c160;color:#fff;border-radius:8px;text-decoration:none;font-size:13px;font-weight:600;}
+
+ /* Toast 浮动消息 */
+ .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.82);color:#fff;padding:8px 16px;border-radius:8px;font-size:13px;z-index:2000;opacity:0;transition:opacity .25s,top .25s;pointer-events:none;box-shadow:0 4px 14px rgba(0,0,0,.2);}
+ .toast.show{opacity:1;top:30px;}
+ .toast.success{background:rgba(7,193,96,.92);}
+ .toast.error{background:rgba(230,67,64,.92);}
+
+ /* 自定义确认弹窗 */
+ .confirm-mask{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.45);z-index:9998;display:none;align-items:center;justify-content:center;animation:fadeIn .2s ease;}
+ .confirm-mask.show{display:flex;}
+ .confirm-box{background:#fff;border-radius:16px;width:85%;max-width:360px;padding:28px 24px 20px;text-align:center;animation:slideUp .3s ease;box-shadow:0 12px 40px rgba(0,0,0,.15);}
+ .confirm-box .cb-icon{width:56px;height:56px;border-radius:50%;background:#fff8e1;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 14px;}
+ .confirm-box .cb-icon.danger{background:#fef0f0;}
+ .confirm-box .cb-title{font-size:17px;font-weight:600;color:#333;margin-bottom:8px;}
+ .confirm-box .cb-desc{font-size:14px;color:#888;line-height:1.6;margin-bottom:22px;}
+ .confirm-box .cb-actions{display:flex;gap:10px;}
+ .confirm-box .cb-btn{flex:1;height:44px;border:none;border-radius:22px;font-size:15px;font-weight:500;cursor:pointer;transition:all .15s;}
+ .confirm-box .cb-btn-cancel{background:#f5f5f5;color:#666;}
+ .confirm-box .cb-btn-cancel:active{background:#e8e8e8;}
+ .confirm-box .cb-btn-ok{background:linear-gradient(135deg,#07c160,#06ad56);color:#fff;box-shadow:0 3px 10px rgba(7,193,96,.3);}
+ .confirm-box .cb-btn-ok:active{transform:scale(.97);}
+ .confirm-box .cb-btn-ok.danger{background:linear-gradient(135deg,#fa5151,#e64340);box-shadow:0 3px 10px rgba(230,67,64,.3);}
+ @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+ @keyframes slideUp{from{opacity:0;transform:translateY(20px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}}
+</style>
+</head>
+<body>
+<header class="ad-appbar">
+  <a class="ad-appbar__back" href="/admin/dashboard" aria-label="返回首页">‹</a>
+  <div class="ad-appbar__title"><span class="ic">📤</span><span>上传奖金</span></div>
+  <div class="ad-appbar__actions">
+    <span id="userInfo" class="ad-appbar__btn" style="cursor:default;background:rgba(255,255,255,.12);"></span>
+    <a class="ad-appbar__btn" href="/admin/dashboard">首页</a>
+    <a class="ad-appbar__btn" href="javascript:doLogout()">退出</a>
+  </div>
+</header>
+<div class="page">
+
+  <!-- 上传区域 -->
+  <div class="panel">
+    <h3>📤 上传奖金 Excel</h3>
+    <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+      <div class="icon">📄</div>
+      <div class="text">点击或拖拽文件到此处上传</div>
+      <div class="sub">仅支持 .xlsx 格式</div>
+      <input type="file" id="fileInput" accept=".xlsx" style="display:none" onchange="handleFile(this)">
+    </div>
+    <div class="file-info" id="fileInfo"></div>
+    <!-- 上传结果 -->
+    <div class="result-box" id="resultBox"></div>
+  </div>
+
+  <!-- 格式说明 -->
+  <div class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <h3 style="margin:0;">📋 Excel 格式说明</h3>
+      <a class="tpl-mini" href="/api/bonus/template" download>📥 下载Excel模板</a>
+    </div>
+    <ul class="fmt-list">
+      <li>第一行必须为<strong>合并单元格</strong>，格式为 <strong>【xxxx年年终奖】</strong>（如：<strong>【2026年年终奖】</strong>），用于识别年份与奖金类型</li>
+      <li>第一列为 <strong>企微成员ID（纯字母）</strong> 或 <strong>员工姓名（纯汉字）</strong>
+        <div class="hint">匹配规则：纯字母 → 按企微成员ID匹配；纯汉字 → 按员工姓名匹配</div>
+      </li>
+      <li>必须包含 <strong>「实发奖金」</strong> 列</li>
+      <li>支持<strong>多层表头与合并单元格</strong></li>
+      <li>扣除项请填<strong>正数</strong>，系统会自动加负号显示（如 <code>-¥1,200.00</code>）</li>
+      <li>仅支持 <strong>.xlsx</strong> 格式<span class="danger">（不支持 .xls）</span></li>
+      <li>同年同类型重复上传时，旧记录自动被覆盖更新</li>
+    </ul>
+  </div>
+
+  <!-- 推送未下发奖金 -->
+  <div class="panel">
+    <h3>🚀 推送未下发奖金</h3>
+    <div id="pushEmpty" style="color:#999;font-size:14px;margin-bottom:12px;display:none;">🎉 当前没有未下发的奖金记录</div>
+    <div id="pushDraftControls">
+      <div style="margin-bottom:12px;">
+        <label style="font-size:14px;display:block;margin-bottom:6px;">选择年份</label>
+        <select id="pushYear" class="ad-input" style="width:100%;box-sizing:border-box;"></select>
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:14px;display:block;margin-bottom:6px;">选择奖金类型</label>
+        <select id="pushType" class="ad-input" style="width:100%;box-sizing:border-box;"></select>
+      </div>
+      <a href="javascript:;" class="weui-btn weui-btn_primary" onclick="pushBonus('draft')" style="width:100%;">🚀 推送未下发奖金</a>
+    </div>
+  </div>
+
+  <!-- 重新推送（含已推送） -->
+  <div class="panel">
+    <h3>🔄 重新推送（含已推送）</h3>
+    <div style="font-size:12px;color:#999;margin-bottom:12px;">重新推送会覆盖所有已推送状态，包括已推送但未确认的奖金记录</div>
+    <div id="pushAllEmpty" style="color:#999;font-size:14px;margin-bottom:12px;display:none;">🎉 当前没有可重新推送的奖金记录</div>
+    <div id="pushAllControls">
+      <div style="margin-bottom:12px;">
+        <label style="font-size:14px;display:block;margin-bottom:6px;">选择年份</label>
+        <select id="pushAllYear" class="ad-input" style="width:100%;box-sizing:border-box;"></select>
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:14px;display:block;margin-bottom:6px;">选择奖金类型</label>
+        <select id="pushAllType" class="ad-input" style="width:100%;box-sizing:border-box;"></select>
+      </div>
+      <a href="javascript:;" class="weui-btn weui-btn_default" onclick="pushBonus('all')" style="width:100%;">🔄 重新推送（含已推送）</a>
+    </div>
+  </div>
+
+  <!-- 推送结果通知接收人 -->
+  <div class="panel">
+    <h3>📨 推送结果通知接收人</h3>
+    <div style="font-size:12px;color:#999;margin-bottom:12px;">奖金推送完成后，系统将通知以下人员。未设置时默认通知所有管理员与财务。</div>
+    <div id="notifyUserList" style="margin-bottom:12px;color:#999;">加载中...</div>
+    <div style="display:flex;gap:8px;">
+      <a href="javascript:;" class="weui-btn weui-btn_primary" onclick="openNotifyPicker()" style="flex:1;">📇 从通讯录选择</a>
+      <a href="javascript:;" class="weui-btn weui-btn_default" onclick="addNotifyUser()" style="flex:1;">手动添加</a>
+    </div>
+  </div>
+
+</div>
+
+<!-- 通知接收人选择器弹窗 -->
+<div class="ad-modal-mask" id="notifyPickerMask" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:12px;width:90%;max-width:500px;max-height:80vh;display:flex;flex-direction:column;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:16px;border-bottom:1px solid #eee;">
+            <span style="font-weight:bold;">📇 从通讯录选择接收人</span>
+            <span style="cursor:pointer;font-size:18px;" onclick="closeNotifyPicker()">✕</span>
+        </div>
+        <div style="padding:12px;overflow:auto;flex:1;">
+            <input class="ad-input" id="notifyPickerSearch" placeholder="搜索姓名 / 拼音 / UserID" oninput="renderNotifyPicker()" style="width:100%;box-sizing:border-box;margin-bottom:10px;">
+            <div id="notifyPickerList" style="max-height:46vh;overflow:auto;"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-top:1px solid #eee;">
+            <span id="notifyPickerCount" style="font-size:13px;color:#666;">已选 0 人</span>
+            <button class="ad-btn ad-btn--primary" onclick="confirmNotifyPicker()" style="background:#07c160;color:#fff;border:none;padding:8px 20px;border-radius:6px;cursor:pointer;">确定</button>
+        </div>
+    </div>
+</div>
+
+<!-- 自定义确认弹窗 -->
+<div class="confirm-mask" id="confirmMask">
+    <div class="confirm-box">
+        <div class="cb-icon" id="confirmIcon">⚠️</div>
+        <div class="cb-title" id="confirmTitle">确认操作</div>
+        <div class="cb-desc" id="confirmDesc"></div>
+        <div class="cb-actions">
+            <button class="cb-btn cb-btn-cancel" id="confirmCancel">取消</button>
+            <button class="cb-btn cb-btn-ok" id="confirmOk">确定</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast 浮动消息 -->
+<div class="toast" id="toast"></div>
+
+<script>
+
+// ===== Toast =====
+var TOAST_TIMER = null;
+function toast(msg, type){
+  var el = document.getElementById('toast');
+  el.className = 'toast' + (type ? ' ' + type : '');
+  el.textContent = msg;
+  el.classList.add('show');
+  if(TOAST_TIMER) clearTimeout(TOAST_TIMER);
+  TOAST_TIMER = setTimeout(function(){ el.classList.remove('show'); }, type === 'error' ? 3000 : 2000);
+}
+
+// 拖拽上传
+var uploadArea = document.getElementById('uploadArea');
+uploadArea.addEventListener('dragover', function(e){
+  e.preventDefault();
+  uploadArea.classList.add('dragover');
+});
+uploadArea.addEventListener('dragleave', function(e){
+  e.preventDefault();
+  uploadArea.classList.remove('dragover');
+});
+uploadArea.addEventListener('drop', function(e){
+  e.preventDefault();
+  uploadArea.classList.remove('dragover');
+  var file = e.dataTransfer.files && e.dataTransfer.files[0];
+  if(file){
+    document.getElementById('fileInput').files = e.dataTransfer.files;
+    handleFile({ files: [file] });
+  }
+});
+
+function handleFile(input){
+  var file = input.files && input.files[0];
+  if(!file) return;
+  var ext = file.name.split('.').pop().toLowerCase();
+  if(ext !== 'xlsx'){
+    toast('仅支持 .xlsx 格式，请用 Excel 另存为 .xlsx 后再上传', 'error');
+    // 清空已选文件，避免选错后无法再次触发 change
+    document.getElementById('fileInput').value = '';
+    return;
+  }
+  document.getElementById('fileInfo').style.display = 'block';
+  document.getElementById('fileInfo').innerHTML =
+    '<div style="display:flex;justify-content:space-between;align-items:center;">'
+    + '<span class="name">📄 '+esc(file.name)+' ('+(file.size/1024).toFixed(1)+'KB)</span>'
+    + '<span class="status">解析中...</span>'
+    + '</div>';
+  uploadFile(file);
+}
+
+async function uploadFile(file){
+  var formData = new FormData();
+  formData.append('file', file);
+  try {
+    var r = await fetch('/api/bonus/upload', { method:'POST', body: formData });
+    var d = await r.json();
+    var box = document.getElementById('resultBox');
+    box.style.display = 'block';
+    if(d.success){
+      box.className = 'result-box success';
+      var errHtml = '';
+      if(d.errors && d.errors.length > 0){
+        errHtml = '<div class="err-list">'
+          + d.errors.map(function(e){ return '<div class="err-item">⚠ '+esc(e)+'</div>'; }).join('')
+          + '</div>';
+      }
+      var skipHtml = d.skip > 0 ? '<div class="row"><span>⚠️ 跳过：</span><b>'+d.skip+' 条（未匹配员工）</b></div>' : '';
+      box.innerHTML =
+        '<div class="title">✅ 导入成功</div>'
+        + '<div class="row"><span>📅 年份：</span><b>'+esc(d.year)+'年</b></div>'
+        + '<div class="row"><span>🏷 类型：</span><b>'+esc(d.bonus_type)+'</b></div>'
+        + '<div class="row"><span>📊 成功导入：</span><b>'+d.imported+' 条</b></div>'
+        + skipHtml
+        + errHtml
+        + '<a class="goto" href="/admin/bonus_list">→ 去奖金管理</a>';
+      document.getElementById('fileInfo').innerHTML =
+        '<div style="display:flex;justify-content:space-between;align-items:center;">'
+        + '<span class="name">📄 '+esc(file.name)+'</span>'
+        + '<span class="status">✅ 导入完成</span>'
+        + '</div>';
+      toast('导入成功：'+d.imported+' 条', 'success');
+      loadPushOptions();
+    } else {
+      box.className = 'result-box error';
+      box.innerHTML = '<div class="title">❌ '+esc(d.error || '解析失败')+'</div>';
+      document.getElementById('fileInfo').innerHTML =
+        '<div style="display:flex;justify-content:space-between;align-items:center;">'
+        + '<span class="name">📄 '+esc(file.name)+'</span>'
+        + '<span class="status" style="color:#e64340;">解析失败</span>'
+        + '</div>';
+    }
+  } catch(e){
+    var box2 = document.getElementById('resultBox');
+    box2.style.display = 'block';
+    box2.className = 'result-box error';
+    box2.innerHTML = '<div class="title">❌ 上传失败，请重试</div>';
+    toast('上传失败：'+(e.message||e), 'error');
+  }
+}
+
+// ===== 自定义确认弹窗 =====
+var _confirmCallback = null;
+function showConfirm(opts){
+  document.getElementById('confirmIcon').textContent = opts.icon || '⚠️';
+  document.getElementById('confirmIcon').className = 'cb-icon' + (opts.danger ? ' danger' : '');
+  document.getElementById('confirmTitle').textContent = opts.title || '确认操作';
+  document.getElementById('confirmDesc').textContent = opts.desc || '';
+  var okBtn = document.getElementById('confirmOk');
+  okBtn.className = 'cb-btn cb-btn-ok' + (opts.danger ? ' danger' : '');
+  okBtn.textContent = opts.okText || '确定';
+  okBtn.disabled = false;
+  okBtn.style.opacity = '';
+  document.getElementById('confirmCancel').textContent = opts.cancelText || '取消';
+  _confirmCallback = opts.onOk || null;
+  document.getElementById('confirmMask').classList.add('show');
+}
+function hideConfirm(){
+  document.getElementById('confirmMask').classList.remove('show');
+  _confirmCallback = null;
+}
+document.getElementById('confirmOk').addEventListener('click', function(){
+  // 先保存回调：回调自行在 finally 中 hideConfirm
+  // 同步回调（无返回 Promise）由此处关闭
+  var cb = _confirmCallback;
+  if(!cb){ hideConfirm(); return; }
+  var ret = cb();
+  if(!ret || typeof ret.then !== 'function'){
+    hideConfirm();
+  }
+});
+document.getElementById('confirmCancel').addEventListener('click', hideConfirm);
+
+// ===== 推送 & 重新推送 =====
+async function pushBonus(scope){
+  var yearSel = scope === 'draft' ? document.getElementById('pushYear') : document.getElementById('pushAllYear');
+  var typeSel = scope === 'draft' ? document.getElementById('pushType') : document.getElementById('pushAllType');
+  var year = parseInt(yearSel.value, 10);
+  var bonus_type = typeSel.value;
+  if(!year || !bonus_type){ toast('请选择年份和奖金类型','error'); return; }
+
+  var isRepush = scope === 'all';
+  showConfirm({
+    icon: isRepush ? '🔄' : '🚀',
+    title: isRepush ? '重新推送确认' : '推送确认',
+    desc: isRepush
+      ? '确认重新推送 ' + year + '年「' + bonus_type + '」吗？\n会覆盖已推送未确认的记录。'
+      : '确认推送 ' + year + '年「' + bonus_type + '」未下发的奖金吗？',
+    okText: isRepush ? '🔄 重新推送' : '🚀 推送',
+    danger: isRepush,
+    onOk: async function(){
+      // 推送中：禁用按钮 + 显示 loading（弹窗保持打开）
+      var okBtn = document.getElementById('confirmOk');
+      var cancelBtn = document.getElementById('confirmCancel');
+      okBtn.disabled = true;
+      okBtn.style.opacity = '0.6';
+      okBtn.textContent = '⏳ 推送中...';
+      cancelBtn.disabled = true;
+      cancelBtn.style.opacity = '0.5';
+
+      var url = '/api/bonus/push';
+      var payload = { year: year, bonus_type: bonus_type, scope: scope };
+      try{
+        var r = await fetch(url, {
+          method:'POST',
+          headers:{ 'Content-Type':'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        var rawText = await r.text();
+        var d;
+        try { d = JSON.parse(rawText); } catch(e) {
+          throw new Error('响应格式错误：' + e.message);
+        }
+
+        if(r.status >= 400){
+          toast('HTTP ' + r.status + '：' + (d.error || r.statusText), 'error');
+        } else if(d.success){
+          var msg = '✅ 已发送 ' + (d.sent||0) + '/' + (d.total||0) + ' 条';
+          if((d.total||0) === 0){ msg = '⚠️ 没有可推送的记录（0/0）'; }
+          toast(msg, (d.total||0) > 0 ? 'success' : 'error');
+          loadPushOptions();
+        }else{
+          toast(d.error || '推送失败', 'error');
+        }
+      }catch(e){
+        toast('推送失败：'+(e.message||e),'error');
+      }finally{
+        hideConfirm();
+      }
+    }
+  });
+}
+
+// 加载可选年份/类型下拉 + 空状态检查
+async function loadPushOptions(){
+  try{
+    var r = await fetch('/api/bonus/list');
+    var d = await r.json();
+    if(!d.success) return;
+    var list = d.list || [];
+    var years = d.years || [];
+    var types = d.types || [];
+
+    // 检查是否有未下发（draft）记录
+    var hasDraft = list.some(function(f){ return f.status === 'draft'; });
+    // 检查是否有已推送未确认（sent + confirmed=0）记录
+    var hasSentUnconfirmed = list.some(function(f){ return f.status === 'sent' && !f.confirmed; });
+
+    // 空状态 vs 控件区：二者互斥显示
+    var pushEmptyEl = document.getElementById('pushEmpty');
+    var pushControlsEl = document.getElementById('pushDraftControls');
+    if(pushEmptyEl && pushControlsEl){
+      if(hasDraft){
+        pushEmptyEl.style.display = 'none';
+        pushControlsEl.style.display = 'block';
+      }else{
+        pushEmptyEl.style.display = 'block';
+        pushControlsEl.style.display = 'none';
+      }
+    }
+
+    var pushAllEmptyEl = document.getElementById('pushAllEmpty');
+    var pushAllControlsEl = document.getElementById('pushAllControls');
+    if(pushAllEmptyEl && pushAllControlsEl){
+      if(hasSentUnconfirmed){
+        pushAllEmptyEl.style.display = 'none';
+        pushAllControlsEl.style.display = 'block';
+      }else{
+        pushAllEmptyEl.style.display = 'block';
+        pushAllControlsEl.style.display = 'none';
+      }
+    }
+
+    function fillSelect(id, items, defText){
+      var sel = document.getElementById(id);
+      if(!sel) return;
+      sel.innerHTML = items.length
+        ? items.map(function(v){ return '<option value="'+esc(v)+'">'+esc(v)+'</option>'; }).join('')
+        : '<option value="">('+defText+')</option>';
+    }
+    fillSelect('pushYear', years, '暂无年份');
+    fillSelect('pushAllYear', years, '暂无年份');
+    fillSelect('pushType', types, '暂无类型');
+    fillSelect('pushAllType', types, '暂无类型');
+  }catch(e){}
+}
+
+// ===== 推送结果通知接收人 =====
+var NOTIFY_CURRENT = [];
+var NOTIFY_PICKER = { users: [], selected: new Set() };
+
+async function loadNotifyUsers(){
+  try{
+    var r = await fetch('/api/admin/notify-users');
+    var d = await r.json();
+    var c = document.getElementById('notifyUserList');
+    if(!d || d.length === 0){
+      NOTIFY_CURRENT = [];
+      c.textContent = '暂未设置通知接收人，默认通知所有管理员和财务';
+    }else{
+      NOTIFY_CURRENT = d.map(function(u){ return u.userid; });
+      c.innerHTML = d.map(function(u){
+        return '<span style="display:inline-block;background:#f0f0f0;border-radius:16px;padding:4px 12px;margin:2px;font-size:13px;">'
+          + esc(u.name) + ' (' + esc(u.userid) + ')'
+          + '<span style="cursor:pointer;margin-left:4px;color:#999;" onclick="removeNotifyUser(\'' + esc(u.userid) + '\')">✕</span></span>';
+      }).join('');
+    }
+  }catch(e){
+    document.getElementById('notifyUserList').textContent = '加载失败';
+  }
+}
+
+async function addNotifyUser(){
+  var userid = prompt('请输入要添加的成员 UserID：');
+  if(!userid) return;
+  try{
+    var r = await fetch('/api/admin/notify-users', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({ action: 'add', userids: [userid.trim()] })
+    });
+    var d = await r.json();
+    if(d.success){ toast('✅ 已添加接收人', 'success'); loadNotifyUsers(); }
+    else{ toast(d.error || '添加失败', 'error'); }
+  }catch(e){ toast('添加失败', 'error'); }
+}
+
+async function removeNotifyUser(userid){
+  try{
+    var r = await fetch('/api/admin/notify-users', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({ action: 'remove', userids: [userid] })
+    });
+    var d = await r.json();
+    if(d.success){ loadNotifyUsers(); }
+    else{ toast(d.error || '移除失败', 'error'); }
+  }catch(e){ toast('移除失败', 'error'); }
+}
+
+async function openNotifyPicker(){
+  NOTIFY_PICKER.selected = new Set(NOTIFY_CURRENT);
+  try{
+    var r = await fetch('/api/admin/contacts');
+    var d = await r.json();
+    NOTIFY_PICKER.users = (d && Array.isArray(d.users)) ? d.users : [];
+  }catch(e){ NOTIFY_PICKER.users = []; }
+  document.getElementById('notifyPickerSearch').value = '';
+  document.getElementById('notifyPickerMask').style.display = 'flex';
+  renderNotifyPicker();
+}
+
+function closeNotifyPicker(){
+  document.getElementById('notifyPickerMask').style.display = 'none';
+}
+
+function renderNotifyPicker(){
+  var q = (document.getElementById('notifyPickerSearch').value || '').trim().toLowerCase();
+  var box = document.getElementById('notifyPickerList');
+  var users = NOTIFY_PICKER.users.filter(function(u){
+    if(!q) return true;
+    if((u.name || '').toLowerCase().indexOf(q) >= 0 || (u.userid || '').toLowerCase().indexOf(q) >= 0) return true;
+    if(typeof matchPinyinQuery === 'function' && matchPinyinQuery(q, u.name || '')) return true;
+    return false;
+  });
+  if(users.length === 0){
+    box.innerHTML = '<div style="color:#999;text-align:center;padding:20px;">未找到成员，请先同步通讯录。</div>';
+  }else{
+    box.innerHTML = users.map(function(u){
+      var sel = NOTIFY_PICKER.selected.has(u.userid);
+      return '<div onclick="toggleNotifyPick(\'' + esc(u.userid) + '\')" style="padding:10px;border-bottom:1px solid #f5f5f5;cursor:pointer;display:flex;align-items:center;gap:8px;' + (sel ? 'background:#e8f5e9;' : '') + '">'
+        + '<span style="width:20px;height:20px;border:2px solid ' + (sel ? '#07c160;background:#07c160' : '#ccc') + ';border-radius:4px;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:12px;">' + (sel ? '✓' : '') + '</span>'
+        + '<span><span style="font-weight:500;">' + esc(u.name || u.userid) + '</span><span style="font-size:12px;color:#999;margin-left:6px;">' + esc(u.dept_name || '') + ' · ID:' + esc(u.userid) + '</span></span></div>';
+    }).join('');
+  }
+  document.getElementById('notifyPickerCount').textContent = '已选 ' + NOTIFY_PICKER.selected.size + ' 人';
+}
+
+function toggleNotifyPick(userid){
+  if(NOTIFY_PICKER.selected.has(userid)) NOTIFY_PICKER.selected.delete(userid);
+  else NOTIFY_PICKER.selected.add(userid);
+  renderNotifyPicker();
+}
+
+async function confirmNotifyPicker(){
+  var userids = Array.from(NOTIFY_PICKER.selected);
+  if(userids.length === 0){ closeNotifyPicker(); return; }
+  try{
+    var r = await fetch('/api/admin/notify-users', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({ action: 'add', userids: userids })
+    });
+    var d = await r.json();
+    if(d.success){ toast('✅ 已添加 ' + userids.length + ' 位接收人', 'success'); loadNotifyUsers(); }
+    else{ toast(d.error || '添加失败', 'error'); }
+  }catch(e){ toast('添加失败', 'error'); }
+  closeNotifyPicker();
+}
+
+document.addEventListener('DOMContentLoaded', async function(){
+  var me = await fetch('/api/auth/me');
+  if(me.status === 401){ location.href = '/api/auth/login?redirect=/admin/bonus_upload'; return; }
+  var ud = await me.json();
+  if(!ud.logged_in){ location.href = '/api/auth/login?redirect=/admin/bonus_upload'; return; }
+  document.getElementById('userInfo').textContent = '👤 ' + (ud.name || ud.userid || '');
+  loadPushOptions();
+  loadNotifyUsers();
+});
+</script>
+</body>
+</html>

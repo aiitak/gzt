@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0">
+<title>年假规则 &amp; 审批调试</title>
+<link rel="stylesheet" href="/assets/weui.min.css?v=20260807a">
+<link rel="stylesheet" href="/assets/admin.css?v=20260807a">
+<script src="/assets/admin.js?v=20260807a"></script>
+<script src="/assets/pinyin.js?v=20260807a"></script>
+<style>
+body{background:#f5f5f5;font-family:-apple-system,"PingFang SC",sans-serif;margin:0;}
+.page{max-width:1200px;margin:0 auto;padding:15px;}
+.panel{background:#fff;border-radius:10px;padding:12px 14px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.06);}
+.ad-appbar__user{font-size:13px;opacity:.92;padding:0 6px;white-space:nowrap;}
+.ad-appbar__user .u-name{font-weight:600;}
+
+/* ===== Tab 切换 ===== */
+.tabbar{display:flex;gap:4px;background:#fff;border-radius:10px;padding:6px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.06);}
+.tab-btn{flex:0 0 auto;padding:8px 20px;border-radius:8px;font-size:14px;cursor:pointer;color:#555;border:1px solid transparent;}
+.tab-btn:hover{background:#f3f4f6;}
+.tab-btn.active{background:#07c160;color:#fff;font-weight:600;box-shadow:0 1px 2px rgba(7,193,96,.35);}
+.tab-pane{display:none;}
+.tab-pane.active{display:block;}
+
+/* ===== 规则面板（沿用老样式 + 修正为 Tab 内） ===== */
+.sel-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.sel-bar label{font-size:13px;color:#666;white-space:nowrap;}
+.sel-bar select{font-size:13px;padding:6px 10px;border:1px solid #ddd;border-radius:6px;outline:none;font-family:inherit;}
+.sel-bar #yearSel{width:120px;}
+.rule-form{display:flex;flex-direction:column;gap:14px;}
+.rule-row{display:flex;align-items:center;gap:10px;}
+.rule-row label{font-size:13px;color:#333;width:120px;flex-shrink:0;text-align:right;white-space:nowrap;font-weight:500;}
+.rule-row .control-wrap{flex-shrink:0;display:flex;align-items:center;}
+.rule-row input{font-size:14px;padding:8px 12px;border:1px solid #ddd;border-radius:6px;outline:none;font-family:inherit;width:80px;text-align:center;flex-shrink:0;}
+.rule-row input:focus{border-color:#07c160;}
+.rule-row .hint{font-size:12px;color:#999;margin-left:8px;flex:1;min-width:0;line-height:1.5;word-break:break-word;}
+.rule-row select{font-size:14px;padding:8px 12px;border:1px solid #ddd;border-radius:6px;outline:none;font-family:inherit;max-width:240px;flex-shrink:0;}
+.save-bar{margin-top:8px;}
+.abtn{padding:8px 32px;border-radius:6px;cursor:pointer;border:none;background:#07c160;color:#fff;font-family:inherit;font-size:14px;}
+.abtn:hover{background:#06ad56;}
+.abtn:disabled{background:#b5dcc5;cursor:not-allowed;}
+.abtn.abtn-ghost{background:#fff;color:#333;border:1px solid #cfd3d7;}
+.abtn.abtn-ghost:hover{background:#f5f6f7;}
+.abtn.abtn-warn{background:#ff9f1a;}
+.abtn.abtn-warn:hover{background:#ef8e0a;}
+.abtn.abtn-sm{font-size:12px;padding:5px 12px;}
+.preview-box{background:#f9fafb;border:1px solid #eee;border-radius:8px;padding:14px;font-size:13px;line-height:1.8;}
+.preview-box .pv-title{font-weight:600;color:#333;margin-bottom:6px;}
+.preview-box .pv-row{display:flex;gap:8px;}
+.preview-box .pv-year{font-weight:600;color:#07c160;width:60px;}
+.preview-box .pv-days{font-family:Consolas,Monaco,monospace;width:60px;text-align:right;}
+
+/* ===== 审批调试：模块通用样式 ===== */
+.sec-title{font-size:14px;font-weight:600;color:#222;margin:0 0 10px;display:flex;align-items:center;gap:6px;}
+.sec-title .sub{font-weight:400;color:#888;font-size:12px;}
+.form-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.form-row label{font-size:13px;color:#555;}
+.form-row input[type=date],.form-row input[type=text]{font-size:13px;padding:7px 10px;border:1px solid #cfd3d7;border-radius:6px;outline:none;font-family:inherit;}
+.form-row input[type=date]{min-width:140px;}
+.form-row input[type=text]{min-width:240px;}
+
+.scan-result-details{margin-top:10px;}
+.scan-result-summary{cursor:pointer;font-size:13px;color:#555;padding:6px 2px;user-select:none;list-style:none;display:flex;align-items:center;font-weight:600;border-bottom:1px dashed #e3e7ec;}
+.scan-result-summary::before{content:'▸';margin-right:8px;color:#888;transition:transform .15s;display:inline-block;font-weight:400;}
+.scan-result-details[open] .scan-result-summary::before{transform:rotate(90deg);content:'▾';}
+.scan-result-summary:hover{color:#2a7;}
+.scan-result-summary .sub{margin-left:6px;font-weight:400;color:#888;font-size:12px;}
+
+/* 进度条 */
+.progress-wrap{display:flex;flex-direction:column;gap:6px;margin:10px 0 6px;}
+.progress-line{height:10px;background:#ecedf0;border-radius:999px;overflow:hidden;position:relative;}
+.progress-fill{height:100%;width:0;background:linear-gradient(90deg,#4f8cff,#07c160);transition:width .2s ease;}
+.progress-meta{font-size:12px;color:#666;display:flex;gap:16px;flex-wrap:wrap;}
+.progress-meta .warn{color:#c41a16;}
+.progress-meta .ok{color:#0b8c3e;}
+
+/* 表 */
+.tbl{width:100%;border-collapse:collapse;font-size:13px;}
+.tbl th,.tbl td{border-bottom:1px solid #eef0f2;padding:8px 10px;vertical-align:top;}
+.tbl th{background:#f7f8fa;color:#444;font-weight:600;text-align:left;}
+.tbl tbody tr:hover{background:#f9fafb;}
+.star{color:#f5b301;margin-right:2px;}
+.tag{display:inline-block;padding:1px 7px;border-radius:999px;font-size:12px;margin-left:4px;}
+.tag.star-tag{background:#fff4d8;color:#a37600;}
+.tag.vt{background:#e8f0fe;color:#1967d2;}
+.tag.vn{background:#fdecec;color:#b3261e;}
+.tag.bdg{background:#eef4ff;color:#1e50a6;}
+.ctrl-chip{display:inline-block;border:1px solid #dde2e8;background:#fafbfc;color:#3c4043;border-radius:10px;padding:1px 8px;font-size:12px;line-height:18px;margin:2px 4px 2px 0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;}
+.tbl td.control-names-cell{line-height:1.8;vertical-align:top;}
+.tbl td.op-cell{display:flex;gap:6px;flex-wrap:wrap;}
+.cp-btn{display:inline-block;min-width:36px;min-height:20px;line-height:18px;vertical-align:middle;background:none;border:1px solid #dde1e5;border-radius:4px;padding:1px 8px;font-size:12px;color:#555;cursor:pointer;margin-left:6px;user-select:none;-webkit-appearance:none;appearance:none;}
+.cp-btn:hover{background:#4f8cff;color:#fff;border-color:#4f8cff;}
+.sp-link{color:#1967d2;cursor:pointer;text-decoration:none;}
+.sp-link:hover{text-decoration:underline;}
+.applyer-names{font-size:12px;color:#555;line-height:1.6;}
+
+/* 底部分页条（模块 1） */
+.pager{display:flex;align-items:center;gap:14px;justify-content:flex-end;margin-top:12px;padding-top:12px;border-top:1px solid #eef0f2;font-size:13px;color:#444;flex-wrap:wrap;}
+.pager .pg-btn{padding:5px 14px;border-radius:6px;border:1px solid #cfd3d7;background:#fff;cursor:pointer;font-size:13px;}
+.pager .pg-btn:hover:not(:disabled){border-color:#4f8cff;color:#1967d2;}
+.pager .pg-btn:disabled{color:#bbb;background:#f5f5f5;cursor:not-allowed;}
+.pager select{padding:4px 8px;border-radius:6px;border:1px solid #cfd3d7;}
+
+/* 模块 2 */
+.sp-input-wrap{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+.sp-input-wrap .inp{flex:1 1 320px;min-width:260px;padding:9px 12px;border:1px solid #cfd3d7;border-radius:8px;font-size:14px;font-family:inherit;outline:none;}
+.sp-input-wrap .inp:focus{border-color:#07c160;}
+.meta-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px 20px;font-size:13px;margin:6px 0 12px;}
+.meta-grid .mi{display:flex;flex-direction:column;gap:4px;}
+.meta-grid .mi .mk{color:#888;font-size:12px;}
+.meta-grid .mi .mv{color:#222;word-break:break-all;}
+.meta-grid .mi .mv.big{font-weight:600;font-size:14px;}
+.status-1{color:#c77700;} .status-2{color:#0b8c3e;} .status-3{color:#c41a16;} .status-4,.status-6{color:#777;}
+.flat-table td.hire{background:#fffbe6 !important;}
+.flat-table td.dr{background:#e6f8ee !important;}
+.flat-table tr.hire-row{background:#fffbe6;}
+.flat-table tr.dr-row{background:#e6f8ee;}
+
+/* 折叠面板（原始 JSON） */
+.collapse{border:1px solid #e2e4e8;border-radius:8px;margin-top:10px;}
+.collapse summary{cursor:pointer;padding:10px 14px;font-size:13px;color:#333;background:#f7f8fa;user-select:none;list-style:none;display:flex;align-items:center;justify-content:space-between;border-radius:8px;}
+.collapse summary::after{content:'▸';transition:transform .15s;}
+.collapse[open] summary::after{transform:rotate(90deg);}
+.collapse summary::-webkit-details-marker{display:none;}
+.collapse .bd{padding:0;}
+.raw-box{width:100%;min-height:260px;max-height:60vh;box-sizing:border-box;padding:12px;border:none;border-top:1px solid #e2e4e8;background:#1e2229;color:#cfd3d7;font-family:Consolas,Monaco,"Courier New",monospace;font-size:12px;line-height:1.55;resize:vertical;outline:none;}
+.collapse-toolbar{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#242a33;color:#aaa;border-top:1px solid #2e3540;font-size:12px;}
+.copy-btn{background:#4f8cff;border:none;color:#fff;padding:5px 12px;border-radius:5px;font-size:12px;cursor:pointer;}
+.copy-btn:hover{background:#3a76e8;}
+
+/* 流程节点表（模块 2） */
+.nodes-table td em{font-style:normal;color:#888;}
+.muted{color:#888;font-size:12px;}
+
+@media (max-width:720px){
+  .form-row{flex-direction:column;align-items:stretch;}
+  .form-row input[type=text]{min-width:0;width:100%;}
+}
+</style>
+</head>
+<body>
+<header class="ad-appbar">
+  <a class="ad-appbar__back" href="/admin/dashboard" aria-label="返回首页">‹</a>
+  <div class="ad-appbar__title"><span class="ic">📏</span><span>年假规则 &amp; 审批调试</span></div>
+  <div class="ad-appbar__user" id="userInfo"></div>
+  <div class="ad-appbar__actions">
+    <a class="ad-appbar__btn" href="/admin/vacation_overview">年假总览</a>
+    <a class="ad-appbar__btn" href="/admin/dashboard">首页</a>
+    <a class="ad-appbar__btn" href="javascript:doLogout()">退出</a>
+  </div>
+</header>
+
+<div class="page">
+  <!-- Tab 切换 -->
+  <div class="tabbar" role="tablist">
+    <div class="tab-btn active" data-tab="rules" role="tab">📏 年假规则</div>
+    <div class="tab-btn" data-tab="debug" role="tab">🔬 审批调试</div>
+    <div class="tab-btn" data-tab="orders" role="tab">📋 审批单</div>
+  </div>
+
+  <!-- Tab 1：年假规则（保持原功能 100% 不变） -->
+  <div class="tab-pane active" id="tab-rules">
+    <div class="panel">
+      <div class="sel-bar">
+        <label>规则年份</label>
+        <select id="yearSel"></select>
+        <button class="abtn" style="font-size:13px;padding:6px 16px;" onclick="loadRule()">加载</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div style="font-size:14px;font-weight:600;margin-bottom:12px;">年假计算规则</div>
+      <div class="rule-form">
+        <div class="rule-row">
+          <label>满工龄门槛</label>
+          <input id="min_years" type="number" min="1" max="30" value="3">
+          <span class="hint">入职满多少年开始享有年假（默认3年）</span>
+        </div>
+        <div class="rule-row">
+          <label>首年基数（天）</label>
+          <input id="base_days" type="number" min="0" step="0.5" value="3">
+          <span class="hint">首年（满门槛年）按剩余月份/12 × 此基数折算</span>
+        </div>
+        <div class="rule-row">
+          <label>逐年递增（天/年）</label>
+          <input id="step_days" type="number" min="0" step="0.5" value="1">
+          <span class="hint">首年后每年增加天数（默认1天/年）</span>
+        </div>
+        <div class="rule-row" style="display:none;">
+          <label>原封顶天数（兼容）</label>
+          <input id="max_days" type="number" min="0" step="0.5" value="10">
+          <span class="hint">已拆分为档1/档2两档封顶，此处自动同步档1值，不再手工改</span>
+        </div>
+        <div class="rule-row">
+          <label>档1封顶天数</label>
+          <input id="cap1_max_days" type="number" min="0" step="0.5" value="10">
+          <span class="hint">未封顶结果 &gt; 档1封顶 且 &lt; 档2阈值 → 固定为此天数（默认 10 天）</span>
+        </div>
+        <div class="rule-row">
+          <label>档2触发阈值</label>
+          <input id="cap2_min" type="number" min="0" step="0.5" value="20">
+          <span class="hint">未封顶结果 ≥ 此阈值 → 升级到档2封顶（默认 20）；必须大于档1封顶</span>
+        </div>
+        <div class="rule-row">
+          <label>档2封顶天数</label>
+          <input id="cap2_max_days" type="number" min="0" step="0.5" value="15">
+          <span class="hint">未封顶结果 ≥ 档2阈值 → 固定为此天数（默认 15 天）；必须大于档1封顶</span>
+        </div>
+        <div class="rule-row">
+          <label>小数精度</label>
+          <select id="precision">
+            <option value="0">0位（整数天）</option>
+            <option value="1">1位小数</option>
+            <option value="2" selected>2位小数</option>
+          </select>
+          <span class="hint">四舍五入保留小数位数</span>
+        </div>
+        <div class="rule-row">
+          <label>允许跨年休假</label>
+          <select id="allow_cross_year">
+            <option value="0" selected>不允许</option>
+            <option value="1">允许</option>
+          </select>
+          <span class="hint">当前规则：不允许跨年，ledger 只统计当年</span>
+        </div>
+      </div>
+      <div class="save-bar">
+        <button class="abtn" onclick="saveRule()">保存规则</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="preview-box">
+        <div class="pv-title">规则预览</div>
+        <div class="rule-row" style="margin-bottom:8px;">
+          <label style="width:120px;">示例入职日</label>
+          <select id="pvHireSel" onchange="updatePreview()">
+            <option value="2016-04-07" selected>2016-04-07（4月，满3年首年=2天）</option>
+            <option value="2016-01-15">2016-01-15（1月，首年=2.75天）</option>
+            <option value="2016-11-15">2016-11-15（11月，首年=0.25天）</option>
+          </select>
+          <span class="hint">三种典型入职月份的应享天数趋势，方便校验首年折算、后续递增、两档封顶边界。</span>
+        </div>
+        <div id="pvRows" style="display:flex;flex-direction:column;gap:2px;"></div>
+        <div id="pvNote" style="margin-top:8px;font-size:12px;color:#999;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab 2：审批调试 -->
+  <div class="tab-pane" id="tab-debug">
+    <!-- 模块 1：模板管理（从审批单反推模板库） -->
+    <div class="panel">
+      <h3 class="sec-title">
+        📚 模块 1：模板库（从审批单反推）
+        <span class="sub">· 没有模板列表 API —— 靠指定时间范围内的所有审批单详情聚合出模板</span>
+      </h3>
+      <div class="form-row">
+        <label>扫描范围</label>
+        <input type="date" id="scanStart">
+        <span>至</span>
+        <input type="date" id="scanEnd">
+        <button class="abtn abtn-sm" id="scanBtn" onclick="runScan(false)">🔍 扫描审批单</button>
+        <button class="abtn abtn-sm abtn-ghost" id="rescanBtn" onclick="runScan(true)">🔄 强制重扫</button>
+        <span class="muted">· 上限 180 天；相同范围 1 小时内命中缓存直接秒出</span>
+      </div>
+
+      <details id="scanResultDetails" class="scan-result-details">
+        <summary class="scan-result-summary" id="scanResultSummary">📋 扫描结果<span class="sub">（暂未扫描，点击扫描按钮生成模板库）</span></summary>
+
+      <div class="progress-wrap" id="progWrap" style="display:none;">
+        <div class="progress-line"><div class="progress-fill" id="progFill"></div></div>
+        <div class="progress-meta" id="progMeta"></div>
+      </div>
+
+      <div id="tblWrap" style="margin-top:14px;">
+        <div class="muted" id="tblEmpty">暂未扫描。选择时间范围后点「🔍 扫描审批单」。</div>
+        <table class="tbl" id="tplTable" style="display:none;">
+          <thead>
+            <tr>
+              <th style="width:24px;"></th>
+              <th style="min-width:200px;">模板名称</th>
+              <th style="min-width:220px;">模板 ID</th>
+              <th style="width:64px;">控件数</th>
+              <th style="min-width:260px;">控件名称</th>
+              <th style="width:260px;">操作</th>
+            </tr>
+          </thead>
+          <tbody id="tplTbody"></tbody>
+        </table>
+        <div class="pager" id="tplPager" style="display:none;">
+          <div>
+            每页显示
+            <select id="tplPageSize" onchange="renderTplPage(1)">
+              <option value="10">10</option>
+              <option value="20" selected>20</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+            条
+          </div>
+          <div>共 <b id="tplTotal">0</b> 条</div>
+          <button class="pg-btn" id="tplPrev" onclick="renderTplPage(_tplCurPage-1)">‹ 上一页</button>
+          <div>第 <b id="tplCur">1</b> 页 / 共 <b id="tplPageCount">1</b> 页</div>
+          <button class="pg-btn" id="tplNext" onclick="renderTplPage(_tplCurPage+1)">下一页 ›</button>
+        </div>
+      </div>
+      </details>
+    </div>
+
+    <!-- 模块 2：审批单测试 -->
+    <div class="panel" id="mod2Panel">
+      <h3 class="sec-title">
+        🔍 模块 2：审批单测试
+        <span class="sub">· 输入审批编号 → 拉详情 + 控件扁平化表 + 原始 JSON</span>
+      </h3>
+      <div class="sp-input-wrap">
+        <input type="text" class="inp" id="spNoInput" placeholder="输入审批编号，例如 202608210001" onkeydown="if(event.key==='Enter') fetchSp()">
+        <button class="abtn abtn-sm" onclick="fetchSp()">🔍 拉取详情</button>
+        <button class="abtn abtn-sm abtn-ghost cp-btn" style="border-radius:6px;" onclick="copyText(document.getElementById('spNoInput').value,'已复制编号')">📋 复制编号</button>
+      </div>
+      <div id="spResult" style="margin-top:14px;"></div>
+    </div>
+  </div>
+
+  <!-- Tab 3：审批单（approval_orders） -->
+  <div class="tab-pane" id="tab-orders">
+    <div class="panel">
+      <!-- 搜索栏：单行紧凑 -->
+      <div class="form-row" style="gap:6px;">
+        <select id="ordStatusSel" style="font-size:13px;padding:6px 10px;border:1px solid #cfd3d7;border-radius:6px;">
+          <option value="all">全部状态</option>
+          <option value="pending">审批中</option>
+          <option value="approved">已通过</option>
+          <option value="rejected">已驳回</option>
+          <option value="revoked">已撤销</option>
+          <option value="revoked2">通过后撤销</option>
+          <option value="deleted">已删除</option>
+          <option value="paid">已支付</option>
+        </select>
+        <input type="text" id="ordQInp" placeholder="姓名/审批编号/账号（支持拼音）" style="min-width:260px;font-size:13px;padding:6px 10px;border:1px solid #cfd3d7;border-radius:6px;">
+        <button class="abtn abtn-sm" onclick="_ordPager.load()">🔍 查询</button>
+        <button class="abtn abtn-sm abtn-ghost" onclick="_ordPager.reset()">重置</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <table class="admin-table" id="ordTable" style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead>
+          <tr style="background:#f5f6f7;">
+            <th style="padding:8px 10px;text-align:left;border-bottom:2px solid #e0e0e0;">审批编号</th>
+            <th style="padding:8px 10px;text-align:left;border-bottom:2px solid #e0e0e0;">审批类型</th>
+            <th style="padding:8px 10px;text-align:left;border-bottom:2px solid #e0e0e0;">状态</th>
+            <th style="padding:8px 10px;text-align:left;border-bottom:2px solid #e0e0e0;">申请人</th>
+            <th style="padding:8px 10px;text-align:left;border-bottom:2px solid #e0e0e0;">提交时间</th>
+            <th style="padding:8px 10px;text-align:center;border-bottom:2px solid #e0e0e0;">操作</th>
+          </tr>
+        </thead>
+        <tbody id="ordTbody">
+          <tr><td colspan="6" style="text-align:center;color:#999;padding:20px;">请点击查询加载数据</td></tr>
+        </tbody>
+      </table>
+      <div id="ordPager" class="pager" style="margin-top:10px;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ========== Tab 切换 ==========
+function switchTab(name, opts){
+  opts = opts || {};
+  document.querySelectorAll('.tab-btn').forEach(function(b){
+    b.classList.toggle('active', b.dataset.tab===name);
+  });
+  document.querySelectorAll('.tab-pane').forEach(function(p){
+    p.classList.toggle('active', p.id==='tab-'+name);
+  });
+  if(!opts.fromHash){
+    var target='#tab='+name;
+    if(location.hash!==target){ history.replaceState(null,'',target); }
+  }
+}
+function _getTabFromHash(){
+  var m=/^#tab=([a-zA-Z0-9_-]+)$/.exec(location.hash||'');
+  if(!m) return null;
+  var valid={rules:1,debug:1,orders:1};
+  return valid[m[1]]?m[1]:null;
+}
+document.querySelectorAll('.tab-btn').forEach(function(b){
+  b.addEventListener('click', function(){ switchTab(b.dataset.tab); });
+});
+
+// ========== Tab 1：年假规则（保持原逻辑 100% 不变）==========
+var _curYear=new Date().getFullYear();
+
+async function checkAuth(){
+  try{
+    var r=await fetch('/api/auth/me');
+    if(r.status===401){
+      window.location.href='/api/auth/login?redirect=/admin/vacation_rules';
+      return null;
+    }
+    return await r.json();
+  }catch(e){ return null; }
+}
+
+function initYearSelect(){
+  var sel=document.getElementById('yearSel');
+  for(var y=_curYear+1;y>=_curYear-1;y--){
+    var opt=document.createElement('option');
+    opt.value=y;opt.textContent=y+'年';
+    if(y===_curYear)opt.selected=true;
+    sel.appendChild(opt);
+  }
+}
+
+async function loadRule(){
+  var year=document.getElementById('yearSel').value;
+  try{
+    var r=await fetch('/api/admin/vacation/rules?year='+encodeURIComponent(year));
+    var d=await r.json();
+    if(!d.success){
+      weui.topTips(d.error||'加载失败');
+      return;
+    }
+    var rule=d.rule||{};
+    document.getElementById('min_years').value=rule.min_years||3;
+    document.getElementById('base_days').value=rule.base_days||3;
+    document.getElementById('step_days').value=rule.step_days||1;
+    var cap1=(rule.cap1_max_days!=null&&rule.cap1_max_days!=='')?rule.cap1_max_days:(rule.max_days||10);
+    document.getElementById('cap1_max_days').value=cap1;
+    document.getElementById('max_days').value=cap1;
+    document.getElementById('cap2_min').value=(rule.cap2_min!=null&&rule.cap2_min!=='')?rule.cap2_min:20;
+    document.getElementById('cap2_max_days').value=(rule.cap2_max_days!=null&&rule.cap2_max_days!=='')?rule.cap2_max_days:15;
+    document.getElementById('precision').value=rule.precision||2;
+    document.getElementById('allow_cross_year').value=rule.allow_cross_year||0;
+    updatePreview();
+  }catch(e){
+    weui.topTips('加载失败：'+(e.message||e));
+  }
+}
+
+async function saveRule(){
+  var year=parseInt(document.getElementById('yearSel').value);
+  var minYears=parseInt(document.getElementById('min_years').value);
+  var base=parseFloat(document.getElementById('base_days').value);
+  var step=parseFloat(document.getElementById('step_days').value);
+  var cap1=parseFloat(document.getElementById('cap1_max_days').value);
+  document.getElementById('max_days').value=cap1;
+  var max=cap1;
+  var cap2Min=parseFloat(document.getElementById('cap2_min').value);
+  var cap2Max=parseFloat(document.getElementById('cap2_max_days').value);
+  var precision=parseInt(document.getElementById('precision').value);
+  var allowCross=parseInt(document.getElementById('allow_cross_year').value);
+
+  var data={year:year,min_years:minYears,base_days:base,step_days:step,max_days:max,cap1_max_days:cap1,cap2_min:cap2Min,cap2_max_days:cap2Max,precision:precision,allow_cross_year:allowCross};
+  if(minYears<1||minYears>30){ weui.topTips('满工龄门槛应在 1~30 年之间'); return; }
+  if(base<0||step<0||cap1<0||cap2Min<0||cap2Max<0){ weui.topTips('天数参数不能为负数'); return; }
+  if(cap1<base){ weui.topTips('档1封顶天数不应小于首年基数'); return; }
+  if(cap2Min<=cap1){ weui.topTips('档2阈值必须大于档1封顶天数'); return; }
+  if(cap2Max<=cap1){ weui.topTips('档2封顶天数必须大于档1封顶天数'); return; }
+  weui.confirm('确认保存 '+year+' 年的年假规则？', async function(){
+    try{
+      var r=await fetch('/api/admin/vacation/rules',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+      var d=await r.json();
+      if(d.success){ weui.toast('✅ 规则已保存',1500); updatePreview(); }
+      else{ weui.topTips(d.error||'保存失败'); }
+    }catch(e){ weui.topTips('保存失败：'+(e.message||e)); }
+  });
+}
+
+function updatePreview(){
+  var minYears=parseInt(document.getElementById('min_years').value)||3;
+  var base=parseFloat(document.getElementById('base_days').value)||3;
+  var step=parseFloat(document.getElementById('step_days').value)||1;
+  var cap1=parseFloat(document.getElementById('cap1_max_days').value)||10;
+  var cap2Min=parseFloat(document.getElementById('cap2_min').value)||20;
+  var cap2Max=parseFloat(document.getElementById('cap2_max_days').value)||15;
+  var precision=parseInt(document.getElementById('precision').value)||2;
+
+  var hireStr=document.getElementById('pvHireSel').value||'2016-04-07';
+  var hm=hireStr.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  var hireY=parseInt(hm[1]), hireM=parseInt(hm[2]), hireD=parseInt(hm[3]);
+  var annivY=hireY+minYears;
+  var annivM=hireM, annivD=hireD;
+  var remainMonths=12-annivM;
+  var startYear=annivY;
+
+  function fmtEnt(v){
+    if(v>=3) return Math.floor(v);
+    var f=Math.pow(10,Math.max(2,precision));
+    return (Math.round(v*f)/f).toString();
+  }
+
+  var rows=[];
+  for(var y=hireY;y<startYear;y++){ rows.push({year:y,days:'-',muted:true}); }
+  var firstYear=remainMonths/12*base;
+  rows.push({year:startYear,days:fmtEnt(firstYear),muted:false,tag:'首年'});
+  var maxK=22;
+  for(var k=1;k<=maxK;k++){
+    var y=startYear+k;
+    var raw=base+step*(k-1);
+    var capHit='';
+    if(raw>cap1 && raw<cap2Min){ raw=cap1; capHit='档1封顶'; }
+    else if(raw>=cap2Min){ raw=cap2Max; capHit='档2封顶'; }
+    var ent=fmtEnt(raw);
+    rows.push({year:y,days:ent,muted:false,tag:capHit});
+    if(capHit==='档2封顶'){
+      for(var extra=1;extra<=3;extra++){ rows.push({year:y+extra,days:ent,muted:false,tag:'档2封顶'}); }
+      break;
+    }
+  }
+  var html=rows.map(function(r){
+    var cls=r.muted?'color:#999;':(r.tag && r.tag.indexOf('封顶')>=0?'color:#c41a16;font-weight:600;':'color:#333;');
+    var tag=r.tag?(' <span style="font-size:12px;color:#888;margin-left:8px;">'+r.tag+'</span>'):'';
+    return '<div class="pv-row"><span class="pv-year">'+r.year+'年</span><span class="pv-days" style="'+cls+'">'+r.days+'天</span>'+tag+'</div>';
+  }).join('');
+  document.getElementById('pvRows').innerHTML=html;
+  var note='入职 '+hireStr+'，满 '+minYears+' 年日期：'+annivY+'-'+pad2(annivM)+'-'+pad2(annivD)+'（首年），首年剩余月份='+remainMonths+'（下月起至12月），首年折算 '+remainMonths+'/12×'+base+' = '+fmtEnt(firstYear)+' 天<br>'+
+           '下一年（'+(startYear+1)+'）起 base '+base+' + step '+step+'×(k-1) 重新开始累加，与首年折算值无关；封顶方案 A：未封顶结果 > '+cap1+' 且 < '+cap2Min+' → '+cap1+' 天；≥ '+cap2Min+' → '+cap2Max+' 天。entitlement≥3 向下取整。';
+  document.getElementById('pvNote').innerHTML=note;
+}
+
+function pad2(n){ return n<10?('0'+n):(''+n); }
+
+// ========== Tab 2：模块 1 —— 扫描 & 模板库分页 ==========
+var _scanTaskId=null;
+var _scanRunning=false;
+var _allTemplates=[];     // 完整模板数组（已按 sp_count 倒序）
+var _tplCurPage=1;
+var _scanEverTried=false; // 是否已至少尝试过一次扫描（用于空态文案：未扫描 vs 扫描后结果为 0）
+
+function fmtDateYMD(d){
+  var y=d.getFullYear(), m=pad2(d.getMonth()+1), dd=pad2(d.getDate());
+  return y+'-'+m+'-'+dd;
+}
+
+// 页面载入时默认：最近 90 天
+function initScanRange(){
+  var end=new Date();
+  var start=new Date(); start.setDate(start.getDate()-90);
+  document.getElementById('scanStart').value=fmtDateYMD(start);
+  document.getElementById('scanEnd').value=fmtDateYMD(end);
+}
+
+function currentScanSig(){
+  var s=document.getElementById('scanStart').value||'';
+  var e=document.getElementById('scanEnd').value||'';
+  return s+'|'+e;
+}
+
+function fmtAge(sec){
+  sec=Math.max(0,parseInt(sec)||0);
+  if(sec<60) return sec+' 秒前';
+  if(sec<3600) return Math.floor(sec/60)+' 分钟前';
+  if(sec<86400) return Math.floor(sec/3600)+' 小时前';
+  var d=Math.floor(sec/86400);
+  if(d<30) return d+' 天前';
+  var mo=Math.floor(d/30);
+  if(mo<12) return mo+' 个月前';
+  return Math.floor(mo/12)+' 年前';
+}
+
+async function loadLatest(){
+  var curSig=currentScanSig();
+  var url='/api/admin/vacation/debug_scan_latest?cur_sig='+encodeURIComponent(curSig);
+  try{
+    var r=await fetch(url,{credentials:'same-origin'});
+    var d=await r.json();
+    if(!d || !d.success || !d.exists){ return false; }
+    _scanEverTried=true;
+    _allTemplates=Array.isArray(d.templates)?d.templates:[];
+    var warnCls='warn';
+    var parts=[];
+    // 1) 超过 1 小时 → 黄色建议刷新
+    if(d.is_stale){
+      parts.push('⚠️ 该扫描结果生成于 <b>'+esc(d.cached_at||'')+'</b>（'+esc(fmtAge(d.age_sec||0))+'，已超 1 小时缓存期），建议点「🔍 扫描审批单」或「🔄 强制重扫」刷新。');
+    }else{
+      parts.push('✅ 已恢复最近一次扫描结果（生成于 '+esc(d.cached_at||'')+'，共 '+esc(d.scanned_sp||0)+' 条审批单，识别出 '+_allTemplates.length+' 个模板）。');
+      warnCls='ok';
+    }
+    // 2) 范围不匹配 → 明确告知用户显示的是哪段范围
+    if(d.range_matches===false){
+      var rs=(d.range&&d.range.start)?d.range.start:'?';
+      var re=(d.range&&d.range.end)?d.range.end:'?';
+      var inputs=document.getElementById('scanStart').value+' ~ '+document.getElementById('scanEnd').value;
+      parts.push('· 当前显示的是 <b>'+esc(rs)+' ~ '+esc(re)+'</b> 的扫描结果；输入框中的范围是 <b>'+esc(inputs)+'</b>，要查看新范围请点扫描按钮。');
+      warnCls='warn';
+    }
+    setProg(100,'<span class="'+warnCls+'">'+parts.join('<br>')+'</span>');
+    document.getElementById('progWrap').style.display='flex';
+    renderTplTable();
+    // 页面初始化"静默恢复缓存"场景：保持 details 默认折叠，不要自动打开（用户明确要求进入审批调试页默认折叠）
+    // 仅 summary 文本更新状态（缓存新鲜/过期 + 模板数），让用户折叠时也一眼知道恢复了多少个模板
+    updateScanSummary(_allTemplates.length, d.is_stale ? 'stale' : 'fresh', d.cached_at);
+    return true;
+  }catch(e){
+    // 加载 latest 失败就默默跳过，等用户主动点扫描
+    return false;
+  }
+}
+
+async function runScan(force, silent){
+  if(_scanRunning){ if(!silent) weui.topTips('扫描正在进行中，请稍候…'); return; }
+  var s=document.getElementById('scanStart').value;
+  var e=document.getElementById('scanEnd').value;
+  if(!s || !e){ if(!silent) weui.topTips('请选择扫描起止日期'); return; }
+  if(s>e){ if(!silent) weui.topTips('开始日期不能晚于结束日期'); return; }
+
+  _scanRunning=true;
+  var sb=document.getElementById('scanBtn'), rb=document.getElementById('rescanBtn');
+  var det=document.getElementById('scanResultDetails');
+  if(!silent){
+    sb.disabled=true; rb.disabled=true;
+    if(det) det.open=true;
+    document.getElementById('progWrap').style.display='flex';
+    // 保留现有数据，不清空；新数据会合并添加
+    _scanEverTried=true;
+    setProg(0,force?'🔄 强制扫描：正在初始化任务（忽略缓存）…':'正在初始化扫描任务…');
+  }
+
+  try{
+    var r=await fetch('/api/admin/vacation/debug_scan_start',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({start_date:s,end_date:e,force:force?1:0})
+    });
+    var d=await r.json();
+    if(!d.success){ throw new Error(d.error||'初始化失败'); }
+    _scanEverTried=true;
+    if(d.cached){
+      // 缓存命中 → 不真扫，直接渲染（后端已同步更新 latest）
+      _allTemplates=d.templates||[];
+      setProg(100,
+        '<span class="ok">✅ 命中 1 小时缓存（生成于 '+esc(d.cached_at||'')+'，共 '+esc(d.scanned_sp)+' 条审批单，识别出 '+_allTemplates.length+' 个模板）</span>');
+      document.getElementById('progWrap').style.display='flex';
+      renderTplTable();
+      // 缓存场景：用精确的缓存状态覆盖 renderTplTable 默认的 "done" 文案
+      updateScanSummary(_allTemplates.length, d.is_stale ? 'stale' : 'fresh', d.cached_at);
+      if(!silent && d.info) weui.toast(d.info,1500);
+      return;
+    }
+    if(!d.has_more){
+      // sp 数量为 0
+      _allTemplates=[];
+      if(!silent){
+        setProg(100,'<span class="ok">✅ 扫描完成</span> · 共 0 条审批单，识别出 0 个模板。'+(d.info?' '+esc(d.info):''));
+        document.getElementById('progWrap').style.display='flex';
+      }
+      renderTplTable();
+      if(!silent && d.info) weui.toast(d.info,2000);
+      return;
+    }
+    // 真需要扫 → 只有用户点按钮时才继续；静默模式直接停在这里（说明没有缓存）
+    if(silent){ _scanEverTried=false; return; }
+    _scanTaskId=d.task_id;
+    setProg(0,'准备中：共识别出 '+d.total_sp+' 条审批单，将按每批约 '+d.batch_size+' 条处理…');
+    // 循环拉批（加 120ms 延迟，避免 rate limit）
+    await _scanLoop();
+  }catch(err){
+    if(!silent){
+      weui.topTips(err.message||String(err));
+      setProg(null,'<span class="warn">❌ 扫描失败：'+esc(err.message||String(err))+'</span>');
+      document.getElementById('progWrap').style.display='flex';
+    }
+  }finally{
+    _scanRunning=false;
+    if(!silent){ sb.disabled=false; rb.disabled=false; }
+  }
+}
+
+function setProg(pct, htmlMeta){
+  var fill=document.getElementById('progFill');
+  var meta=document.getElementById('progMeta');
+  if(pct===null){ fill.style.width='0'; }
+  else{ fill.style.width=Math.max(0,Math.min(100,pct))+'%'; }
+  meta.innerHTML=htmlMeta||'';
+}
+
+/**
+ * 更新模块1扫描结果折叠区 summary 标题文本
+ * @param {number} tplCount   当前识别到的模板数量
+ * @param {string} stateTag   none:未扫 / scanning:扫描中 / fresh:缓存新鲜(<1h) / stale:缓存过期(>1h) / done:扫描完成(非缓存命中) / empty:0结果
+ * @param {string} extraInfo  可选：生成时间等额外说明
+ */
+function updateScanSummary(tplCount, stateTag, extraInfo){
+  var sum=document.getElementById('scanResultSummary');
+  if(!sum) return;
+  tplCount = parseInt(tplCount||0,10);
+  stateTag = stateTag || 'none';
+  var main='📋 扫描结果 · '+tplCount+' 个模板';
+  var sub='';
+  switch(stateTag){
+    case 'none':     main='📋 扫描结果'; sub='（暂未扫描，点击上方「🔍 扫描审批单」生成模板库）'; break;
+    case 'scanning': main='📋 扫描结果 · 扫描中'; sub='（进度见下方进度条）'; break;
+    case 'fresh':    sub='（缓存新鲜 · '+(extraInfo?('生成于 '+extraInfo):'1 小时内可复用')+'）'; break;
+    case 'stale':    sub='（缓存过期 · 建议点击「🔄 强制重扫」刷新）'; break;
+    case 'done':     sub='（扫描完成）'; break;
+    case 'empty':    sub='（当前范围内暂未识别出模板）'; break;
+    default:         sub='';
+  }
+  sum.innerHTML='<span>'+esc(main)+'</span>'+(sub?'<span class="sub">'+esc(sub)+'</span>':'');
+}
+
+async function _scanLoop(){
+  while(true){
+    if(!_scanTaskId) break;
+    // 批次之间延迟 120ms，避免触发企微 rate limit
+    await new Promise(function(r){ setTimeout(r,120); });
+    var r=await fetch('/api/admin/vacation/debug_scan_next',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({task_id:_scanTaskId})
+    });
+    var d=await r.json();
+    if(!d.success){
+      setProg(null,'<span class="warn">❌ '+esc(d.error||'批次处理失败')+'</span>');
+      _scanTaskId=null;
+      return;
+    }
+    _allTemplates=d.templates||[];
+    renderTplTable();
+
+    var failed=(d.failed||[]).length;
+    var okCount=d.scanned_sp-failed;
+    var meta=
+      '进度：'+d.scanned_sp+' / '+d.total_sp+'（'+d.progress+'%）· 本批 '+d.batch_done+' 条 · 成功 '+okCount+' 条' +
+      (failed>0?(' · <span class="warn">失败 '+failed+' 条</span>'):' · <span class="ok">无失败</span>');
+    setProg(d.progress,meta);
+
+    if(!d.has_more){
+      // 扫描全部完成 → 最后再刷新一次 summary 显示 "扫描完成"
+      //   注意：_scanRunning 在 finally 才置 false，renderTplTable 默认会写 scanning，这里手动覆盖为 done
+      updateScanSummary(_allTemplates.length, 'done');
+      setProg(100,meta+'<span class="ok"> ✅ '+esc(d.info||'扫描完成')+'</span>');
+      _scanTaskId=null;
+      if(d.info) weui.toast(d.info,2200);
+      break;
+    }
+  }
+}
+
+function renderTplTable(){
+  var empty=document.getElementById('tblEmpty');
+  var tbl=document.getElementById('tplTable');
+  var pager=document.getElementById('tplPager');
+  if(!_allTemplates.length){
+    if(!_scanEverTried){
+      empty.innerHTML='💡 尚未扫描，点击上方「🔍 扫描审批单」生成模板库（相同时间范围 1 小时内复用缓存，不用重复扫）。';
+      updateScanSummary(0, 'none');
+    }else{
+      empty.textContent='该范围内暂未识别出模板。';
+      updateScanSummary(0, 'empty');
+    }
+    empty.style.display='block';
+    tbl.style.display='none'; pager.style.display='none'; return;
+  }
+  empty.style.display='none';
+  tbl.style.display='table';
+  pager.style.display='flex';
+  // 扫描进行中（_scanLoop 每批次刷新一次表格）显示"扫描中"，否则默认显示"X 个模板"不带额外状态
+  //   （缓存新鲜/过期由调用方 renderTplTable 前的 updateScanSummary 精确指定）
+  if(_scanRunning) updateScanSummary(_allTemplates.length, 'scanning');
+  else             updateScanSummary(_allTemplates.length, 'done');
+  renderTplPage(1);
+}
+
+function renderTplPage(n){
+  var pageSize=parseInt(document.getElementById('tplPageSize').value)||20;
+  var total=_allTemplates.length;
+  var totalPages=Math.max(1,Math.ceil(total/pageSize));
+  var page=Math.max(1,Math.min(totalPages,n));
+  _tplCurPage=page;
+  var start=(page-1)*pageSize;
+  var pageData=_allTemplates.slice(start,start+pageSize);
+  var tbody=document.getElementById('tplTbody');
+  tbody.innerHTML=pageData.map(function(t){
+    var h='';
+    h+='<td>';
+    if(t.is_vacation_template) h+='<span class="star" title="当前已设为年假模板">⭐</span>';
+    h+='</td>';
+    h+='<td>'+
+        (t.is_vacation_template?('<span class="tag star-tag">当前年假模板</span> '):'')+
+        '<b>'+esc(t.template_name)+'</b>'+
+      '</td>';
+    h+='<td style="font-family:Consolas,Monaco,monospace;font-size:12px;">'+
+        esc(safeShortId(t.template_id))+
+        '<button type="button" class="cp-btn js-delegated" data-act="copy" data-text='+jsAttr(t.template_id)+' data-tip="模板ID已复制">复制</button>'+
+      '</td>';
+    h+='<td>'+(t.controls_count>0?t.controls_count:'-')+'</td>';
+    h+='<td class="control-names-cell">';
+    var names=(Array.isArray(t.control_names)?t.control_names:[]);
+    if(names.length){
+      var shown=names.map(function(n){return '<span class="ctrl-chip">'+esc(n)+'</span>';}).join('');
+      h+=shown;
+    }else{
+      h+='<span class="muted">-</span>';
+    }
+    h+='</td>';
+    h+='<td class="op-cell">';
+    if(!t.is_vacation_template && t.template_id!=='__UNKNOWN__'){
+      h+='<button type="button" class="abtn abtn-sm js-delegated" data-act="set-tpl" data-tpl='+jsAttr(t.template_id)+' data-name='+jsAttr(t.template_name)+'>⭐ 设为年假模板</button>';
+    }else if(t.is_vacation_template){
+      h+='<span class="muted">（已是年假模板）</span>';
+    }
+    h+='</td>';
+    return '<tr>'+h+'</tr>';
+  }).join('');
+  // 分页条
+  document.getElementById('tplTotal').textContent=String(total);
+  document.getElementById('tplCur').textContent=String(page);
+  document.getElementById('tplPageCount').textContent=String(totalPages);
+  document.getElementById('tplPrev').disabled=(page<=1);
+  document.getElementById('tplNext').disabled=(page>=totalPages);
+}
+
+// 字符串转 data-* 属性值（双引号包裹，内部转义）
+function jsAttr(s){ return '"'+String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];})+'"'; }
+
+// 事件委托：模板库表格内所有按钮/链接统一处理，避免内联 onclick 在 HTTP/部分浏览器下失效
+// 由 DOMContentLoaded 回调里 installTplDelegate() 实际挂载，保证 tplTbody 此时一定存在。
+function installTplDelegate(){
+  var tbody=document.getElementById('tplTbody');
+  if(!tbody || tbody._tplDelegatedInstalled) return;
+  tbody._tplDelegatedInstalled=true;
+  tbody.addEventListener('click', function(e){
+    var el=e.target;
+    while(el && el!==tbody){
+      if(el && el.nodeType===1 && el.classList && el.classList.contains('js-delegated')) break;
+      el=el?el.parentNode:null;
+    }
+    if(!el || el===tbody) return;
+    e.preventDefault();
+    if(e.stopPropagation) e.stopPropagation();
+    var act=el.getAttribute('data-act')||'';
+    try{
+      if(act==='copy'){
+        var txt=String(el.getAttribute('data-text')||'');
+        var tip=String(el.getAttribute('data-tip')||'已复制');
+        if(!txt){ weui.topTips('内容为空'); return; }
+        copyText(txt, tip);
+        return;
+      }
+      if(act==='query'){
+        var sp=String(el.getAttribute('data-sp')||'').trim();
+        if(!sp){ weui.topTips('审批编号为空'); return; }
+        weui.topTips('打开样例审批：'+sp, 900);
+        querySpAndJump(sp);
+        return;
+      }
+      if(act==='set-tpl'){
+        var tid=String(el.getAttribute('data-tpl')||'').trim();
+        var tnm=String(el.getAttribute('data-name')||'').trim();
+        if(!tid){ weui.topTips('模板ID为空'); return; }
+        setAsTemplate(tid, tnm);
+        return;
+      }
+    }catch(err){
+      weui.topTips('操作出错：'+(err.message||String(err)));
+    }
+  });
+}
+
+function safeShortId(id){
+  id=String(id||'');
+  if(id==='__UNKNOWN__') return '<span style="color:#c41a16;">(未识别模板)</span>';
+  if(id.length<=16) return esc(id);
+  return esc(id.substr(0,10))+'***'+esc(id.substr(-4));
+}
+
+async function setAsTemplate(id,name){
+  if(!confirm('将模板「'+name+'」设为年假审批模板？\n\n（控件索引会保留当前配置，不会被清空）')) return;
+  try{
+    var r=await fetch('/api/admin/vacation/debug_set_template?template_id='+encodeURIComponent(id));
+    var d=await r.json();
+    if(d.success){
+      weui.toast('✅ 已设为年假模板',1500);
+      // 重新打星标高亮
+      _allTemplates.forEach(function(t){
+        t.is_vacation_template=(t.template_id===id);
+      });
+      renderTplPage(_tplCurPage);
+    }else{
+      weui.topTips(d.error||'设置失败');
+    }
+  }catch(e){ weui.topTips('设置失败：'+(e.message||e)); }
+}
+
+// ========== Tab 2：模块 2 —— 单审批单详情 ==========
+function querySpAndJump(spNo){
+  // 先保证切到「审批调试」Tab，否则目标输入框/结果区都处于 display:none，用户看不到变化
+  switchTab('debug');
+  document.getElementById('spNoInput').value=spNo;
+  // 下一帧再滚：Tab 切换后 display:block 生效才能拿到真实位置
+  requestAnimationFrame(function(){
+    var target=document.getElementById('mod2Panel');
+    if(target && typeof target.scrollIntoView==='function'){
+      try{ target.scrollIntoView({block:'start',behavior:'smooth'}); }catch(e){}
+    }else{
+      var rect=document.getElementById('spNoInput').getBoundingClientRect();
+      window.scrollBy({top:rect.top - 80, behavior:'smooth'});
+    }
+  });
+  setTimeout(fetchSp,300);
+}
+
+async function fetchSp(){
+  var spNo=document.getElementById('spNoInput').value.trim();
+  if(!spNo){ weui.topTips('请输入审批编号'); return; }
+  var box=document.getElementById('spResult');
+  box.innerHTML='<div class="muted">拉取中…</div>';
+  try{
+    var r=await fetch('/api/admin/vacation/debug_sp?sp_no='+encodeURIComponent(spNo));
+    var d=await r.json();
+    if(!d.success){
+      var raw=d.raw?('<details class="collapse" style="margin-top:8px;"><summary>查看原始返回</summary><div class="bd"><textarea class="raw-box" readonly spellcheck="false">'+esc(JSON.stringify(d.raw,null,2))+'</textarea></div></details>'):'';
+      box.innerHTML='<div style="color:#c41a16;"><b>❌ '+esc(d.error||'拉取失败')+'</b>'+(d.errcode?(' <span class="muted">（errcode='+d.errcode+'）</span>'):'')+'</div>'+raw;
+      return;
+    }
+    box.innerHTML=renderSpResult(d);
+  }catch(e){
+    box.innerHTML='<div style="color:#c41a16;">❌ 拉取失败：'+esc(e.message||String(e))+'</div>';
+  }
+}
+
+function renderSpResult(d){
+  var s=d.summary||{};
+  var stCls='status-'+(s.sp_status||0);
+  var h='';
+  h+='<div class="meta-grid">';
+  h+=metaItem('审批单号', s.sp_no, true, true);
+  h+=metaItem('模板名称',
+      (s.is_vacation_template?'<span class="tag star-tag">年假模板</span> ':'') + esc(s.template_name||'(空)')
+    ,false,true);
+  h+=metaItem('模板 ID',
+      esc(safeShortId(s.template_id))+
+      (s.template_id?('<button class="cp-btn" onclick="copyText('+jsStr(s.template_id)+',\'模板ID已复制\')">复制</button>'):''),
+      false,false);
+  h+=metaItem('当前状态', '<b class="'+stCls+'">'+esc(s.sp_status_text)+'</b>',false,true);
+  h+=metaItem('申请人', esc(s.applyer_name||'-') + (s.applyer_dept?(' <span class="muted">('+esc(s.applyer_dept)+')</span>'):'') ,false,true);
+  h+=metaItem('企微账号', esc(s.applyer_wecom||'-'));
+  h+=metaItem('提交时间', esc(s.apply_time||'-'));
+  h+=metaItem('结束时间', esc(s.finish_time||'(进行中)'));
+  h+=metaItem('流程用时', s.duration_text?esc(s.duration_text):'<span class="muted">-</span>');
+  h+=metaItem('控件索引',
+      '入职日期=<span class="tag vt">'+esc(s.hire_idx)+'</span>　休假范围=<span class="tag vn">'+esc(s.daterange_idx)+'</span>'+
+      ' <span class="muted">· 下方表格中对应行高亮</span>'
+    ,false,false);
+  h+='</div>';
+
+  // 审批流程节点
+  if(d.nodes && d.nodes.length){
+    h+='<h3 class="sec-title" style="margin-top:6px;">📐 审批流程节点（'+d.nodes.length+' 个）</h3>';
+    h+='<table class="tbl nodes-table"><thead><tr><th style="width:22%;">节点</th><th style="width:14%;">处理人</th><th style="width:12%;">状态</th><th style="width:20%;">时间</th><th>意见</th></tr></thead><tbody>';
+    d.nodes.forEach(function(n){
+      var approver=String(n.approver==null?'':n.approver).trim();
+      var speech=String(n.speech==null?'':n.speech).trim();
+      h+='<tr>'+
+        '<td>'+(n.node_name?esc(n.node_name):'<span class="muted">-</span>')+'</td>'+
+        '<td>'+(approver?esc(approver):'<span class="muted">(未填写)</span>')+'</td>'+
+        '<td>'+(n.status?esc(n.status):'<span class="muted">-</span>')+'</td>'+
+        '<td>'+(n.sptime?esc(n.sptime):'<span class="muted">-</span>')+'</td>'+
+        '<td>'+(speech?esc(speech):'<span class="muted">-</span>')+'</td>'+
+      '</tr>';
+    });
+    h+='</tbody></table>';
+  }
+
+  // 控件扁平化表
+  h+='<h3 class="sec-title" style="margin-top:14px;">🧩 控件扁平化表</h3>';
+  if(!d.flat_controls || !d.flat_controls.length){
+    h+='<div class="muted">该审批单没有识别到表单控件。</div>';
+  }else{
+    h+='<table class="tbl flat-table"><thead><tr>'+
+      '<th style="width:80px;">索引</th>'+
+      '<th style="width:120px;">控件类型</th>'+
+      '<th>控件名称</th>'+
+      '<th style="width:140px;">值类型</th>'+
+      '<th>示例值（当前审批单）</th>'+
+      '</tr></thead><tbody>';
+    d.flat_controls.forEach(function(c){
+      var trCls=c.is_hire_idx?'hire-row':(c.is_daterange_idx?'dr-row':'');
+      var tag1=c.is_hire_idx?' <span class="tag vt">入职日期</span>':'';
+      var tag2=c.is_daterange_idx?' <span class="tag vn">休假范围</span>':'';
+      var preview=c.preview;
+      if(typeof preview==='object' && preview!==null){
+        preview=JSON.stringify(preview);
+      }
+      h+='<tr class="'+trCls+'">'+
+        '<td class="'+(c.is_hire_idx?'hire':(c.is_daterange_idx?'dr':''))+'">'+
+          '<b>'+esc(String(c.idx||''))+'</b>'+tag1+tag2+
+        '</td>'+
+        '<td class="'+(c.is_hire_idx?'hire':(c.is_daterange_idx?'dr':''))+'">'+esc(c.control||'-')+'</td>'+
+        '<td class="'+(c.is_hire_idx?'hire':(c.is_daterange_idx?'dr':''))+'">'+esc(c.title||'-')+'</td>'+
+        '<td class="'+(c.is_hire_idx?'hire':(c.is_daterange_idx?'dr':''))+'">'+esc(c.type||'-')+'</td>'+
+        '<td class="'+(c.is_hire_idx?'hire':(c.is_daterange_idx?'dr':''))+'"><div style="word-break:break-all;max-width:420px;">'+esc(String(preview==null?'':preview))+'</div></td>'+
+      '</tr>';
+    });
+    h+='</tbody></table>';
+  }
+
+  // 原始 JSON
+  var rawStr='';
+  try{ rawStr=JSON.stringify(d.raw_json,null,2); }catch(e){ rawStr=String(d.raw_json); }
+  h+='<details class="collapse" id="rawJsonCol">'+
+    '<summary>📦 查看原始 JSON（共 '+rawStr.length+' 字符）</summary>'+
+    '<div class="bd">'+
+      '<textarea class="raw-box" id="rawJsonBox" readonly spellcheck="false">'+esc(rawStr)+'</textarea>'+
+      '<div class="collapse-toolbar">'+
+        '<span>· 企微全量 HTTP 原始返回，未做任何字段裁剪 ·</span>'+
+        '<button class="copy-btn" onclick="copyRawJson()">📋 复制 JSON</button>'+
+      '</div>'+
+    '</div>'+
+  '</details>';
+  return h;
+}
+
+function metaItem(k,v,big,copyRaw){
+  var vv=(typeof v==='string'?v:String(v==null?'':v));
+  return '<div class="mi"><div class="mk">'+esc(k)+'</div><div class="mv'+(big?' big':'')+'">'+vv+'</div></div>';
+}
+
+function copyRawJson(){
+  var ta=document.getElementById('rawJsonBox');
+  if(!ta) return;
+  copyText(ta.value,'✅ 原始 JSON 已复制到剪贴板');
+}
+
+function copyText(t,tipOk){
+  t=String(t==null?'':t);
+  if(!t){ weui.topTips('内容为空'); return; }
+  var tip=tipOk||'已复制';
+  // 优先 execCommand：在 HTTP（部署常见场景）下 navigator.clipboard 不可用；现代浏览器两者都 OK
+  var copied=false;
+  try{
+    var ta=document.createElement('textarea');
+    ta.value=t;
+    ta.setAttribute('readonly','');
+    ta.style.position='fixed';
+    ta.style.top='-9999px';
+    ta.style.left='-9999px';
+    ta.style.opacity='0';
+    document.body.appendChild(ta);
+    ta.select(); ta.setSelectionRange(0, ta.value.length);
+    copied=!!document.execCommand('copy');
+    document.body.removeChild(ta);
+  }catch(e){ copied=false; }
+  // execCommand 失败才走异步 Clipboard API（HTTPS/安全上下文才生效）
+  if(!copied && window.navigator && navigator.clipboard && typeof navigator.clipboard.writeText==='function'){
+    navigator.clipboard.writeText(t).then(
+      function(){ weui.toast(tip,1200); },
+      function(){ weui.topTips('复制失败，请手动复制'); }
+    );
+    return;
+  }
+  if(copied) weui.toast(tip,1200);
+  else weui.topTips('复制失败，请手动复制');
+}
+
+function jsStr(s){ return JSON.stringify(String(s==null?'':s)); }
+function esc(s){
+  s=String(s==null?'':s);
+  return s.replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c];});
+}
+
+/** 格式化审批时间：兼容 DATETIME 字符串和 Unix 时间戳 */
+function formatApplyTime(t){
+  if(!t) return '-';
+  // DATETIME 格式 '2026-08-27 16:30:00' → 直接截取到分钟
+  if(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/.test(t)){
+    return t.substring(0,16).replace('T',' ');
+  }
+  // Unix 时间戳（秒）
+  var n=parseInt(t);
+  if(n>0 && n<1e10){
+    return new Date(n*1000).toLocaleString('zh-CN',{hour12:false}).replace(/\//g,'-');
+  }
+  // 其他格式原样返回
+  return String(t);
+}
+
+// ========== 审批单 Tab（approval_orders）==========
+var _ordStatusMap={1:'审批中',2:'已通过',3:'已驳回',4:'已撤销',6:'通过后撤销',7:'已删除',10:'已支付'};
+
+/** 审批单详情弹窗 */
+async function ordShowDetail(spNo){
+  var el=document.getElementById('ordDetailModal');
+  if(!el){
+    el=document.createElement('div');
+    el.id='ordDetailModal';
+    el.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+    document.body.appendChild(el);
+  }
+  el.innerHTML='<div style="background:#fff;border-radius:10px;max-width:800px;width:100%;max-height:85vh;overflow:auto;padding:20px;"><div style="text-align:center;color:#999;padding:20px;">加载中...</div></div>';
+  el.style.display='flex';
+  el.onclick=function(e){ if(e.target===el) el.style.display='none'; };
+
+  try{
+    var r=await fetch('/api/admin/vacation/approval_order_detail?sp_no='+encodeURIComponent(spNo));
+    var d=await r.json();
+    if(!d.success){
+      el.innerHTML='<div style="background:#fff;border-radius:10px;max-width:800px;width:100%;max-height:85vh;overflow:auto;padding:20px;"><div style="color:#fa5151;text-align:center;padding:20px;">'+esc(d.error||'加载失败')+'</div><div style="text-align:center;margin-top:10px;"><button class="abtn abtn-sm abtn-ghost" onclick="document.getElementById(\'ordDetailModal\').style.display=\'none\'">关闭</button></div></div>';
+      return;
+    }
+    var data=d.data||{};
+    var st=parseInt(data.sp_status)||0;
+    var stLabel=_ordStatusMap[st]||('状态'+st);
+    var cls=({1:'badge-info',2:'badge-ok',3:'badge-err',4:'badge-gray',6:'badge-warn',7:'badge-gray',10:'badge-ok'})[st]||'badge-gray';
+    var applyTime=formatApplyTime(data.apply_time);
+    var infoHtml='<span style="color:#999;">无详情信息</span>';
+    if(data.info && typeof data.info==='object'){
+      infoHtml='<pre style="background:#f5f6f7;border:1px solid #eee;border-radius:6px;padding:12px;font-size:12px;max-height:400px;overflow:auto;line-height:1.6;white-space:pre-wrap;word-break:break-all;">'+esc(JSON.stringify(data.info,null,2))+'</pre>';
+    }
+    el.innerHTML='<div style="background:#fff;border-radius:10px;max-width:800px;width:100%;max-height:85vh;overflow:auto;padding:20px;">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">'
+      +'<span style="font-size:16px;font-weight:600;">📋 审批单详情</span>'
+      +'<button class="abtn abtn-sm abtn-ghost" onclick="document.getElementById(\'ordDetailModal\').style.display=\'none\'">✕ 关闭</button>'
+      +'</div>'
+      +'<table style="width:100%;font-size:13px;border-collapse:collapse;">'
+      +'<tr><td style="padding:6px 10px;color:#999;width:100px;">审批编号</td><td style="padding:6px 10px;font-family:Consolas,Monaco,monospace;">'+esc(data.sp_no||'-')+'</td></tr>'
+      +'<tr><td style="padding:6px 10px;color:#999;">审批类型</td><td style="padding:6px 10px;">'+esc(data.sp_name||'-')+'</td></tr>'
+      +'<tr><td style="padding:6px 10px;color:#999;">状态</td><td style="padding:6px 10px;"><span class="'+cls+'">'+stLabel+'</span></td></tr>'
+      +'<tr><td style="padding:6px 10px;color:#999;">申请人</td><td style="padding:6px 10px;">'+esc(data.name||'-')+'</td></tr>'
+      +'<tr><td style="padding:6px 10px;color:#999;">账号</td><td style="padding:6px 10px;font-family:Consolas,Monaco,monospace;">'+esc(data.userid||'-')+'</td></tr>'
+      +'<tr><td style="padding:6px 10px;color:#999;">模板ID</td><td style="padding:6px 10px;font-family:Consolas,Monaco,monospace;font-size:12px;">'+esc(data.template_id||'-')+'</td></tr>'
+      +'<tr><td style="padding:6px 10px;color:#999;">提交时间</td><td style="padding:6px 10px;">'+applyTime+'</td></tr>'
+      +'</table>'
+      +'<div style="margin-top:14px;font-size:13px;font-weight:600;color:#333;">审批详情（JSON）</div>'
+      +'<div style="margin-top:6px;">'+infoHtml+'</div>'
+      +'</div>';
+  }catch(e){
+    el.innerHTML='<div style="background:#fff;border-radius:10px;max-width:800px;width:100%;max-height:85vh;overflow:auto;padding:20px;"><div style="color:#fa5151;text-align:center;padding:20px;">请求异常：'+esc(e.message)+'</div></div>';
+  }
+}
+
+var _ordPager = createPager({
+  containerId: 'ordPager',
+  tbodyId: 'ordTbody',
+  apiUrl: '/api/admin/vacation/approval_orders',
+  searchInputId: 'ordQInp',
+  statusSelectId: 'ordStatusSel',
+  statusMap: _ordStatusMap,
+  onDetailClick: ordShowDetail,
+  renderRow: function(r){
+    var st=parseInt(r.sp_status)||0;
+    var cls=({1:'badge-info',2:'badge-ok',3:'badge-err',4:'badge-gray',6:'badge-warn',7:'badge-gray',10:'badge-ok'})[st]||'badge-gray';
+    var time=r.apply_time?formatApplyTime(r.apply_time):'-';
+    var spNo=esc(String(r.sp_no||''));
+    return '<tr>'
+      +'<td style="padding:8px 10px;font-family:Consolas,Monaco,monospace;font-size:12px;">'+spNo+'</td>'
+      +'<td style="padding:8px 10px;">'+esc(r.sp_name||'-')+'</td>'
+      +'<td style="padding:8px 10px;"><span class="'+cls+'">'+esc(r.sp_status_text||_ordStatusMap[st]||('状态'+st))+'</span></td>'
+      +'<td style="padding:8px 10px;">'+esc(r.name||'-')+'</td>'
+      +'<td style="padding:8px 10px;color:#666;">'+time+'</td>'
+      +'<td style="padding:8px 10px;text-align:center;"><button class="abtn abtn-sm abtn-ghost" data-spno="'+spNo+'">详情</button></td>'
+      +'</tr>';
+  },
+  colSpan: 6
+});
+
+// ========== Tab 切换 ==========
+document.addEventListener('DOMContentLoaded', async function(){
+  var me=await checkAuth();
+  if(!me) return;
+  var info=document.getElementById('userInfo');
+  if(me.name){ info.innerHTML='<span class="u-name">'+esc(me.name)+'</span>'; }
+  // Hash Tab 记忆：初始值 + hashchange 监听
+  var initTab=_getTabFromHash();
+  window.addEventListener('hashchange', function(){
+    var t=_getTabFromHash();
+    if(t) switchTab(t,{fromHash:true});
+  });
+  initYearSelect();
+  initScanRange();
+  installTplDelegate();   // 模板库表格按钮/链接的事件委托（此时 tplTbody 一定已存在）
+  // 审批单搜索框 Enter 键触发查询
+  document.getElementById('ordQInp').addEventListener('keydown', function(e){ if(e.key==='Enter') _ordPager.load(); });
+  await loadRule();
+  // 打开页面时：先尝试恢复「最近一次扫描结果」（永不过期；过期/范围不符会给显眼提示；从未扫描过就显示"尚未扫描"空态）
+  try{ await loadLatest(); }catch(e){ /* 失败不打扰，等用户点扫描 */ }
+  if(initTab==='orders') _ordPager.load(); // 初始 Tab 是审批单时自动加载
+  if(initTab) switchTab(initTab,{fromHash:true});
+});
+</script>
+</body>
+</html>

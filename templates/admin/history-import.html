@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0">
+    <title>历史工资导入</title>
+    <link rel="stylesheet" href="/assets/weui.min.css?v=20260807a">
+    <link rel="stylesheet" href="/assets/admin.css?v=20260807a">
+    <script src="/assets/weui.min.js?v=20260807a"></script>
+    <script src="/assets/admin.js?v=20260807a"></script>
+    <style>
+        body { background: #f5f5f5; }
+        .page { max-width: 800px; margin: 0 auto; padding: 15px; }
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .card-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #07c160;
+        }
+        .upload-area {
+            border: 2px dashed #07c160;
+            border-radius: 10px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f0fff0;
+        }
+        .upload-area.dragover {
+            background: #e0ffe0;
+            border-color: #06ad56;
+        }
+        .upload-area .icon { font-size: 48px; }
+        .upload-area .text { font-size: 14px; color: #666; margin-top: 10px; }
+        .upload-area .hint { font-size: 12px; color: #999; margin-top: 5px; }
+        .file-list { margin-top: 15px; }
+        .file-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background: #f8f8f8;
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+        .file-item .icon { margin-right: 10px; font-size: 20px; }
+        .file-item .name { flex: 1; font-size: 14px; }
+        .file-item .size { color: #999; font-size: 12px; margin-right: 10px; }
+        .file-item .remove {
+            color: #ff4d4f;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 0 5px;
+        }
+        .btn-import {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #07c160, #06ad56);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 15px;
+            box-shadow: 0 4px 12px rgba(7,193,96,.3);
+        }
+        .btn-import:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        .result-box {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+        .result-box.success { background: #e8f8e8; border: 1px solid #b7eb8f; }
+        .result-box.error { background: #fff3e0; border: 1px solid #ffcc80; }
+        .result-summary {
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        .result-summary strong { color: #07c160; }
+        .result-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .result-table th, .result-table td {
+            padding: 8px 10px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        .result-table th { background: #f5f5f5; font-weight: 600; }
+        .result-table tr:hover { background: #fafafa; }
+        .format-tips {
+            font-size: 13px;
+            color: #666;
+            padding: 10px;
+            background: #f8f8f8;
+            border-radius: 6px;
+            margin-top: 10px;
+        }
+        .format-tips li { margin: 5px 0; }
+        .warning-box {
+            background: #fffbe6;
+            border: 1px solid #ffe58f;
+            border-radius: 8px;
+            padding: 12px 15px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            color: #614700;
+        }
+        .warning-box strong { color: #d48806; }
+    </style>
+</head>
+<body>
+    <header class="ad-appbar">
+        <a class="ad-appbar__back" href="/admin/dashboard" aria-label="返回">‹</a>
+        <div class="ad-appbar__title"><span class="ic">📚</span><span>历史工资批量导入</span></div>
+        <div class="ad-appbar__actions">
+            <a class="ad-appbar__btn" href="javascript:doLogout()">退出</a>
+        </div>
+    </header>
+
+    <div class="page">
+        <div class="warning-box">
+            <strong>⚠️ 注意：</strong>此功能将批量导入历史工资数据，并自动标记为<strong>已确认</strong>状态。请确保导入的数据正确无误。
+        </div>
+
+        <div class="card">
+            <div class="card-title">📤 选择 Excel 文件</div>
+            
+            <div class="upload-area" id="uploadArea">
+                <div class="icon">📄</div>
+                <div class="text">点击或拖拽选择多个 Excel 文件</div>
+                <div class="hint">支持多选，每个文件对应一个月份（格式：2026年01月.xlsx），最多 50 个文件</div>
+                <input type="file" id="fileInput" accept=".xlsx" multiple style="display:none">
+            </div>
+
+            <div class="file-list" id="fileList"></div>
+
+            <button class="btn-import" id="importBtn" onclick="startImport()" disabled>
+                🚀 开始批量导入（标记为已确认）
+            </button>
+
+            <div class="format-tips">
+                <strong>📋 Excel 格式要求：</strong>
+                <ul>
+                    <li>第一行合并单元格，格式为 <strong>【xxxx年xx月薪资】</strong>（如：【2024年01月薪资】）</li>
+                    <li>第一列为 <strong>员工姓名</strong>（必须与系统中的姓名完全匹配）</li>
+                    <li>必须包含 <strong>「实发工资」</strong> 列</li>
+                    <li>支持多层表头与合并单元格</li>
+                    <li>导入后状态自动标记为 <strong>已确认</strong>，员工可在我的工资中查看</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="result-box" id="resultBox">
+            <div class="result-summary" id="resultSummary"></div>
+            <table class="result-table" id="resultTable" style="display:none;">
+                <thead>
+                    <tr>
+                        <th>文件名</th>
+                        <th>月份</th>
+                        <th>导入成功</th>
+                        <th>未匹配</th>
+                    </tr>
+                </thead>
+                <tbody id="resultBody"></tbody>
+            </table>
+            <div id="errorList" style="margin-top:10px;display:none;"></div>
+        </div>
+    </div>
+
+    <script>
+        // admin.js 可能已定义 esc；本地 fallback 防止未引入时 XSS 转义失效
+        if (typeof esc !== 'function') { function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));} }
+        let selectedFiles = [];
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            const resp = await fetch('/api/auth/me');
+            if (resp.status === 401) {
+                window.location.href = '/api/auth/login?redirect=/admin/history_import';
+                return;
+            }
+
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+
+            uploadArea.addEventListener('click', function() {
+                fileInput.click();
+            });
+
+            uploadArea.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+
+            uploadArea.addEventListener('dragleave', function() {
+                uploadArea.classList.remove('dragover');
+            });
+
+            uploadArea.addEventListener('drop', function(e) {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                handleFiles(e.dataTransfer.files);
+            });
+
+            fileInput.addEventListener('change', function() {
+                handleFiles(fileInput.files);
+            });
+        });
+
+        const MAX_FILES = 50;
+
+        function handleFiles(files) {
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                if (file.name.toLowerCase().endsWith('.xlsx')) {
+                    selectedFiles.push(file);
+                } else {
+                    weui.topTips('仅支持 .xlsx 格式文件');
+                }
+            }
+            if (selectedFiles.length > MAX_FILES) {
+                weui.topTips(`最多支持 ${MAX_FILES} 个文件，已选择 ${selectedFiles.length} 个`);
+                selectedFiles = selectedFiles.slice(0, MAX_FILES);
+            }
+            renderFileList();
+        }
+
+        function removeFile(index) {
+            selectedFiles.splice(index, 1);
+            renderFileList();
+        }
+
+        function renderFileList() {
+            const list = document.getElementById('fileList');
+            list.innerHTML = '';
+
+            if (selectedFiles.length === 0) {
+                document.getElementById('importBtn').disabled = true;
+                return;
+            }
+
+            document.getElementById('importBtn').disabled = false;
+            document.getElementById('importBtn').textContent = 
+                `🚀 开始批量导入（共 ${selectedFiles.length} 个文件，标记为已确认）`;
+
+            selectedFiles.forEach((file, index) => {
+                const item = document.createElement('div');
+                item.className = 'file-item';
+                item.innerHTML = `
+                    <span class="icon">📄</span>
+                    <span class="name">${esc(file.name)}</span>
+                    <span class="size">${(file.size / 1024).toFixed(1)}KB</span>
+                    <span class="remove" onclick="removeFile(${index})">✕</span>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        async function startImport() {
+            if (selectedFiles.length === 0) {
+                weui.topTips('请先选择文件');
+                return;
+            }
+
+            // PHP 默认 max_file_uploads=20，分批提交避免超限
+            const BATCH_SIZE = 20;
+            const batches = [];
+            for (let i = 0; i < selectedFiles.length; i += BATCH_SIZE) {
+                batches.push(selectedFiles.slice(i, i + BATCH_SIZE));
+            }
+
+            const loading = weui.loading(`正在导入 1/${batches.length} 批，共 ${selectedFiles.length} 个文件...`);
+
+            const agg = {
+                success: true,
+                total_imported: 0,
+                total_unmatched: 0,
+                total_auto_created: 0,
+                results: [],
+                all_unmatched_names: [],
+                unmatched_meta: {},
+                errors: []
+            };
+
+            try {
+                for (let bi = 0; bi < batches.length; bi++) {
+                    const formData = new FormData();
+                    batches[bi].forEach(file => formData.append('files[]', file));
+
+                    const resp = await fetch('/api/admin/history_import', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await resp.json();
+
+                    if (!data.success) {
+                        agg.success = false;
+                        if (data.error) agg.errors.push(`第 ${bi + 1} 批：${data.error}`);
+                        if (data.errors) agg.errors.push(...data.errors);
+                    }
+
+                    agg.total_imported += data.total_imported ?? 0;
+                    agg.total_unmatched += data.total_unmatched ?? 0;
+                    agg.total_auto_created += data.total_auto_created ?? 0;
+                    if (data.results) agg.results.push(...data.results);
+                    if (data.all_unmatched_names) agg.all_unmatched_names.push(...data.all_unmatched_names);
+                    if (data.unmatched_meta) Object.assign(agg.unmatched_meta, data.unmatched_meta);
+                    if (data.errors) agg.errors.push(...data.errors);
+
+                    loading.hide();
+                    if (batches.length > 1) {
+                        weui.loading(`正在导入 ${bi + 2}/${batches.length} 批...`);
+                    }
+                }
+                loading.hide();
+
+                showResult(agg);
+            } catch (e) {
+                loading.hide();
+                weui.topTips('导入失败：' + e.message);
+            }
+        }
+
+        function showResult(data) {
+            const resultBox = document.getElementById('resultBox');
+            const summary = document.getElementById('resultSummary');
+            const table = document.getElementById('resultTable');
+            const body = document.getElementById('resultBody');
+            const errorList = document.getElementById('errorList');
+
+            resultBox.style.display = 'block';
+            resultBox.className = 'result-box ' + (data.success ? 'success' : 'error');
+
+            const totalUnmatched = data.total_unmatched ?? 0;
+            summary.innerHTML = data.success 
+                ? `✅ 导入完成！成功导入 <strong>${data.total_imported}</strong>` + 
+                  (totalUnmatched > 0 
+                    ? `，未匹配 <strong style="color:#ff9800;">${totalUnmatched}</strong> 人` 
+                      + ((data.total_auto_created ?? 0) > 0
+                        ? `（已自动创建 <strong style="color:#1890ff;">${data.total_auto_created}</strong> 位存档账号）`
+                        : '')
+                    : '')
+                : (`❌ 导入失败` + (data.error ? `：${esc(data.error)}` : ''));
+
+            if (data.results && data.results.length > 0) {
+                table.style.display = 'table';
+                body.innerHTML = '';
+                data.results.forEach(r => {
+                    const unmatchedCount = (r.auto_created ?? 0) + (r.skip ?? 0);
+                    const unmatchedNames = [
+                        ...(r.auto_created_names || []),
+                        ...(r.skipped_names || [])
+                    ];
+                    const unmatchedHtml = unmatchedCount > 0 && unmatchedNames.length > 0
+                        ? ` <span style="color:#ff9800;cursor:help;" title="未匹配：${esc(unmatchedNames.join('、'))}">（${unmatchedCount}人）</span>`
+                        : '';
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${esc(r.file)}</td>
+                        <td>${r.year}年${String(r.month).padStart(2, '0')}月</td>
+                        <td style="color:#07c160;">${r.imported}</td>
+                        <td style="color:#ff9800;">${unmatchedCount}${unmatchedHtml}</td>
+                    `;
+                    body.appendChild(tr);
+                });
+            } else {
+                table.style.display = 'none';
+            }
+
+            // 汇总卡片：统一「未匹配」卡片
+            errorList.innerHTML = '';
+            errorList.style.display = 'block';
+            let hasCard = false;
+            if (totalUnmatched > 0 && data.all_unmatched_names && data.all_unmatched_names.length > 0) {
+                hasCard = true;
+                const meta = data.unmatched_meta || {};
+                const box = document.createElement('div');
+                box.style.marginTop = '15px';
+                box.style.padding = '12px 15px';
+                box.style.background = '#fffbe6';
+                box.style.border = '1px solid #ffe58f';
+                box.style.borderRadius = '6px';
+                box.innerHTML = `
+                    <div style="font-size:14px;font-weight:bold;color:#d48806;margin-bottom:8px;">
+                        ⚠️ 共 ${totalUnmatched} 位员工未匹配（系统通讯录中找不到对应姓名）
+                        ${(data.total_auto_created ?? 0) > 0 
+                            ? `<span style="font-weight:normal;color:#1890ff;margin-left:8px;">已自动创建 ${data.total_auto_created} 位存档账号</span>` 
+                            : ''}
+                    </div>
+                    <div style="font-size:13px;color:#595959;line-height:2;max-height:220px;overflow-y:auto;">
+                        ${data.all_unmatched_names.map(n => {
+                            const type = meta[n] || 'auto';
+                            if (type === 'auto') {
+                                return `<span style="display:inline-block;background:#e6f7ff;padding:2px 10px;border:1px solid #91d5ff;border-radius:12px;margin:3px 6px 3px 0;color:#096dd9;">${n}</span>`;
+                            } else {
+                                return `<span style="display:inline-block;background:#fff2f0;padding:2px 10px;border:1px solid #ffccc7;border-radius:12px;margin:3px 6px 3px 0;color:#cf1322;">${n}</span>`;
+                            }
+                        }).join('')}
+                    </div>
+                    <div style="font-size:12px;color:#8c8c8c;margin-top:8px;line-height:1.6;">
+                        💡 蓝色标签：已自动创建为「历史存档账号」，无企业微信身份，无法登录，仅后台可见历史工资；<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;红色标签：未能自动创建，请先到「通讯录」同步/新增员工后重新导入。
+                    </div>
+                `;
+                errorList.appendChild(box);
+            }
+            if (data.errors && data.errors.length > 0) {
+                hasCard = true;
+                const errBox = document.createElement('div');
+                errBox.style.marginTop = '15px';
+                errBox.innerHTML = '<strong style="color:#e64340;">错误信息：</strong><br>' + 
+                    data.errors.map(e => `• ${esc(e)}`).join('<br>');
+                errorList.appendChild(errBox);
+            }
+            if (!hasCard) {
+                errorList.style.display = 'none';
+            }
+
+            weui.toast(data.success ? '✅ 导入完成' : '❌ 导入失败', 2000);
+        }
+    </script>
+</body>
+</html>

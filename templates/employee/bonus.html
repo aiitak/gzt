@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0">
+    <title>我的奖金</title>
+    <link rel="stylesheet" href="/assets/weui.min.css?v=20260807a">
+    <script src="/assets/weui.min.js?v=20260807a"></script>
+    <style>
+        :root { --theme: <?php echo htmlspecialchars($GLOBALS['_site_theme'], ENT_QUOTES, 'UTF-8'); ?>; }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            background: #f5f5f5;
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif;
+        }
+        .page { padding: 12px 12px 160px; }
+
+        /* ===== 顶部标题栏 ===== */
+        .nav-bar {
+            position: sticky;
+            top: 0;
+            background: #fff;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            padding: 10px 16px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .nav-bar .back {
+            position: absolute;
+            left: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 12px;
+            height: 32px;
+            border-radius: 14px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            color: var(--theme);
+            background: #f0faf4;
+            transition: background 0.15s;
+        }
+        .nav-bar .back:active { background: #e0f0e8; }
+        .nav-bar .title {
+            flex: 1;
+            text-align: center;
+            font-size: 17px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        /* ===== 公告横幅 ===== */
+        .ann-bar {
+            background: #fff8e1;
+            border-left: 3px solid #ffa726;
+            padding: 10px 44px 10px 14px;
+            font-size: 13px;
+            color: #666;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            position: relative;
+        }
+        .ann-bar .gear-btn {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            background: rgba(255,167,38,0.15);
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 13px;
+            color: #e67e22;
+            text-decoration: none;
+            transition: all 0.15s;
+        }
+        .ann-bar .gear-btn:active { background: rgba(255,167,38,0.3); }
+
+        /* ===== 年份分组 ===== */
+        .year-group { margin-bottom: 12px; }
+        .year-header {
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 1px 4px rgba(0,0,0,.06);
+            padding: 14px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .year-header:active { background: #f9f9f9; }
+        .year-header .y-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+        .year-header .y-left .arrow {
+            font-size: 12px;
+            color: #999;
+            transition: transform 0.2s;
+        }
+        .year-group.collapsed .year-header .y-left .arrow {
+            transform: rotate(-90deg);
+        }
+        .year-header .y-total {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--theme);
+        }
+        .year-group.collapsed .year-content { display: none; }
+        .year-content { margin-top: 8px; }
+
+        /* ===== 奖金卡片 ===== */
+        .bonus-card {
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 1px 4px rgba(0,0,0,.06);
+            margin-bottom: 8px;
+            padding: 14px 16px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .bonus-card:active { background: #f9f9f9; }
+        .bonus-card .bc-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .bonus-card .bc-type {
+            font-size: 15px;
+            font-weight: 500;
+            color: #333;
+        }
+        .bonus-card .bc-status {
+            font-size: 12px;
+            padding: 2px 10px;
+            border-radius: 10px;
+        }
+        .bonus-card .bc-status.pending {
+            background: #fff8e1;
+            color: #f5a623;
+        }
+        .bonus-card .bc-status.confirmed {
+            background: #f0f8f4;
+            color: var(--theme);
+        }
+        .bonus-card .bc-amount {
+            font-size: 28px;
+            font-weight: bold;
+            color: var(--theme);
+            letter-spacing: -0.5px;
+        }
+        .bonus-card .bc-amount .currency {
+            font-size: 18px;
+            font-weight: normal;
+            margin-right: 2px;
+        }
+        .blur-amount {
+            filter: blur(6px);
+            user-select: none;
+            pointer-events: none;
+        }
+        .toggle-eye-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: rgba(255,167,38,0.15);
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+        }
+        /* 奖金卡片：金额行 + 眼睛按钮 */
+        .bonus-card .bc-amount-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .bonus-card .bc-eye {
+            background: rgba(7,193,96,0.12);
+            flex-shrink: 0;
+            color: #07c160;
+        }
+
+        /* ===== Tab Bar ===== */
+        .tab-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            background: #fff;
+            border-top: 1px solid #eee;
+            padding: 6px 0;
+            padding-bottom: calc(6px + env(safe-area-inset-bottom));
+            z-index: 100;
+            box-shadow: 0 -1px 6px rgba(0,0,0,0.04);
+        }
+        .tab-bar .tab-item {
+            flex: 1;
+            text-align: center;
+            padding: 6px 0;
+            text-decoration: none;
+            color: #999;
+            font-size: 11px;
+            transition: color 0.15s;
+        }
+        .tab-bar .tab-item .icon { font-size: 22px; display: block; margin-bottom: 2px; }
+        .tab-bar .tab-item.active { color: var(--theme); }
+
+        .footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 12px;
+            color: #bbb;
+        }
+        .footer .company { margin-bottom: 4px; }
+
+        .loading { text-align: center; padding: 40px; color: #999; }
+        .empty { text-align: center; padding: 60px 20px; color: #999; }
+        .empty .icon { font-size: 48px; margin-bottom: 10px; }
+
+        /* ===== 密码验证遮罩 ===== */
+        .password-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(180deg, #f0faf4 0%, #f5f5f5 100%);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .password-box {
+            width: 100%;
+            max-width: 340px;
+            background: #fff;
+            border-radius: 20px;
+            padding: 36px 28px 28px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+            text-align: center;
+            animation: slideUp 0.35s ease;
+        }
+        .password-box .pw-icon {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--theme) 0%, #06ad56 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 34px;
+            margin: 0 auto 14px;
+            box-shadow: 0 6px 16px rgba(7,193,96,0.3);
+            overflow: hidden;
+        }
+        .password-box .pw-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+        .password-box .brand-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--theme);
+            margin-bottom: 2px;
+        }
+        .password-box .brand-subtitle {
+            font-size: 12px;
+            color: #bbb;
+            margin-bottom: 20px;
+        }
+        .password-box .title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #1a1a1a;
+        }
+        .password-box .subtitle {
+            font-size: 13px;
+            color: #999;
+            margin-bottom: 28px;
+            line-height: 1.5;
+        }
+        .password-box .pwd-eye-wrap {
+            position: relative;
+            display: block;
+            margin-bottom: 20px;
+        }
+        .password-box .pwd-eye-wrap input {
+            width: 100%;
+            height: 50px;
+            border: 1.5px solid #e5e5e5;
+            border-radius: 12px;
+            padding: 0 44px 0 16px;
+            font-size: 16px;
+            background: #f9f9f9;
+            outline: none;
+            transition: all 0.25s;
+            -webkit-appearance: none;
+        }
+        .password-box .pwd-eye-wrap input:focus {
+            border-color: var(--theme);
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(7,193,96,0.1);
+        }
+        .password-box .pwd-eye {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            font-size: 18px;
+            user-select: none;
+            color: #bbb;
+            z-index: 2;
+            transition: color 0.15s;
+        }
+        .password-box .pwd-eye:active { color: var(--theme); }
+        .password-box .pw-btn {
+            width: 100%;
+            height: 50px;
+            background: linear-gradient(135deg, var(--theme) 0%, #06ad56 100%);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 14px rgba(7,193,96,0.3);
+            text-decoration: none;
+            line-height: 50px;
+            display: block;
+        }
+        .password-box .pw-btn:active {
+            transform: scale(0.98);
+            box-shadow: 0 2px 8px rgba(7,193,96,0.2);
+        }
+        .password-box .pw-footer {
+            margin-top: 18px;
+            font-size: 12px;
+            color: #bbb;
+        }
+
+        /* ===== 顶部返回导航栏（已移除，仅保留样式以防误引用） ===== */
+
+        .info-card {
+            background: linear-gradient(135deg, var(--theme) 0%, #06ad56 100%);
+            border-radius: 16px;
+            padding: 20px;
+            color: #fff;
+            margin-bottom: 12px;
+            box-shadow: 0 4px 16px rgba(7, 193, 96, 0.3);
+        }
+        .info-card .two-col {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .info-card .col-left {
+            flex: 1;
+            min-width: 0;
+        }
+        .info-card .col-right {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: flex-end;
+            flex-shrink: 0;
+        }
+        .info-card .row-top {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+        }
+        .info-card .row-bottom {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .info-card .ic-amount {
+            display: flex;
+            align-items: baseline;
+            font-size: 36px;
+            font-weight: bold;
+            margin: 0;
+            line-height: 1.1;
+            min-width: 0;
+        }
+        .info-card .ic-amount .currency {
+            font-size: 22px;
+            font-weight: normal;
+            opacity: 0.8;
+            flex-shrink: 0;
+            margin-right: 2px;
+        }
+        .info-card .ic-amount #detailAmount {
+            min-width: 0;
+            overflow-wrap: break-all;
+        }
+        .info-card .ic-status {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            background: rgba(255,255,255,0.2);
+            margin-right: 4px;
+        }
+        .info-card .ic-type {
+            font-size: 14px;
+            font-weight: 500;
+            opacity: 0.85;
+            white-space: nowrap;
+        }
+        .info-card .toggle-eye-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 13px;
+            color: #fff;
+            margin-left: 6px;
+            transition: all 0.15s;
+            user-select: none;
+        }
+        .info-card .toggle-eye-btn:active {
+            background: rgba(255,255,255,0.35);
+        }
+
+        /* 公告栏（与工资详情页一致） */
+        .ann-bar {
+            background: #fff8e1;
+            border-left: 3px solid #ffa726;
+            padding: 10px 44px 10px 14px;
+            font-size: 13px;
+            color: #666;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            position: relative;
+        }
+        .ann-bar .gear-btn {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            background: rgba(255,167,38,0.15);
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 13px;
+            color: #e67e22;
+            text-decoration: none;
+            transition: all 0.15s;
+        }
+        .ann-bar .gear-btn:active { background: rgba(255,167,38,0.3); }
+
+        .group-card {
+            background: #fff;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            overflow: hidden;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        }
+        .group-header {
+            font-size: 14px;
+            font-weight: 600;
+            padding: 10px 16px;
+            color: #333;
+        }
+        .group-header.income { background: #f0f8f4; border-left: 3px solid var(--theme); }
+        .group-header.deduction { background: #fef0f0; border-left: 3px solid #e64340; }
+        .group-header.other { background: #f6f8fa; border-left: 3px solid #999; }
+        .item-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid #f5f5f5;
+            font-size: 14px;
+        }
+        .item-row:last-child { border-bottom: none; }
+        .item-row .item-name { color: #333; }
+        .item-row .item-value { font-weight: 500; color: #333; }
+        .item-row .item-value.deduction { color: #e64340; }
+
+        /* ===== 备注卡片 ===== */
+        .remark-card {
+            background: #fff;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            overflow: hidden;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        }
+        .remark-card .remark-header {
+            font-size: 14px;
+            font-weight: 600;
+            padding: 10px 16px;
+            background: #fff8e1;
+            border-left: 3px solid #ffa726;
+            color: #333;
+        }
+        .remark-card .remark-body {
+            padding: 12px 16px;
+            font-size: 14px;
+            color: #555;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        /* ===== 确认按钮（毛玻璃固定栏，与工资详情页一致） ===== */
+        .action-bar {
+            position: fixed;
+            bottom: calc(60px + 20px + env(safe-area-inset-bottom));
+            left: 0;
+            right: 0;
+            display: flex;
+            padding: 8px 12px 6px;
+            background: rgba(255,255,255,0.96);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-top: 1px solid rgba(0,0,0,0.04);
+            z-index: 90;
+        }
+        .action-bar .btn {
+            flex: 1;
+            height: 50px;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .action-bar .btn-primary {
+            background: linear-gradient(135deg, var(--theme) 0%, #06ad56 100%);
+            color: #fff;
+            box-shadow: 0 4px 16px rgba(7,193,96,0.3);
+        }
+        .action-bar .btn-primary:active {
+            transform: scale(0.97);
+            box-shadow: 0 2px 8px rgba(7,193,96,0.25);
+        }
+        /* 次按钮：我要反馈 */
+        .action-bar .btn-feedback {
+            background: #fff;
+            color: var(--theme);
+            border: 1.5px solid var(--theme);
+            margin-left: 10px;
+        }
+        .action-bar .btn-feedback:active {
+            transform: scale(0.97);
+            background: #f0faf4;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- 密码验证层 -->
+        <div class="password-overlay" id="passwordOverlay" style="display:none;">
+            <div class="password-box">
+                <div class="pw-icon">
+                    <?php if ($GLOBALS['_site_logo']): ?>
+                        <img src="<?php echo htmlspecialchars($GLOBALS['_site_logo']); ?>" alt="logo">
+                    <?php else: ?>💰<?php endif; ?>
+                </div>
+                <div class="brand-title"><?php echo htmlspecialchars($GLOBALS['_site_title']); ?></div>
+                <?php if ($GLOBALS['_site_subtitle']): ?>
+                    <div class="brand-subtitle"><?php echo htmlspecialchars($GLOBALS['_site_subtitle']); ?></div>
+                <?php endif; ?>
+                <div class="title">🔐 请输入密码</div>
+                <div class="subtitle" id="pwSubtitle">查看奖金信息需要验证密码</div>
+                <div class="pwd-eye-wrap">
+                    <input type="password" id="passwordInput" placeholder="请输入密码" autocomplete="off">
+                    <span class="pwd-eye" id="eyeBtn">👁</span>
+                </div>
+                <a href="javascript:;" class="pw-btn" id="pwConfirmBtn">确认</a>
+                <div class="pw-footer"><?php echo htmlspecialchars($GLOBALS['_site_company'], ENT_QUOTES, 'UTF-8'); ?></div>
+            </div>
+        </div>
+
+        <!-- 主内容 -->
+        <div id="mainContent" style="display:none;">
+            <!-- 列表视图 -->
+            <div id="listView">
+                <div class="page">
+                    <div class="ann-bar">
+                        <?php if ($GLOBALS['_site_announcement']): ?>📢 <?php echo htmlspecialchars($GLOBALS['_site_announcement']); ?><?php endif; ?>
+                        <a href="/employee/password" class="gear-btn" title="密码设置">⚙️</a>
+                    </div>
+                    <div id="bonusList" class="loading">加载中...</div>
+                    <div class="footer">
+                        <div class="company"><?php echo htmlspecialchars($GLOBALS['_site_company'], ENT_QUOTES, 'UTF-8'); ?></div>
+                        <div>Copyright © <?php echo $GLOBALS['_site_year']; ?> <?php echo htmlspecialchars($GLOBALS['_site_website'], ENT_QUOTES, 'UTF-8'); ?></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 详情视图（内嵌，与工资详情页结构一致） -->
+            <div id="detailView" style="display:none;">
+                <div class="page">
+                    <div class="ann-bar">
+                        <?php if ($GLOBALS['_site_announcement']): ?>📢 <?php echo htmlspecialchars($GLOBALS['_site_announcement']); ?><?php endif; ?>
+                        <a href="/employee/password" class="gear-btn" title="密码设置">⚙️</a>
+                    </div>
+                    <div class="info-card" id="detailInfoCard">
+                        <div class="two-col">
+                            <div class="col-left">
+                                <div class="ic-amount"><span class="currency">¥</span><span id="detailAmount" class="blur-amount">0.00</span></div>
+                            </div>
+                            <div class="col-right">
+                                <div class="row-top">
+                                    <span class="ic-status" id="detailStatus">⏳ 待确认</span>
+                                    <a href="javascript:;" class="toggle-eye-btn" onclick="toggleDetailAmount()" id="detailEye" title="显示/隐藏金额">🙈</a>
+                                </div>
+                                <div class="row-bottom">
+                                    <span class="ic-type" id="detailType">—</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="detailItems" class="loading">加载中...</div>
+                    <div class="footer">
+                        <div class="company"><?php echo htmlspecialchars($GLOBALS['_site_company'], ENT_QUOTES, 'UTF-8'); ?></div>
+                        <div>Copyright © <?php echo $GLOBALS['_site_year']; ?> <?php echo htmlspecialchars($GLOBALS['_site_website'], ENT_QUOTES, 'UTF-8'); ?></div>
+                    </div>
+                </div>
+                <!-- 底部操作栏：确认签收 + 我要反馈 -->
+                <div class="action-bar" id="actionBar" style="display:none;">
+                    <button class="btn btn-primary" id="confirmBtn" onclick="confirmBonus()">✅ 确认签收</button>
+                    <button class="btn btn-feedback" id="feedbackBtn" onclick="submitFeedback()">📋 我要反馈</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部Tab导航 -->
+        <nav class="tab-bar">
+            <a href="/employee/salary" class="tab-item">
+                <span class="icon">💰</span><span>首页</span>
+            </a>
+            <a href="/employee/history" class="tab-item">
+                <span class="icon">💵</span><span>工资</span>
+            </a>
+            <a href="/employee/bonus" class="tab-item active">
+                <span class="icon">🎁</span><span>奖金</span>
+            </a>
+            <a href="/employee/feedback" class="tab-item">
+                <span class="icon">📋</span><span>反馈</span>
+            </a>
+            <a href="/employee/vacation" class="tab-item">
+                <span class="icon">🏖️</span><span>年假</span>
+            </a>
+        </nav>
+    </div>
+
+    <script>
+        let currentUser = null;
+        let currentBonusId = null;
+        let currentBonusInfo = null; // {year, bonus_type}
+        // 金额默认隐藏（与工资条首页/详情页行为一致）
+        const _state = { amountShow: false, detailShow: false };
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            await checkLogin();
+        });
+
+        /**
+         * 检查登录状态，未登录跳转登录页
+         */
+        async function checkLogin() {
+            try {
+                const resp = await fetch('/api/auth/me');
+                if (resp.status === 401) {
+                    window.location.href = '/api/auth/login?redirect=/employee/bonus';
+                    return;
+                }
+                currentUser = await resp.json();
+                if (!currentUser.logged_in) {
+                    window.location.href = '/api/auth/login?redirect=/employee/bonus';
+                    return;
+                }
+                if (!currentUser.password_set) {
+                    window.location.href = '/employee/password';
+                    return;
+                }
+                loadBonusList();
+            } catch (e) {
+                console.error('checkLogin error', e);
+                weui.topTips('获取用户信息失败');
+            }
+        }
+
+        /**
+         * 加载奖金列表（按年份分组）
+         */
+        async function loadBonusList() {
+            try {
+                const resp = await fetch('/api/bonus/employee');
+                if (resp.status === 401) {
+                    window.location.href = '/api/auth/login?redirect=/employee/bonus';
+                    return;
+                }
+                const data = await resp.json();
+                if (data.need_password) {
+                    if (data.need_setup) {
+                        window.location.href = '/employee/password';
+                    } else {
+                        showPasswordOverlay('查看奖金信息需要验证密码');
+                    }
+                    return;
+                }
+                if (!data.success) {
+                    weui.topTips(data.error || '加载失败');
+                    return;
+                }
+                document.getElementById('mainContent').style.display = 'block';
+                renderBonusList(data.list || []);
+
+                // 从企微推送链接带 ?id=xxx 进入时，自动打开对应奖金详情
+                const urlParams = new URLSearchParams(window.location.search);
+                const targetId = parseInt(urlParams.get('id'), 10);
+                if (targetId > 0) {
+                    // 列表渲染完成后延时打开详情，确保 DOM 就绪
+                    setTimeout(function() { openDetail(targetId); }, 200);
+                }
+            } catch (e) {
+                console.error('loadBonusList error', e);
+                weui.topTips('加载奖金数据失败');
+            }
+        }
+
+        /**
+         * 渲染按年份分组的奖金列表
+         */
+        function renderBonusList(list) {
+            const container = document.getElementById('bonusList');
+            container.className = '';
+            container.innerHTML = '';
+
+            if (!list.length) {
+                container.innerHTML = '<div class="empty"><div class="icon">🎁</div><div>暂无奖金记录</div></div>';
+                return;
+            }
+
+            list.forEach(yearGroup => {
+                const yg = document.createElement('div');
+                yg.className = 'year-group';
+                yg.dataset.year = yearGroup.year;
+
+                const yearHeader = document.createElement('div');
+                yearHeader.className = 'year-header';
+                yearHeader.onclick = function() { yg.classList.toggle('collapsed'); };
+                yearHeader.innerHTML =
+                    '<div class="y-left">' +
+                        '<span class="arrow">▼</span>' +
+                        '<span>' + esc(yearGroup.year) + '年</span>' +
+                    '</div>' +
+                    '<div style="display:flex;align-items:center;gap:8px;">' +
+                        '<div class="y-total' + (_state.amountShow ? '' : ' blur-amount') + '">¥' + fmtNum(yearGroup.total) + '</div>' +
+                    '</div>';
+                yg.appendChild(yearHeader);
+
+                const yearContent = document.createElement('div');
+                yearContent.className = 'year-content';
+
+                (yearGroup.items || []).forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'bonus-card';
+                    card.onclick = function() { openDetail(item.id); };
+
+                    const statusText = item.confirmed ? '✅ 已确认' : '⏳ 待确认';
+                    const statusClass = item.confirmed ? 'confirmed' : 'pending';
+
+                    card.innerHTML =
+                        '<div class="bc-top">' +
+                            '<div class="bc-type">' + esc(item.bonus_type) + '</div>' +
+                            '<div class="bc-status ' + statusClass + '">' + statusText + '</div>' +
+                        '</div>' +
+                        '<div class="bc-amount-row">' +
+                            '<div class="bc-amount' + (_state.amountShow ? '' : ' blur-amount') + '"><span class="currency">¥</span>' + fmtNum(item.amount) + '</div>' +
+                            '<a href="javascript:;" class="toggle-eye-btn bc-eye" onclick="event.stopPropagation();toggleAmount()" data-card-eye="1" title="显示/隐藏金额">' + (_state.amountShow ? '👁' : '🙈') + '</a>' +
+                        '</div>';
+                    yearContent.appendChild(card);
+                });
+
+                yg.appendChild(yearContent);
+                container.appendChild(yg);
+            });
+        }
+
+        /**
+         * 打开奖金详情视图并加载数据（内嵌视图切换，与工资详情页一致）
+         */
+        async function openDetail(id) {
+            currentBonusId = id;
+            // 切换视图：隐藏列表，显示详情
+            document.getElementById('listView').style.display = 'none';
+            document.getElementById('detailView').style.display = 'block';
+            document.getElementById('detailItems').className = 'loading';
+            document.getElementById('detailItems').innerHTML = '加载中...';
+            document.getElementById('actionBar').style.display = 'none';
+            // 更新 URL 以支持刷新保持详情
+            const url = new URL(window.location.href);
+            url.searchParams.set('id', id);
+            window.history.replaceState({}, '', url.toString());
+            // 滚动到顶部
+            window.scrollTo(0, 0);
+
+            try {
+                const resp = await fetch('/api/bonus/detail/' + id);
+                if (resp.status === 401) {
+                    window.location.href = '/api/auth/login?redirect=/employee/bonus';
+                    return;
+                }
+                const data = await resp.json();
+                if (data.need_password) {
+                    // 需要密码时回到列表视图
+                    document.getElementById('listView').style.display = 'block';
+                    document.getElementById('detailView').style.display = 'none';
+                    if (data.need_setup) {
+                        window.location.href = '/employee/password';
+                    } else {
+                        showPasswordOverlay('查看奖金详情需要验证密码');
+                    }
+                    return;
+                }
+                if (!data.success) {
+                    document.getElementById('detailItems').className = '';
+                    document.getElementById('detailItems').innerHTML = '<div class="empty"><div class="icon">⚠️</div><div>' + esc(data.error || '加载失败') + '</div></div>';
+                    return;
+                }
+                renderDetail(data);
+            } catch (e) {
+                console.error('openDetail error', e);
+                document.getElementById('detailItems').className = '';
+                document.getElementById('detailItems').innerHTML = '<div class="empty"><div class="icon">⚠️</div><div>加载失败</div></div>';
+            }
+        }
+
+        /**
+         * 渲染奖金详情：顶部信息卡 + 按 category 分组的明细
+         */
+        function renderDetail(data) {
+            const bonus = data.bonus || {};
+            const items = data.items || [];
+            currentBonusInfo = { year: bonus.year, bonus_type: bonus.bonus_type };
+
+            document.getElementById('detailType').textContent = (bonus.year ? bonus.year + '年' : '') + (bonus.bonus_type || '—');
+            const amtEl = document.getElementById('detailAmount');
+            amtEl.textContent = fmtNum(bonus.amount);
+            fitAmountFont(amtEl);
+            // 详情打开时重置为隐藏状态
+            _state.detailShow = false;
+            amtEl.classList.add('blur-amount');
+            const detailEye = document.getElementById('detailEye');
+            if (detailEye) detailEye.textContent = '🙈';
+
+            const statusEl = document.getElementById('detailStatus');
+            statusEl.textContent = bonus.confirmed ? '✅ 已确认' : '⏳ 待确认';
+
+            const container = document.getElementById('detailItems');
+            container.className = '';
+            container.innerHTML = '';
+
+            // 过滤：排除"实发奖金"项和 0 值项
+            const filtered = items.filter(item => {
+                if (String(item.item_name).indexOf('实发奖金') !== -1) return false;
+                if (parseNum(item.item_value) === 0) return false;
+                return true;
+            });
+
+            if (!filtered.length) {
+                container.innerHTML = '<div class="empty"><div class="icon">📭</div><div>暂无明细项</div></div>';
+                document.getElementById('actionBar').style.display = 'none';
+                return;
+            }
+
+            // 按 category 分组
+            const groups = {};
+            const groupOrder = [];
+            filtered.forEach(item => {
+                const cat = item.category || '';
+                if (!groups[cat]) {
+                    groups[cat] = [];
+                    groupOrder.push(cat);
+                }
+                groups[cat].push(item);
+            });
+
+            groupOrder.forEach(cat => {
+                const groupItems = groups[cat];
+                const groupCard = document.createElement('div');
+                groupCard.className = 'group-card';
+
+                if (!cat) {
+                    // 无分组名：直接平铺
+                    groupItems.forEach(item => groupCard.appendChild(createItemRow(item)));
+                } else {
+                    const header = document.createElement('div');
+                    header.className = 'group-header ' + getGroupType(groupItems);
+                    header.textContent = cat;
+                    groupCard.appendChild(header);
+                    groupItems.forEach(item => groupCard.appendChild(createItemRow(item)));
+                }
+
+                container.appendChild(groupCard);
+            });
+
+            // 备注卡片（空则不显示）
+            var remark = (bonus.remark || '').trim();
+            if (remark) {
+                var rc = document.createElement('div');
+                rc.className = 'remark-card';
+                rc.innerHTML =
+                    '<div class="remark-header">📝 备注</div>' +
+                    '<div class="remark-body">' + esc(remark) + '</div>';
+                container.appendChild(rc);
+            }
+
+            // 已确认时隐藏"确认签收"，仅保留"我要反馈"
+            document.getElementById('confirmBtn').style.display = bonus.confirmed ? 'none' : '';
+            document.getElementById('actionBar').style.display = 'flex';
+        }
+
+        /**
+         * 创建单条明细行（扣除项显示红色负数）
+         */
+        function createItemRow(item) {
+            const row = document.createElement('div');
+            row.className = 'item-row';
+            const isDed = item.is_deduction == 1;
+            const val = parseNum(item.item_value);
+            // 扣除项数据库存正数，前端显示为负数
+            const valText = isDed ? '-¥' + fmtNum(Math.abs(val)) : '¥' + fmtNum(val);
+            row.innerHTML =
+                '<span class="item-name">' + esc(item.item_name) + '</span>' +
+                '<span class="item-value ' + (isDed ? 'deduction' : '') + (_state.detailShow ? '' : ' blur-amount') + '">' + valText + '</span>';
+            return row;
+        }
+
+        /**
+         * 判断分组类型：全扣除→deduction，全收入→income，混合→other
+         */
+        function getGroupType(items) {
+            const allDed = items.every(i => i.is_deduction == 1);
+            const noneDed = items.every(i => i.is_deduction != 1);
+            if (allDed) return 'deduction';
+            if (noneDed) return 'income';
+            return 'other';
+        }
+
+        /**
+         * 关闭详情遮罩并刷新列表（同步确认状态）
+         */
+        function closeDetail() {
+            // 切换视图：隐藏详情，显示列表
+            document.getElementById('detailView').style.display = 'none';
+            document.getElementById('listView').style.display = 'block';
+            // 清除当前详情状态，避免列表页密码验证误判为详情场景
+            currentBonusId = null;
+            // 清除 URL 中的 id 参数
+            const url = new URL(window.location.href);
+            url.searchParams.delete('id');
+            window.history.replaceState({}, '', url.toString());
+            // 滚动到顶部
+            window.scrollTo(0, 0);
+            loadBonusList();
+        }
+
+        /**
+         * 确认签收奖金
+         */
+        function confirmBonus() {
+            if (!currentBonusId) return;
+            weui.confirm('确认后表示您已收到并核实该笔奖金，确定要确认签收吗？', async function() {
+                try {
+                    const resp = await fetch('/api/bonus/confirm', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({id: currentBonusId})
+                    });
+                    const data = await resp.json();
+                    if (data.success) {
+                        weui.toast('✅ 确认成功', 1500);
+                        setTimeout(function() { openDetail(currentBonusId); }, 1500);
+                    } else if (data.need_password) {
+                        // 需要密码时回到列表视图
+                        document.getElementById('detailView').style.display = 'none';
+                        document.getElementById('listView').style.display = 'block';
+                        showPasswordOverlay('确认奖金需要验证密码');
+                    } else {
+                        weui.topTips(data.error || '操作失败');
+                    }
+                } catch (e) {
+                    weui.topTips('网络错误');
+                }
+            }, function() {}, {title: '确认签收'});
+        }
+
+        /**
+         * 提交反馈：跳转到反馈页，带上当前奖金 ID
+         */
+        function submitFeedback() {
+            if (!currentBonusId) return;
+            var url = '/employee/feedback?bonus_id=' + currentBonusId;
+            if (currentBonusInfo && currentBonusInfo.year) {
+                url += '&bonus_year=' + encodeURIComponent(currentBonusInfo.year)
+                    + '&bonus_type=' + encodeURIComponent(currentBonusInfo.bonus_type || '');
+            }
+            window.location.href = url;
+        }
+
+        // ===== 密码验证 =====
+        function showPasswordOverlay(tip) {
+            document.getElementById('passwordOverlay').style.display = 'flex';
+            document.getElementById('pwSubtitle').textContent = tip || '查看奖金信息需要验证密码';
+            document.getElementById('passwordInput').value = '';
+            setTimeout(function() { document.getElementById('passwordInput').focus(); }, 300);
+        }
+
+        async function verifyPassword() {
+            const pw = document.getElementById('passwordInput').value;
+            if (!pw) { weui.topTips('请输入密码'); return; }
+            try {
+                const resp = await fetch('/api/auth/password/verify', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({password: pw})
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    weui.toast('验证成功', 800);
+                    setTimeout(function() {
+                        document.getElementById('passwordOverlay').style.display = 'none';
+                        // 如果是从详情页触发的密码验证，重新打开详情；否则刷新列表
+                        if (currentBonusId) {
+                            openDetail(currentBonusId);
+                        } else {
+                            loadBonusList();
+                        }
+                    }, 800);
+                } else if (data.need_setup) {
+                    window.location.href = '/employee/password';
+                } else {
+                    weui.topTips(data.error || '密码错误');
+                }
+            } catch (e) {
+                weui.topTips('网络错误');
+            }
+        }
+
+        // ===== 金额显示/隐藏切换 =====
+        // 列表页：切换年份合计和卡片金额的模糊状态，并同步所有卡片眼睛图标
+        function toggleAmount() {
+            _state.amountShow = !_state.amountShow;
+            const icon = _state.amountShow ? '👁' : '🙈';
+            // 同步所有卡片上的眼睛图标
+            document.querySelectorAll('[data-card-eye="1"]').forEach(function(el) {
+                el.textContent = icon;
+            });
+            document.querySelectorAll('#bonusList .y-total, #bonusList .bc-amount').forEach(function(el) {
+                if (_state.amountShow) el.classList.remove('blur-amount');
+                else el.classList.add('blur-amount');
+            });
+        }
+
+        function fitAmountFont(el) {
+            if (!el) return;
+            const len = el.textContent.trim().length;
+            if (len <= 8) el.style.fontSize = '36px';
+            else if (len <= 12) el.style.fontSize = '30px';
+            else if (len <= 15) el.style.fontSize = '24px';
+            else el.style.fontSize = '20px';
+        }
+        // 详情页：切换实发奖金和明细项金额的模糊状态
+        function toggleDetailAmount() {
+            _state.detailShow = !_state.detailShow;
+            const eye = document.getElementById('detailEye');
+            if (eye) eye.textContent = _state.detailShow ? '👁' : '🙈';
+            const amt = document.getElementById('detailAmount');
+            if (amt) {
+                if (_state.detailShow) amt.classList.remove('blur-amount');
+                else amt.classList.add('blur-amount');
+            }
+            document.querySelectorAll('#detailItems .item-value').forEach(function(el) {
+                if (_state.detailShow) el.classList.remove('blur-amount');
+                else el.classList.add('blur-amount');
+            });
+        }
+
+        // ===== 工具函数 =====
+        // XSS 防护：转义 HTML 特殊字符
+        function esc(s) {
+            var d = document.createElement('div');
+            d.textContent = s == null ? '' : String(s);
+            return d.innerHTML;
+        }
+
+        // 解析数值（容错：去除非数字字符）
+        function parseNum(val) {
+            var s = String(val || '').replace(/[^\d.\-]/g, '');
+            var n = parseFloat(s);
+            return isNaN(n) ? 0 : n;
+        }
+
+        // 格式化金额：千分位 + 两位小数
+        function fmtNum(val) {
+            var n = parseNum(val);
+            var parts = n.toFixed(2).split('.');
+            parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            return parts.join('.');
+        }
+
+        // 密码显示切换
+        document.getElementById('eyeBtn').addEventListener('click', function() {
+            const input = document.getElementById('passwordInput');
+            if (input.type === 'password') {
+                input.type = 'text';
+                this.textContent = '🙈';
+            } else {
+                input.type = 'password';
+                this.textContent = '👁';
+            }
+        });
+
+        document.getElementById('pwConfirmBtn').addEventListener('click', verifyPassword);
+        document.getElementById('passwordInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') verifyPassword();
+        });
+    </script>
+</body>
+</html>

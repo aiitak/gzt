@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0">
+    <title>权限控制</title>
+    <link rel="stylesheet" href="/assets/weui.min.css?v=20260807a">
+    <link rel="stylesheet" href="/assets/admin.css?v=20260807a">
+    <script src="/assets/weui.min.js?v=20260807a"></script>
+    <script src="/assets/admin.js?v=20260807a"></script>
+    <style>
+        body { background:#f5f5f5; }
+        .page { max-width: 900px; margin: 0 auto; padding: 15px; }
+        .card {
+            background:#fff; border-radius:12px; padding:18px 20px; margin-bottom:15px;
+            box-shadow:0 2px 8px rgba(0,0,0,.06);
+        }
+        .card-title { font-size:16px; font-weight:700; margin-bottom:6px; padding-bottom:10px; border-bottom:2px solid #07c160; }
+        .card-desc { font-size:13px; color:#888; margin:8px 0 14px; line-height:1.6; }
+        .card-desc b { color:#e08a00; }
+        /* 权限矩阵表格 */
+        .access-matrix { width:100%; border-collapse:collapse; font-size:13px; min-width:480px; }
+        .access-matrix thead tr { background:#f5f7fa; }
+        .access-matrix thead th { padding:10px 12px; text-align:center; border-bottom:1px solid #e7ebf0; }
+        .access-matrix thead th:first-child { text-align:left; }
+        .access-matrix tbody tr { transition:background .15s; }
+        .access-matrix tbody tr:nth-child(even) { background:#fafbfc; }
+        .access-matrix tbody tr:hover { background:#ebf4ff; }
+        .access-matrix tbody td { padding:9px 12px; border-bottom:1px solid #eef1f5; }
+        .access-matrix tbody tr:last-child td { border-bottom:none; }
+        .access-matrix tbody td.page-cell { font-weight:500; color:#333; }
+        .access-matrix tbody td.page-cell .ic { margin-right:6px; }
+        .access-matrix input[type="checkbox"] { width:18px; height:18px; cursor:pointer; accent-color:#07c160; vertical-align:middle; }
+        .access-matrix .locked-tag { display:inline-block; font-size:11px; color:#fff; background:#07c160; border-radius:8px; padding:1px 8px; }
+        .matrix-wrap { overflow-x:auto; border:1px solid #e7ebf0; border-radius:10px; }
+        .actions { display:flex; gap:10px; margin-top:16px; }
+        .btn { display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:10px 22px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; border:none; text-decoration:none; transition:all .15s; }
+        .btn--primary { background:#07c160; color:#fff; box-shadow:0 2px 6px rgba(7,193,96,.25); }
+        .btn--primary:hover { background:#06ad56; }
+        .btn--ghost { background:#fff; color:#576b95; border:1px solid #d0d7e2; }
+        .btn--ghost:hover { background:#f5f7fa; }
+        .hint { font-size:12px; color:#888; margin-top:10px; line-height:1.6; }
+        /* 复用 settings 的 toast/loading 风格 */
+        #ad-toast { position:fixed; left:50%; top:16px; transform:translateX(-50%) translateY(-20px); background:rgba(40,45,55,.92); color:#fff; padding:8px 16px; border-radius:8px; font-size:13px; line-height:1.4; z-index:9999; opacity:0; pointer-events:none; transition:opacity .2s, transform .2s; max-width:86%; text-align:center; box-shadow:0 4px 14px rgba(0,0,0,.18); }
+        #ad-toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+        #ad-toast.ad-toast--ok { background:rgba(7,193,96,.95); }
+        #ad-toast.ad-toast--err { background:rgba(250,81,81,.96); }
+        .ad-loading-mask { position:fixed; inset:0; background:rgba(0,0,0,.35); display:flex; align-items:center; justify-content:center; z-index:9998; opacity:0; pointer-events:none; transition:opacity .2s; }
+        .ad-loading-mask.show { opacity:1; pointer-events:auto; }
+        .ad-loading-box { background:#fff; padding:18px 24px; border-radius:10px; display:flex; align-items:center; gap:12px; box-shadow:0 6px 20px rgba(0,0,0,.15); }
+        .ad-spinner { width:22px; height:22px; border:2.5px solid #e3e7ed; border-top-color:#07c160; border-radius:50%; animation:ad-spin .8s linear infinite; }
+        @keyframes ad-spin { to { transform:rotate(360deg); } }
+        .ad-loading-text { font-size:14px; color:#333; }
+    </style>
+</head>
+<body>
+    <header class="ad-appbar">
+        <a class="ad-appbar__back" href="/admin/dashboard" aria-label="返回">‹</a>
+        <div class="ad-appbar__title"><span class="ic">🔐</span><span>权限控制</span></div>
+        <div class="ad-appbar__actions">
+            <a class="ad-appbar__btn" href="javascript:doLogout()">退出</a>
+        </div>
+    </header>
+
+    <div class="page">
+        <div class="card">
+            <div class="card-title">🔐 角色页面访问权限</div>
+            <div class="card-desc">
+                勾选允许访问的后台页面。<b>管理员</b>始终拥有全部页面权限（不可取消）。保存后立即生效，影响「数据概览」菜单显示与各页面访问。
+            </div>
+
+            <div class="matrix-wrap">
+                <table class="access-matrix">
+                    <thead>
+                        <tr>
+                            <th>后台页面</th>
+                            <th style="width:90px;">管理员</th>
+                            <th style="width:90px;">财务</th>
+                            <th style="width:90px;">人事</th>
+                        </tr>
+                    </thead>
+                    <tbody id="accessMatrixBody">
+                        <tr><td colspan="4" style="padding:24px;text-align:center;color:#888;">加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="hint">提示：取消某角色的页面权限后，该角色账号将看不到对应菜单，直接访问链接也会被拦截。</div>
+
+            <div class="actions">
+                <button class="btn btn--primary" onclick="savePageAccess()">💾 保存权限设置</button>
+                <button class="btn btn--ghost" onclick="resetPageAccessDefault()">↺ 恢复默认</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== 轻量 toast / loading =====
+        let _toastTimer = null;
+        function toast(msg, type) {
+            let el = document.getElementById('ad-toast');
+            if (!el) { el = document.createElement('div'); el.id = 'ad-toast'; document.body.appendChild(el); }
+            el.className = 'ad-toast' + (type ? ' ad-toast--' + type : '');
+            el.textContent = msg;
+            void el.offsetWidth;
+            el.classList.add('show');
+            clearTimeout(_toastTimer);
+            _toastTimer = setTimeout(function () { el.classList.remove('show'); }, 2000);
+        }
+        function ok(msg) { toast(msg, 'ok'); }
+        function fail(msg) { toast(msg || '操作失败，请重试', 'err'); }
+        let _loadingEl = null;
+        function showLoading(msg) {
+            if (!_loadingEl) {
+                _loadingEl = document.createElement('div');
+                _loadingEl.className = 'ad-loading-mask';
+                _loadingEl.innerHTML = '<div class="ad-loading-box"><div class="ad-spinner"></div><div class="ad-loading-text"></div></div>';
+                document.body.appendChild(_loadingEl);
+            }
+            _loadingEl.querySelector('.ad-loading-text').textContent = msg || '处理中...';
+            _loadingEl.classList.add('show');
+        }
+        function hideLoading() { if (_loadingEl) _loadingEl.classList.remove('show'); }
+
+        // ===== 权限控制：角色×页面访问矩阵 =====
+        let _accessPages = [];      // 后台页面定义列表
+        let _accessData = {};       // 当前权限矩阵 { finance:[...], hr:[...] }
+
+        async function loadPageAccess() {
+            const body = document.getElementById('accessMatrixBody');
+            try {
+                const resp = await fetch('/api/admin/page_access');
+                const data = await resp.json();
+                if (!data.success) {
+                    body.innerHTML = '<tr><td colspan="4" style="padding:24px;text-align:center;color:#e64340;">' + esc(data.error || '加载失败') + '</td></tr>';
+                    return;
+                }
+                _accessPages = data.pages || [];
+                _accessData = data.access || {};
+                renderAccessMatrix();
+            } catch (e) {
+                body.innerHTML = '<tr><td colspan="4" style="padding:24px;text-align:center;color:#e64340;">网络错误，加载失败</td></tr>';
+            }
+        }
+
+        function renderAccessMatrix() {
+            const body = document.getElementById('accessMatrixBody');
+            if (!_accessPages.length) {
+                body.innerHTML = '<tr><td colspan="4" style="padding:24px;text-align:center;color:#888;">暂无页面定义</td></tr>';
+                return;
+            }
+            const adminPages = _accessData['admin'] || [];
+            const finPages = _accessData['finance'] || [];
+            const hrPages = _accessData['hr'] || [];
+            let html = '';
+            _accessPages.forEach(function (p) {
+                const icon = esc(p.icon || '');
+                const label = esc(p.label || p.page);
+                const inAdmin = adminPages.indexOf(p.page) >= 0;
+                const inFin = finPages.indexOf(p.page) >= 0;
+                const inHr = hrPages.indexOf(p.page) >= 0;
+                // 管理员行（如本页本身 access）：锁定显示，但仍展示√以便直观
+                html += '<tr>'
+                    + '<td class="page-cell"><span class="ic">' + icon + '</span>' + label + '</td>'
+                    + '<td style="text-align:center;">' + (inAdmin ? '<span class="locked-tag">√</span>' : '<span style="color:#bbb;">—</span>') + '</td>'
+                    + '<td style="text-align:center;"><input type="checkbox" data-role="finance" data-page="' + esc(p.page) + '"' + (inFin ? ' checked' : '') + '></td>'
+                    + '<td style="text-align:center;"><input type="checkbox" data-role="hr" data-page="' + esc(p.page) + '"' + (inHr ? ' checked' : '') + '></td>'
+                    + '</tr>';
+            });
+            body.innerHTML = html;
+        }
+
+        async function savePageAccess() {
+            const checks = document.querySelectorAll('#accessMatrixBody input[type="checkbox"]');
+            const payload = { finance: [], hr: [] };
+            checks.forEach(function (c) {
+                if (c.checked) {
+                    const role = c.getAttribute('data-role');
+                    const page = c.getAttribute('data-page');
+                    if (payload[role]) payload[role].push(page);
+                }
+            });
+            showLoading('保存中...');
+            try {
+                const resp = await fetch('/api/admin/page_access', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+                const data = await resp.json();
+                hideLoading();
+                if (data.success) {
+                    ok('权限设置已保存');
+                    _accessData['finance'] = payload.finance;
+                    _accessData['hr'] = payload.hr;
+                } else {
+                    fail(data.error || '保存失败');
+                }
+            } catch (e) { hideLoading(); fail('网络错误，保存失败'); }
+        }
+
+        async function resetPageAccessDefault() {
+            if (!confirm('确定恢复为默认权限？财务/人事将按系统默认规则访问页面。')) return;
+            showLoading('恢复中...');
+            try {
+                // 调用后端 action=reset 清空自定义配置，让 get_role_page_access() 返回 null，
+                // 从而动态使用 get_page_definitions() 的最新默认权限（避免快照失效）
+                const resp = await fetch('/api/admin/page_access?action=reset', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                });
+                const data = await resp.json();
+                hideLoading();
+                if (data.success) {
+                    ok('已恢复默认权限');
+                    await loadPageAccess();
+                } else {
+                    fail(data.error || '恢复失败');
+                }
+            } catch (e) { hideLoading(); fail('网络错误，恢复失败'); }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadPageAccess);
+    </script>
+</body>
+</html>

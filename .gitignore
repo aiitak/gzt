@@ -1,0 +1,6 @@
+config.local.php
+salary_data/
+*.sqlite3
+*.db
+uploads/
+*.log

@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0">
+    <title>工资详情</title>
+    <link rel="stylesheet" href="/assets/weui.min.css?v=20260807a">
+    <script src="/assets/weui.min.js?v=20260807a"></script>
+    <script src="/assets/money.js?v=20260807a"></script>
+    <style>
+        :root { --theme: <?php echo htmlspecialchars($GLOBALS['_site_theme'], ENT_QUOTES, 'UTF-8'); ?>; }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            background: #f5f5f5;
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif;
+        }
+        .nav-bar {
+            position: sticky;
+            top: 0;
+            background: #fff;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            padding: 10px 16px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .nav-bar .back {
+            display: flex;
+            align-items: center;
+            color: #333;
+            text-decoration: none;
+            font-size: 16px;
+        }
+        .nav-bar .back:active { opacity: 0.6; }
+        .nav-bar .back .arrow { font-size: 20px; margin-right: 4px; }
+        .nav-bar .title {
+            flex: 1;
+            text-align: center;
+            font-size: 17px;
+            font-weight: 500;
+            color: #333;
+        }
+        .nav-bar .nav-feedback {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 12px;
+            height: 32px;
+            border-radius: 14px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            color: var(--theme);
+            background: #f0faf4;
+            transition: background 0.15s;
+        }
+        .nav-bar .nav-feedback:active { background: #e0f0e8; }
+        .nav-bar .nav-actions {
+            position: absolute;
+            right: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .nav-bar .nav-back {
+            position: absolute;
+            left: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 12px;
+            height: 32px;
+            border-radius: 14px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            color: var(--theme);
+            background: #f0faf4;
+            transition: background 0.15s;
+        }
+        .nav-bar .nav-back:active { background: #e0f0e8; }
+        .page { padding: 12px 12px 160px; }
+
+        .info-card {
+            background: linear-gradient(135deg, var(--theme) 0%, #06ad56 100%);
+            border-radius: 16px;
+            padding: 20px;
+            color: #fff;
+            margin-bottom: 12px;
+            box-shadow: 0 4px 16px rgba(7, 193, 96, 0.3);
+        }
+
+        .ann-bar {
+            background: #fff8e1;
+            border-left: 3px solid #ffa726;
+            padding: 10px 44px 10px 14px;
+            font-size: 13px;
+            color: #666;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            position: relative;
+        }
+        .ann-bar .gear-btn {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            background: rgba(255,167,38,0.15);
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 13px;
+            color: #e67e22;
+            text-decoration: none;
+            transition: all 0.15s;
+        }
+        .ann-bar .gear-btn:active { background: rgba(255,167,38,0.3); }
+        .info-card .two-col {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .info-card .col-left {
+            flex: 1;
+            min-width: 0;
+        }
+        .info-card .col-right {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: flex-end;
+            flex-shrink: 0;
+        }
+        .info-card .row-top {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+        }
+        .info-card .row-bottom {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .info-card .emp-name {
+            font-size: 14px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        .info-card .amount {
+            display: flex;
+            align-items: baseline;
+            font-size: 36px;
+            font-weight: bold;
+            margin: 0;
+            line-height: 1.1;
+            min-width: 0;
+        }
+        .info-card .amount .currency {
+            font-size: 22px;
+            font-weight: normal;
+            opacity: 0.8;
+            flex-shrink: 0;
+            margin-right: 2px;
+        }
+        .info-card .amount #realPay {
+            min-width: 0;
+            overflow-wrap: break-all;
+        }
+        .info-card .toggle-eye-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 14px;
+            color: #fff;
+            flex-shrink: 0;
+        }
+        .info-card .status {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            background: rgba(255,255,255,0.2);
+            margin-right: 15px;
+        }
+
+        .group-card {
+            background: #fff;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            overflow: hidden;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        }
+        .group-header {
+            font-size: 15px;
+            font-weight: 600;
+            padding: 12px 16px;
+            background: #f9f9f9;
+            border-left: 3px solid var(--theme);
+            color: #333;
+        }
+        .group-header.level-1 {
+            font-size: 15px;
+            background: #f0faf4;
+            border-left: 3px solid var(--theme);
+        }
+        .group-header.level-2 {
+            font-size: 14px;
+            background: #f5fbf7;
+            border-left: 3px solid #4cd964;
+            padding-left: 30px;
+        }
+        .group-header.level-3 {
+            font-size: 13px;
+            background: #fafafa;
+            border-left: 3px solid #e5e5e5;
+            padding-left: 40px;
+            color: #666;
+        }
+        .item-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid #f5f5f5;
+            font-size: 14px;
+        }
+        .item-row:last-child { border-bottom: none; }
+        .item-row .item-name { color: #333; }
+        .item-row .item-value { font-weight: 500; color: #333; }
+        .item-row .item-value.deduction { color: #e64340; }
+
+        .single-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 16px;
+            background: #f9f9f9;
+            font-size: 15px;
+            font-weight: 500;
+            border-bottom: 1px solid #eee;
+        }
+        .single-item .value { color: var(--theme); font-weight: bold; }
+        .single-item .value.deduction { color: #e64340; }
+
+        .empty-group {
+            padding: 12px 16px;
+            font-size: 14px;
+            color: #999;
+            text-align: center;
+        }
+
+        .tab-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            background: #fff;
+            border-top: 1px solid #eee;
+            padding: 6px 0;
+            padding-bottom: calc(6px + env(safe-area-inset-bottom));
+            z-index: 100;
+            box-shadow: 0 -1px 6px rgba(0,0,0,0.04);
+        }
+        .tab-bar .tab-item {
+            flex: 1;
+            text-align: center;
+            padding: 6px 0;
+            text-decoration: none;
+            color: #999;
+            font-size: 11px;
+            transition: color 0.15s;
+        }
+        .tab-bar .tab-item .icon { font-size: 22px; display: block; margin-bottom: 2px; }
+        .tab-bar .tab-item.active { color: var(--theme); }
+
+        .footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 12px;
+            color: #bbb;
+        }
+        .footer .company { margin-bottom: 4px; }
+
+        .password-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(180deg, #f0faf4 0%, #f5f5f5 100%);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .password-box {
+            width: 100%;
+            max-width: 340px;
+            background: #fff;
+            border-radius: 20px;
+            padding: 36px 28px 28px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+            text-align: center;
+            animation: slideUp 0.35s ease;
+        }
+        .password-box .pw-icon {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--theme) 0%, #06ad56 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 34px;
+            margin: 0 auto 14px;
+            box-shadow: 0 6px 16px rgba(7,193,96,0.3);
+            overflow: hidden;
+        }
+        .password-box .pw-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+        .password-box .brand-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--theme);
+            margin-bottom: 2px;
+        }
+        .password-box .brand-subtitle {
+            font-size: 12px;
+            color: #bbb;
+            margin-bottom: 20px;
+        }
+        .password-box .title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #1a1a1a;
+        }
+        .password-box .subtitle {
+            font-size: 13px;
+            color: #999;
+            margin-bottom: 28px;
+            line-height: 1.5;
+        }
+        .password-box .pwd-eye-wrap {
+            position: relative;
+            display: block;
+            margin-bottom: 20px;
+        }
+        .password-box .pwd-eye-wrap input {
+            width: 100%;
+            height: 50px;
+            border: 1.5px solid #e5e5e5;
+            border-radius: 12px;
+            padding: 0 44px 0 16px;
+            font-size: 16px;
+            background: #f9f9f9;
+            outline: none;
+            transition: all 0.25s;
+            -webkit-appearance: none;
+        }
+        .password-box .pwd-eye-wrap input:focus {
+            border-color: var(--theme);
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(7,193,96,0.1);
+        }
+        .password-box .pwd-eye {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            font-size: 18px;
+            user-select: none;
+            color: #bbb;
+            z-index: 2;
+            transition: color 0.15s;
+        }
+        .password-box .pwd-eye:active { color: var(--theme); }
+        .password-box .pw-btn {
+            width: 100%;
+            height: 50px;
+            background: linear-gradient(135deg, var(--theme) 0%, #06ad56 100%);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 14px rgba(7,193,96,0.3);
+            text-decoration: none;
+            line-height: 50px;
+            display: block;
+        }
+        .password-box .pw-btn:active {
+            transform: scale(0.98);
+            box-shadow: 0 2px 8px rgba(7,193,96,0.2);
+        }
+        .password-box .pw-btn-secondary {
+            width: 100%;
+            height: 44px;
+            background: #fff;
+            color: #666;
+            border: 1px solid #e5e5e5;
+            border-radius: 12px;
+            font-size: 15px;
+            margin-top: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            line-height: 44px;
+            display: block;
+        }
+        .password-box .pw-btn-secondary:active {
+            background: #f5f5f5;
+        }
+        .password-box .pw-footer {
+            margin-top: 18px;
+            font-size: 12px;
+            color: #bbb;
+        }
+
+        .loading { text-align: center; padding: 60px 20px; color: #999; }
+        .empty { text-align: center; padding: 80px 20px; color: #999; }
+        .empty .icon { font-size: 48px; margin-bottom: 10px; }
+
+        .action-bar {
+            position: fixed;
+            bottom: calc(60px + 20px + env(safe-area-inset-bottom));
+            left: 0;
+            right: 0;
+            display: flex;
+            padding: 8px 12px 6px;
+            background: rgba(255,255,255,0.96);
+            backdrop-filter: blur(12px);
+            border-top: 1px solid rgba(0,0,0,0.04);
+            z-index: 90;
+        }
+        .action-bar .btn {
+            flex: 1;
+            height: 50px;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .action-bar .btn-primary {
+            background: linear-gradient(135deg, var(--theme) 0%, #06ad56 100%);
+            color: #fff;
+            box-shadow: 0 4px 16px rgba(7,193,96,0.3);
+        }
+        .action-bar .btn-primary:active {
+            transform: scale(0.97);
+            box-shadow: 0 2px 8px rgba(7,193,96,0.25);
+        }
+        .action-bar .btn-secondary {
+            background: #fff;
+            color: #e64340;
+            border: 1.5px solid #e64340;
+        }
+        .action-bar .btn-secondary:active {
+            background: #fff5f5;
+            transform: scale(0.97);
+        }
+        /* 次按钮：我要反馈 */
+        .action-bar .btn-feedback {
+            background: #fff;
+            color: var(--theme);
+            border: 1.5px solid var(--theme);
+            margin-left: 10px;
+        }
+        .action-bar .btn-feedback:active {
+            background: #f0faf4;
+            transform: scale(0.97);
+        }
+
+        .month-switcher {
+            background: #fff;
+            border-radius: 10px;
+            padding: 10px 12px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        }
+        .month-switcher .nav-btn {
+            width: 32px;
+            height: 32px;
+            border: 1px solid #e5e5e5;
+            border-radius: 50%;
+            background: #fff;
+            color: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.15s;
+            flex-shrink: 0;
+        }
+        .month-switcher .nav-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .month-switcher .nav-btn:not(:disabled):active {
+            background: #f0faf4;
+            border-color: var(--theme);
+            color: var(--theme);
+        }
+        .month-switcher .select-wrap {
+            flex: 1;
+            margin: 0 10px;
+            text-align: center;
+        }
+        .month-switcher .select-wrap select {
+            border: none;
+            background: #f8f8f8;
+            font-size: 15px;
+            font-weight: 500;
+            padding: 6px 14px;
+            border-radius: 16px;
+            color: #333;
+            outline: none;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="%23999" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>');
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            padding-right: 30px;
+            cursor: pointer;
+        }
+
+        .info-card .top-row .toggle-eye-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 13px;
+            color: #fff;
+            margin-left: 6px;
+            transition: all 0.15s;
+            user-select: none;
+        }
+        .info-card .top-row .toggle-eye-btn:active {
+            background: rgba(255,255,255,0.35);
+        }
+        .detail-blur {
+            filter: blur(6px);
+            user-select: none;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- 密码验证层 -->
+        <div class="password-overlay" id="passwordOverlay" style="display:none;">
+            <div class="password-box">
+                <div class="pw-icon">
+                    <?php if ($GLOBALS['_site_logo']): ?>
+                        <img src="<?php echo htmlspecialchars($GLOBALS['_site_logo']); ?>" alt="logo">
+                    <?php else: ?>💰<?php endif; ?>
+                </div>
+                <div class="brand-title"><?php echo htmlspecialchars($GLOBALS['_site_title']); ?></div>
+                <?php if ($GLOBALS['_site_subtitle']): ?>
+                    <div class="brand-subtitle"><?php echo htmlspecialchars($GLOBALS['_site_subtitle']); ?></div>
+                <?php endif; ?>
+                <div class="title" id="pwTitle">请输入密码</div>
+                <div class="subtitle" id="pwSubtitle">查看工资需要验证密码</div>
+                <div class="pwd-eye-wrap">
+                    <input type="password" id="passwordInput" placeholder="请输入密码" autocomplete="off">
+                    <span class="pwd-eye" id="eyeBtn">👁</span>
+                </div>
+                <a href="javascript:;" class="pw-btn" id="pwConfirmBtn">确认</a>
+                <a href="/employee/password" class="pw-btn-secondary" id="pwSetupBtn" style="display:none;">去设置密码</a>
+                <div class="pw-footer"><?php echo htmlspecialchars($GLOBALS['_site_company'], ENT_QUOTES, 'UTF-8'); ?></div>
+            </div>
+        </div>
+
+        <!-- 主内容 -->
+        <div id="mainContent" style="display:none;">
+            <div class="page">
+                <!-- 月份切换器 -->
+                <div class="month-switcher" id="monthSwitcher" style="display:none;">
+                    <button class="nav-btn" id="prevBtn" onclick="goMonth(1)" title="上一月（减一个月）">‹</button>
+                    <div class="select-wrap">
+                        <select id="monthSelect" onchange="onMonthSelectChange()"></select>
+                    </div>
+                    <button class="nav-btn" id="nextBtn" onclick="goMonth(-1)" title="下一月（加一个月）">›</button>
+                </div>
+
+                <div class="ann-bar">
+                    <?php if ($GLOBALS['_site_announcement']): ?>📢 <?php echo htmlspecialchars($GLOBALS['_site_announcement']); ?><?php endif; ?>
+                    <a href="/employee/password" class="gear-btn" title="密码设置">⚙️</a>
+                </div>
+
+                <div class="info-card" id="infoCard">
+                    <div class="two-col">
+                        <div class="col-left">
+                            <div class="amount"><span class="currency">¥</span><span id="realPay" class="detail-blur">0.00</span></div>
+                        </div>
+                        <div class="col-right">
+                            <div class="row-top">
+                                <span id="statusBadge" class="status">⏳ 待确认</span>
+                                <span class="toggle-eye-btn" onclick="toggleAllAmount()" id="toggleEye" title="显示/隐藏金额">🙈</span>
+                            </div>
+                            <div class="row-bottom">
+                                <span id="empName" class="emp-name">同事</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="salaryDetail" class="loading">加载中...</div>
+
+                <div class="footer">
+                    <div class="company"><?php echo htmlspecialchars($GLOBALS['_site_company'], ENT_QUOTES, 'UTF-8'); ?></div>
+                    <div>Copyright © <?php echo $GLOBALS['_site_year']; ?> <?php echo htmlspecialchars($GLOBALS['_site_website'], ENT_QUOTES, 'UTF-8'); ?></div>
+                </div>
+            </div>
+
+            <!-- 底部操作栏：确认签收 + 我要反馈 -->
+            <div class="action-bar" id="actionBar" style="display:none;">
+                <button class="btn btn-primary" id="confirmBtn" onclick="confirmSalary()">✅ 确认签收</button>
+                <button class="btn btn-feedback" id="feedbackBtn" onclick="submitFeedback()">📋 我要反馈</button>
+            </div>
+        </div>
+
+        <!-- 底部Tab导航 -->
+        <nav class="tab-bar">
+            <a href="/employee/salary" class="tab-item">
+                <span class="icon">💰</span>
+                <span>首页</span>
+            </a>
+            <a href="/employee/history" class="tab-item">
+                <span class="icon">💵</span>
+                <span>工资</span>
+            </a>
+            <a href="/employee/bonus" class="tab-item">
+                <span class="icon">🎁</span>
+                <span>奖金</span>
+            </a>
+            <a href="/employee/feedback" class="tab-item">
+                <span class="icon">📋</span>
+                <span>反馈</span>
+            </a>
+            <a href="/employee/vacation" class="tab-item">
+                <span class="icon">🏖️</span>
+                <span>年假</span>
+            </a>
+        </nav>
+    </div>
+
+    <script>
+        // fmtMoney 安全回退
+        if (typeof fmtMoney !== 'function') {
+            window.fmtMoney = function(val) {
+                return '¥' + parseFloat(val || 0).toFixed(2);
+            };
+        }
+
+        const params = new URLSearchParams(window.location.search);
+        let ym = params.get('ym') || '';
+        let salaryData = null;
+        let allYMList = []; // 所有可用的年月列表（从新到旧）
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            // 加载工资列表（用于月份切换器）
+            const listOk = await loadSalaryList();
+            if (listOk === 'need_auth') return; // 已显示密码/设置遮罩，不再继续
+            if (!ym) {
+                // 没有 ym 参数时默认取最新一条
+                if (allYMList.length > 0) {
+                    ym = allYMList[0];
+                } else {
+                    document.getElementById('salaryDetail').innerHTML = '<div class="empty"><div class="icon">⚠️</div><div>暂无工资</div></div>';
+                    document.getElementById('salaryDetail').className = '';
+                    return;
+                }
+            }
+            await loadDetail();
+        });
+
+        async function loadSalaryList() {
+            try {
+                const resp = await fetch('/api/salary/list');
+                if (resp.status === 401) {
+                    const redirect = encodeURIComponent(window.location.pathname + window.location.search);
+                    window.location.href = '/api/auth/login?redirect=' + redirect;
+                    return 'need_auth';
+                }
+                const data = await resp.json();
+                if (data.need_password && data.need_setup) {
+                    showSetupOverlay();
+                    return 'need_auth';
+                }
+                if (data.need_password) {
+                    showPasswordOverlay('查看工资需要验证密码');
+                    return 'need_auth';
+                }
+                if (data.success && data.list) {
+                    allYMList = data.list.map(r => r.year_month);
+                    fillMonthSwitcher();
+                }
+                return 'ok';
+            } catch (e) {
+                console.error('loadSalaryList error', e);
+                return 'error';
+            }
+        }
+
+        function fillMonthSwitcher() {
+            const sel = document.getElementById('monthSelect');
+            if (!sel || !allYMList.length) return;
+            sel.innerHTML = '';
+            allYMList.forEach(m => {
+                const y = m.slice(0, 4);
+                const mm = m.slice(4, 6);
+                const opt = document.createElement('option');
+                opt.value = m;
+                opt.textContent = y + '年' + mm + '月';
+                if (m === ym) opt.selected = true;
+                sel.appendChild(opt);
+            });
+            document.getElementById('monthSwitcher').style.display = 'flex';
+            updateNavButtons();
+        }
+
+        function updateNavButtons() {
+            const idx = allYMList.indexOf(ym);
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            // 语义翻转：左‹ = 上个月（更早，idx+1方向），到数组末尾（最旧）才禁用；右› = 下个月（更晚，idx-1方向），到数组开头（最新）才禁用
+            prevBtn.disabled = idx === -1 || idx >= allYMList.length - 1;
+            nextBtn.disabled = idx <= 0 || idx === -1;
+        }
+
+        function goMonth(delta) {
+            const idx = allYMList.indexOf(ym);
+            if (idx === -1) return;
+            const newIdx = idx + delta;
+            if (newIdx < 0 || newIdx >= allYMList.length) return;
+            const newYM = allYMList[newIdx];
+            ym = newYM;
+            // 更新 URL（不刷新）
+            const url = new URL(window.location.href);
+            url.searchParams.set('ym', ym);
+            window.history.replaceState({}, '', url.toString());
+            fillMonthSwitcher();
+            loadDetail();
+        }
+
+        function onMonthSelectChange() {
+            const newYM = document.getElementById('monthSelect').value;
+            if (!newYM || newYM === ym) return;
+            ym = newYM;
+            const url = new URL(window.location.href);
+            url.searchParams.set('ym', ym);
+            window.history.replaceState({}, '', url.toString());
+            updateNavButtons();
+            loadDetail();
+        }
+
+        async function loadDetail() {
+            document.getElementById('salaryDetail').className = 'loading';
+            document.getElementById('salaryDetail').innerHTML = '加载中...';
+            try {
+                const resp = await fetch('/api/salary/detail/' + ym);
+                if (resp.status === 401) {
+                    const redirect = encodeURIComponent('/employee/detail?ym=' + ym);
+                    window.location.href = '/api/auth/login?redirect=' + redirect;
+                    return;
+                }
+                const data = await resp.json();
+
+                if (data.need_password) {
+                    if (data.need_setup) {
+                        showSetupOverlay();
+                    } else {
+                        showPasswordOverlay('查看工资需要验证密码');
+                    }
+                    return;
+                }
+
+                if (!data.success) {
+                    document.getElementById('salaryDetail').className = '';
+                    document.getElementById('salaryDetail').innerHTML = '<div class="empty"><div class="icon">⚠️</div><div>' + esc(data.error || '加载失败') + '</div></div>';
+                    return;
+                }
+
+                salaryData = data;
+                renderDetail(data);
+            } catch (e) {
+                console.error('loadDetail error', e);
+                document.getElementById('salaryDetail').className = '';
+                document.getElementById('salaryDetail').innerHTML = '<div class="empty"><div class="icon">⚠️</div><div>加载失败：' + esc(e.message || e) + '</div></div>';
+            }
+        }
+
+        function renderDetail(data) {
+            document.getElementById('mainContent').style.display = 'block';
+            document.getElementById('passwordOverlay').style.display = 'none';
+            document.getElementById('passwordInput').placeholder = '请输入密码';
+
+            document.getElementById('empName').textContent = '亲爱的' + (data.name || '同事').trim() + '您辛苦了';
+            // 顶部卡片的 ￥ 由 HTML 里的小 ￥ span 承担，这里只写纯数字（避免 fmtMoney 再带一个 ￥）
+            (function() {
+                var n = parseFloat(data.total_salary || 0);
+                if (isNaN(n)) n = 0;
+                document.getElementById('realPay').textContent = n.toFixed(2);
+                fitAmountFont(document.getElementById('realPay'));
+            })();
+
+            const statusEl = document.getElementById('statusBadge');
+            if (data.confirmed) {
+                statusEl.textContent = '✅ 已确认';
+                statusEl.style.background = 'rgba(255,255,255,0.3)';
+            } else {
+                statusEl.textContent = '⏳ 待确认';
+            }
+
+            // 渲染明细
+            const container = document.getElementById('salaryDetail');
+            container.className = '';
+            container.innerHTML = '';
+
+            const items = data.items || [];
+            if (!items.length) {
+                container.innerHTML = '<div class="empty"><div class="icon">📭</div><div>暂无工资明细</div></div>';
+                document.getElementById('actionBar').style.display = 'none';
+                return;
+            }
+
+            // 按 category 分组
+            const groups = {};
+            const groupOrder = [];
+            items.forEach(item => {
+                const cat = item.category || '';
+                if (!groups[cat]) {
+                    groups[cat] = [];
+                    groupOrder.push(cat);
+                }
+                groups[cat].push(item);
+            });
+
+            // 扣除项显示为负数（后端存正数），收入项保持正数
+            var fmtDetailNum = (function() {
+                if (typeof fmtDetailNumCache === 'function') return fmtDetailNumCache;
+                return function(v, isDeduction) {
+                    var n = parseFloat(v);
+                    if (isNaN(n)) n = 0;
+                    if (isDeduction) n = -Math.abs(n);
+                    return n.toFixed(2);
+                };
+            })();
+            groupOrder.forEach(cat => {
+                const groupItems = groups[cat];
+                const groupCard = document.createElement('div');
+                groupCard.className = 'group-card';
+
+                if (!cat) {
+                    // 无分组的项目直接平铺
+                    groupItems.forEach(item => {
+                        const row = document.createElement('div');
+                        row.className = 'item-row';
+                        const isDed = item.is_deduction;
+                        row.innerHTML = `
+                            <span class="item-name">${esc(item.item_name)}</span>
+                            <span class="item-value amt-val ${isDed ? 'deduction' : ''} ${_state.detailShow ? '' : 'detail-blur'}">${fmtDetailNum(item.item_value, isDed)}</span>
+                        `;
+                        groupCard.appendChild(row);
+                    });
+                } else if (groupItems.length === 1 && groupItems[0].item_name === cat) {
+                    // 分组只有一项且名称与分组名相同，按单条样式显示
+                    const item = groupItems[0];
+                    const row = document.createElement('div');
+                    row.className = 'single-item';
+                    const isDed = item.is_deduction;
+                    row.innerHTML = `
+                        <span>${esc(cat)}</span>
+                        <span class="value amt-val ${isDed ? 'deduction' : ''} ${_state.detailShow ? '' : 'detail-blur'}">${fmtDetailNum(item.item_value, isDed)}</span>
+                    `;
+                    groupCard.appendChild(row);
+                } else {
+                    // 显示分组标题和项目列表
+                    const header = document.createElement('div');
+                    const level = getGroupLevel(cat);
+                    header.className = 'group-header level-' + level;
+                    header.textContent = cat;
+                    groupCard.appendChild(header);
+
+                    groupItems.forEach(item => {
+                        const row = document.createElement('div');
+                        row.className = 'item-row';
+                        const isDed = item.is_deduction;
+                        row.innerHTML = `
+                            <span class="item-name">${esc(item.item_name)}</span>
+                            <span class="item-value amt-val ${isDed ? 'deduction' : ''} ${_state.detailShow ? '' : 'detail-blur'}">${fmtDetailNum(item.item_value, isDed)}</span>
+                        `;
+                        groupCard.appendChild(row);
+                    });
+                }
+
+                container.appendChild(groupCard);
+            });
+
+            // 已确认时隐藏"确认签收"，仅保留"我要反馈"
+            document.getElementById('confirmBtn').style.display = data.confirmed ? 'none' : '';
+            document.getElementById('actionBar').style.display = 'flex';
+        }
+
+        function getGroupLevel(category) {
+            const parts = category.split('/');
+            return Math.min(parts.length, 3);
+        }
+
+        function showPasswordOverlay(tip) {
+            document.getElementById('passwordOverlay').style.display = 'flex';
+            document.getElementById('pwTitle').textContent = '请输入密码';
+            document.getElementById('pwSubtitle').textContent = tip || '查看工资需要验证密码';
+            document.getElementById('passwordInput').value = '';
+            document.getElementById('pwConfirmBtn').textContent = '确认';
+            document.getElementById('pwConfirmBtn').onclick = verifyPassword;
+            document.getElementById('pwSetupBtn').style.display = 'none';
+            setTimeout(() => { document.getElementById('passwordInput').focus(); }, 300);
+        }
+
+        function showSetupOverlay() {
+            document.getElementById('passwordOverlay').style.display = 'flex';
+            document.getElementById('pwTitle').textContent = '🔐 设置密码';
+            document.getElementById('pwSubtitle').textContent = '首次使用请先设置密码';
+            document.getElementById('passwordInput').value = '';
+            document.getElementById('passwordInput').placeholder = '请设置4-20位密码';
+            document.getElementById('pwConfirmBtn').textContent = '设置密码';
+            document.getElementById('pwConfirmBtn').onclick = setupPassword;
+            document.getElementById('pwSetupBtn').style.display = 'none';
+            setTimeout(() => { document.getElementById('passwordInput').focus(); }, 300);
+        }
+
+        async function verifyPassword() {
+            const pw = document.getElementById('passwordInput').value;
+            if (!pw) { weui.topTips('请输入密码'); return; }
+            try {
+                const resp = await fetch('/api/auth/password/verify', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({password: pw})
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    weui.toast('验证成功', 800);
+                    setTimeout(async () => {
+                        // 先隐藏密码遮罩，避免无工资数据时卡住
+                        document.getElementById('passwordOverlay').style.display = 'none';
+                        const r = await loadSalaryList();
+                        if (r === 'need_auth') return; // 异常：cookie 未生效，遮罩已由 loadSalaryList 重新显示
+                        if (!ym && allYMList.length > 0) ym = allYMList[0];
+                        if (ym) {
+                            loadDetail();
+                        } else {
+                            // 暂无工资数据，显示空态
+                            const sd = document.getElementById('salaryDetail');
+                            sd.className = '';
+                            sd.innerHTML = '<div class="empty"><div class="icon">📭</div><div>暂无工资</div></div>';
+                            document.getElementById('mainContent').style.display = 'block';
+                        }
+                    }, 800);
+                } else if (data.need_setup) {
+                    showSetupOverlay();
+                } else {
+                    weui.topTips(data.error || '密码错误');
+                }
+            } catch (e) {
+                weui.topTips('网络错误');
+            }
+        }
+
+        async function setupPassword() {
+            const pw = document.getElementById('passwordInput').value;
+            if (pw.length < 4 || pw.length > 20) { weui.topTips('密码长度需4-20位'); return; }
+            try {
+                const resp = await fetch('/api/auth/password/set', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({password: pw})
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    weui.toast('密码设置成功', 1000);
+                    setTimeout(async () => {
+                        // 先隐藏密码遮罩，避免无工资数据时卡住
+                        document.getElementById('passwordOverlay').style.display = 'none';
+                        const r = await loadSalaryList();
+                        if (r === 'need_auth') return; // 异常情况，遮罩已由 loadSalaryList 重新显示
+                        if (!ym && allYMList.length > 0) ym = allYMList[0];
+                        if (ym) {
+                            loadDetail();
+                        } else {
+                            const sd = document.getElementById('salaryDetail');
+                            sd.className = '';
+                            sd.innerHTML = '<div class="empty"><div class="icon">📭</div><div>暂无工资</div></div>';
+                            document.getElementById('mainContent').style.display = 'block';
+                        }
+                    }, 1000);
+                } else {
+                    weui.topTips(data.error || '设置失败');
+                }
+            } catch (e) {
+                weui.topTips('网络错误');
+            }
+        }
+
+        async function confirmSalary() {
+            weui.confirm('确认后表示您已收到并核实本月工资，确定要确认签收吗？', async function() {
+                try {
+                    const resp = await fetch('/api/salary/confirm/' + ym, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'}
+                    });
+                    const data = await resp.json();
+                    if (data.success) {
+                        weui.toast('✅ 确认成功', 1500);
+                        setTimeout(() => { loadDetail(); }, 1500);
+                    } else if (data.need_password) {
+                        weui.topTips('请先验证密码');
+                        showPasswordOverlay();
+                    } else {
+                        weui.topTips(data.error || '操作失败');
+                    }
+                } catch (e) {
+                    weui.topTips('网络错误');
+                }
+            }, function() {}, { title: '确认签收' });
+        }
+
+        function submitFeedback() {
+            window.location.href = '/employee/feedback?ym=' + ym;
+        }
+
+        // ===== 详情页金额显示/隐藏切换 =====
+        // XSS 防护：转义 HTML 特殊字符
+        function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+        const _state = {
+            detailShow: false, // 详情页所有金额
+        };
+        function fitAmountFont(el) {
+            if (!el) return;
+            const len = el.textContent.trim().length;
+            if (len <= 8) el.style.fontSize = '36px';
+            else if (len <= 12) el.style.fontSize = '30px';
+            else if (len <= 15) el.style.fontSize = '24px';
+            else el.style.fontSize = '20px';
+        }
+        function toggleAllAmount() {
+            _state.detailShow = !_state.detailShow;
+            const eye = document.getElementById('toggleEye');
+            if (eye) eye.textContent = _state.detailShow ? '👁' : '🙈';
+            // 实发工资
+            const realPay = document.getElementById('realPay');
+            if (realPay) {
+                if (_state.detailShow) realPay.classList.remove('detail-blur');
+                else realPay.classList.add('detail-blur');
+            }
+            // 所有分组明细
+            document.querySelectorAll('.amt-val').forEach(el => {
+                if (_state.detailShow) el.classList.remove('detail-blur');
+                else el.classList.add('detail-blur');
+            });
+        }
+
+        // 密码显示切换
+        document.getElementById('eyeBtn').addEventListener('click', function() {
+            const input = document.getElementById('passwordInput');
+            if (input.type === 'password') {
+                input.type = 'text';
+                this.textContent = '🙈';
+            } else {
+                input.type = 'password';
+                this.textContent = '👁';
+            }
+        });
+
+        document.getElementById('passwordInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') verifyPassword();
+        });
+    </script>
+</body>
+</html>

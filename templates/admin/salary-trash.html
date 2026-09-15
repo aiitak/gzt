@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0">
+<title>工资回收站</title>
+<link rel="stylesheet" href="/assets/weui.min.css?v=20260807a">
+<link rel="stylesheet" href="/assets/admin.css?v=20260807a">
+<script src="/assets/weui.min.js?v=20260807a"></script>
+<script src="/assets/admin.js?v=20260807a"></script>
+<script src="/assets/pinyin.js?v=20260807a"></script>
+<style>
+ body{background:#f5f5f5;font-family:-apple-system,"PingFang SC",sans-serif;margin:0;}
+ .page{max-width:1100px;margin:0 auto;padding:15px;}
+ .panel{background:#fff;border-radius:10px;padding:12px 14px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.06);}
+ .panel h3{margin:4px 0 10px;font-size:15px;}
+ /* 筛选区：单行紧凑排列 */
+ .filter-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+ .filter-bar select{padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;background:#fff;min-width:130px;outline:none;}
+ .btn{padding:7px 14px;border:none;border-radius:6px;font-size:13px;cursor:pointer;outline:none;}
+ .btn-primary{background:#07c160;color:#fff;}
+ .btn-primary:hover{background:#06ad56;}
+ .btn-ghost{background:#fff;color:#333;border:1px solid #ddd;}
+ .btn-ghost:hover{background:#f5f5f5;}
+ .btn-warn{background:#fff;color:#e64340;border:1px solid #e64340;}
+ .btn-warn:hover{background:#fef0f0;}
+ .btn-restore{background:#fff;color:#07c160;border:1px solid #07c160;}
+ .btn-restore:hover{background:#f0f8f4;}
+ .act-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;}
+ /* 表格：竖直分割线 + 每5行循环颜色 */
+ table{width:100%;border-collapse:collapse;font-size:13px;}
+ table th,table td{padding:8px 10px;text-align:left;border-right:1px solid #eee;border-bottom:1px solid #eee;}
+ table th:last-child,table td:last-child{border-right:none;}
+ table th{background:#fafafa;color:#666;font-weight:600;position:sticky;top:0;}
+ table tbody tr:nth-child(5n+1){background:#fff;}
+ table tbody tr:nth-child(5n+2){background:#fff5f7;}
+ table tbody tr:nth-child(5n+3){background:#f0f8f4;}
+ table tbody tr:nth-child(5n+4){background:#fdf6e3;}
+ table tbody tr:nth-child(5n+5){background:#eef3fc;}
+ table tbody tr:hover{background:#f0f8ff;}
+ .td-right{text-align:right;font-variant-numeric:tabular-nums;}
+ .td-center{text-align:center;}
+ .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;}
+ .badge.confirmed{background:#e8f8e8;color:#07c160;}
+ .badge.unconfirmed{background:#fff3e0;color:#ff9800;}
+ .badge.draft{background:#f0f0f0;color:#999;}
+ .badge.sent{background:#e8f0fe;color:#576b95;}
+ .act-link{color:#576b95;cursor:pointer;text-decoration:none;margin-right:10px;}
+ .act-link:hover{text-decoration:underline;}
+ .act-link.danger{color:#e64340;}
+ .act-link.restore{color:#07c160;}
+ .loading{text-align:center;padding:30px;color:#999;font-size:13px;}
+ .empty{text-align:center;color:#999;font-size:13px;padding:30px 0;}
+ .deleted-info{font-size:11px;color:#999;line-height:1.4;}
+ .deleted-info .by{color:#aaa;}
+
+ /* 确认弹窗 */
+ .cm-mask{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;display:none;align-items:center;justify-content:center;}
+ .cm-mask.show{display:flex;}
+ .cm-box{background:#fff;border-radius:12px;width:90%;max-width:360px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.18);animation:cmPop .18s ease-out;}
+ @keyframes cmPop{from{transform:scale(.92);opacity:0;}to{transform:scale(1);opacity:1;}}
+ .cm-head{padding:18px 20px 8px;text-align:center;}
+ .cm-icon{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;font-size:26px;}
+ .cm-icon.warn{background:#fef0f0;color:#e64340;}
+ .cm-icon.info{background:#e8f8e8;color:#07c160;}
+ .cm-title{font-size:16px;font-weight:600;color:#333;}
+ .cm-body{padding:4px 20px 16px;text-align:center;font-size:13px;color:#888;line-height:1.6;}
+ .cm-body b{color:#333;font-weight:600;}
+ .cm-actions{display:flex;border-top:1px solid #f0f0f0;}
+ .cm-btn{flex:1;padding:13px 0;text-align:center;font-size:15px;cursor:pointer;border:none;background:transparent;}
+ .cm-btn.cancel{color:#999;border-right:1px solid #f0f0f0;}
+ .cm-btn.cancel:hover{background:#fafafa;}
+ .cm-btn.ok{color:#e64340;font-weight:600;}
+ .cm-btn.ok:hover{background:#fef0f0;}
+ .cm-btn.ok.green{color:#07c160;}
+ .cm-btn.ok.green:hover{background:#f0f8f4;}
+
+ /* Toast 浮动消息 */
+ .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.82);color:#fff;padding:8px 16px;border-radius:8px;font-size:13px;z-index:2000;opacity:0;transition:opacity .25s,top .25s;pointer-events:none;box-shadow:0 4px 14px rgba(0,0,0,.2);}
+ .toast.show{opacity:1;top:30px;}
+ .toast.success{background:rgba(7,193,96,.92);}
+ .toast.error{background:rgba(230,67,64,.92);}
+</style>
+</head>
+<body>
+<header class="ad-appbar">
+  <a class="ad-appbar__back" href="/admin/salary_list" aria-label="返回">‹</a>
+  <div class="ad-appbar__title"><span class="ic">🗑️</span><span>工资回收站</span></div>
+  <div class="ad-appbar__actions">
+    <a class="ad-appbar__btn" href="javascript:doLogout()">退出</a>
+  </div>
+</header>
+<div class="page">
+
+  <!-- 说明 + 批量操作 -->
+  <div class="panel">
+    <h3>🗑️ 回收站说明</h3>
+    <div style="font-size:12px;color:#888;line-height:1.6;">
+      · 删除的工资会暂存于此，可随时恢复；<b style="color:#e64340;">彻底删除</b>后数据将永久消失且无法恢复。<br>
+      · 恢复时若已存在同年同月的工资，将覆盖原有记录。
+    </div>
+  </div>
+
+  <!-- 筛选区 -->
+  <div class="panel">
+    <div class="filter-bar">
+      <select id="ymSel"><option value="">全部年月</option></select>
+      <button class="btn btn-ghost" onclick="resetFilter()">重置</button>
+      <span style="margin-left:auto;color:#999;font-size:12px;" id="listCount"></span>
+    </div>
+  </div>
+
+  <!-- 列表 -->
+  <div class="panel">
+    <div class="act-bar">
+      <button class="btn btn-restore" onclick="batchRestore()">↩️ 批量恢复</button>
+      <button class="btn btn-warn" onclick="batchPurge()">🗑 批量彻底删除</button>
+    </div>
+    <div style="overflow-x:auto;">
+      <table id="trashTable">
+        <thead>
+          <tr>
+            <th>姓名</th>
+            <th>部门</th>
+            <th>年月</th>
+            <th class="td-right">实发工资</th>
+            <th class="td-center">状态</th>
+            <th>删除时间</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="trashTbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- 确认弹窗 -->
+<div class="cm-mask" id="cmMask">
+  <div class="cm-box">
+    <div class="cm-head">
+      <div class="cm-icon" id="cmIcon">⚠️</div>
+      <div class="cm-title" id="cmTitle">确认操作</div>
+    </div>
+    <div class="cm-body" id="cmBody"></div>
+    <div class="cm-actions">
+      <button class="cm-btn cancel" onclick="cmClose()">取消</button>
+      <button class="cm-btn ok" id="cmOkBtn">确认</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast 浮动消息 -->
+<div class="toast" id="toast"></div>
+
+<script>
+
+// ===== Toast =====
+var TOAST_TIMER = null;
+function toast(msg, type){
+  var el = document.getElementById('toast');
+  el.className = 'toast' + (type ? ' ' + type : '');
+  el.textContent = msg;
+  el.classList.add('show');
+  if(TOAST_TIMER) clearTimeout(TOAST_TIMER);
+  TOAST_TIMER = setTimeout(function(){ el.classList.remove('show'); }, type === 'error' ? 3000 : 2000);
+}
+
+// ===== 确认弹窗 =====
+var CM_CALLBACK = null;
+function cmOpen(opts){
+  document.getElementById('cmTitle').textContent = opts.title || '确认操作';
+  document.getElementById('cmBody').innerHTML = opts.body || '';
+  document.getElementById('cmOkBtn').textContent = opts.okText || '确认';
+  var okBtn = document.getElementById('cmOkBtn');
+  okBtn.className = 'cm-btn ok' + (opts.okGreen ? ' green' : '');
+  var iconEl = document.getElementById('cmIcon');
+  iconEl.className = 'cm-icon ' + (opts.okGreen ? 'info' : 'warn');
+  iconEl.textContent = opts.okGreen ? '🔄' : '⚠️';
+  CM_CALLBACK = opts.onOk || null;
+  document.getElementById('cmMask').classList.add('show');
+}
+function cmClose(){
+  document.getElementById('cmMask').classList.remove('show');
+  CM_CALLBACK = null;
+}
+document.getElementById('cmOkBtn').addEventListener('click', function(){
+  var cb = CM_CALLBACK;
+  cmClose();
+  if(cb) cb();
+});
+document.getElementById('cmMask').addEventListener('click', function(e){
+  if(e.target === this) cmClose();
+});
+
+var CURRENT_LIST = [];
+var ALL_YMS = [];
+
+async function loadList(){
+  document.getElementById('trashTbody').innerHTML = '<tr><td colspan="7" class="loading">加载中...</td></tr>';
+  try {
+    var r = await fetch('/api/admin/salary/trash_list');
+    if(r.status === 401){ location.href = '/api/auth/login?redirect=/admin/salary_trash'; return; }
+    var d = await r.json();
+    if(!d.success){
+      document.getElementById('trashTbody').innerHTML = '<tr><td colspan="7" class="empty">加载失败</td></tr>';
+      return;
+    }
+    CURRENT_LIST = d.list || [];
+    // 提取去重年月列表（降序）
+    var ymSet = {};
+    ALL_YMS = [];
+    CURRENT_LIST.forEach(function(s){
+      var ym = s.ym || (s.year + String(s.month).padStart(2,'0'));
+      if(!ymSet[ym]){ ymSet[ym] = true; ALL_YMS.push(ym); }
+    });
+    ALL_YMS.sort(function(a,b){ return b - a; });
+    fillYmFilter();
+    renderList();
+  } catch(e){
+    document.getElementById('trashTbody').innerHTML = '<tr><td colspan="7" class="empty">加载失败：'+esc(e.message||e)+'</td></tr>';
+  }
+}
+
+function fillYmFilter(){
+  var sel = document.getElementById('ymSel');
+  var cur = sel.value;
+  sel.innerHTML = '<option value="">全部年月</option>';
+  ALL_YMS.forEach(function(ym){
+    var y = ym.slice(0,4), m = ym.slice(4,6);
+    sel.innerHTML += '<option value="'+esc(ym)+'">'+y+'年'+m+'月</option>';
+  });
+  if(cur && ALL_YMS.indexOf(cur) >= 0) sel.value = cur;
+}
+
+function resetFilter(){
+  document.getElementById('ymSel').value = '';
+  renderList();
+}
+
+function getFilteredList(){
+  var ym = document.getElementById('ymSel').value;
+  if(!ym) return CURRENT_LIST;
+  return CURRENT_LIST.filter(function(s){
+    var sYm = s.ym || (s.year + String(s.month).padStart(2,'0'));
+    return sYm === ym;
+  });
+}
+
+function renderList(){
+  var list = getFilteredList();
+  document.getElementById('listCount').textContent = list.length ? ('共 '+list.length+' 条') : '';
+  if(list.length === 0){
+    document.getElementById('trashTbody').innerHTML = '<tr><td colspan="7" class="empty">🗑️ 回收站为空</td></tr>';
+    return;
+  }
+  document.getElementById('trashTbody').innerHTML = list.map(function(s){
+    var statusBadge = '';
+    if(s.status==='draft'){ statusBadge='<span class="badge draft">草稿</span>'; }
+    else if(s.status==='sent'){ statusBadge='<span class="badge sent">已下发</span>'; }
+    else if(s.status==='confirmed'){ statusBadge='<span class="badge sent">已确认</span>'; }
+    var ym = s.ym || (s.year + String(s.month).padStart(2,'0'));
+    var y = ym.slice(0,4), m = ym.slice(4,6);
+    var delTime = s.deleted_at ? esc(s.deleted_at) : '—';
+    var delBy = s.deleted_by ? esc(s.deleted_by) : '';
+    var delInfo = '<div class="deleted-info">'+delTime+(delBy?'<div class="by">by '+delBy+'</div>':'')+'</div>';
+    return '<tr>'
+      + '<td>'+esc(s.name||s.userid)+'</td>'
+      + '<td>'+esc(s.dept_name||'未分配')+'</td>'
+      + '<td>'+y+'年'+m+'月</td>'
+      + '<td class="td-right">'+fmtMoney(s.real_pay)+'</td>'
+      + '<td class="td-center">'+statusBadge+'</td>'
+      + '<td>'+delInfo+'</td>'
+      + '<td>'
+      + '<a class="act-link restore" onclick="restoreOne('+s.id+',\''+esc(s.name||s.userid)+'\',\''+ym+'\')">恢复</a>'
+      + '<a class="act-link danger" onclick="purgeOne('+s.id+',\''+esc(s.name||s.userid)+'\',\''+ym+'\')">彻底删除</a>'
+      + '</td>'
+      + '</tr>';
+  }).join('');
+}
+
+// 单条恢复
+function restoreOne(id, name, ym){
+  var y = ym.slice(0,4), m = ym.slice(4,6);
+  cmOpen({
+    title: '恢复工资',
+    body: '确认恢复「<b>'+esc(name)+'</b>」在 <b>'+y+'年'+m+'月</b> 的工资？<br>恢复后该记录将重新出现在工资管理列表中。',
+    okText: '确认恢复',
+    okGreen: true,
+    onOk: function(){ doRestore({id: id}); }
+  });
+}
+
+// 批量恢复（按当前筛选的年月，若选了年月则恢复整月，否则恢复全部）
+function batchRestore(){
+  var ym = document.getElementById('ymSel').value;
+  var list = getFilteredList();
+  if(list.length === 0){ toast('回收站为空', 'error'); return; }
+  if(ym){
+    var y = ym.slice(0,4), m = ym.slice(4,6);
+    cmOpen({
+      title: '批量恢复',
+      body: '确认恢复 <b>'+y+'年'+m+'月</b> 的全部 <b>'+list.length+'</b> 条工资？',
+      okText: '确认恢复',
+      okGreen: true,
+      onOk: function(){ doRestore({ym: ym}); }
+    });
+  } else {
+    cmOpen({
+      title: '批量恢复',
+      body: '确认恢复回收站中的全部 <b>'+list.length+'</b> 条工资？',
+      okText: '确认恢复',
+      okGreen: true,
+      onOk: function(){ doRestore({ym: 'all'}); }
+    });
+  }
+}
+
+async function doRestore(params){
+  var body = {};
+  if(params.id){ body.id = params.id; }
+  else if(params.ym === 'all'){
+    // 全部恢复：逐月恢复
+    var yms = ALL_YMS.slice();
+    var okCnt = 0, failCnt = 0;
+    for(var i=0; i<yms.length; i++){
+      try {
+        var r = await fetch('/api/admin/salary/restore', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ym: yms[i]})
+        });
+        var d = await r.json();
+        if(d.success){ okCnt += (d.restored||0); } else { failCnt++; }
+      } catch(e){ failCnt++; }
+    }
+    toast('已恢复 '+okCnt+' 条'+(failCnt?'，'+failCnt+'个月份失败':''), failCnt?'error':'success');
+    loadList();
+    return;
+  } else { body.ym = params.ym; }
+  try {
+    var r = await fetch('/api/admin/salary/restore', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    });
+    var d = await r.json();
+    if(d.success){
+      toast('已恢复 '+d.restored+' 条', 'success');
+      loadList();
+    } else {
+      toast('恢复失败：'+(d.error||'未知错误'), 'error');
+    }
+  } catch(e){
+    toast('恢复请求失败：'+(e.message||e), 'error');
+  }
+}
+
+// 单条彻底删除
+function purgeOne(id, name, ym){
+  var y = ym.slice(0,4), m = ym.slice(4,6);
+  cmOpen({
+    title: '彻底删除',
+    body: '确认彻底删除「<b>'+esc(name)+'</b>」在 <b>'+y+'年'+m+'月</b> 的工资？<br><b style="color:#e64340;">此操作不可恢复，数据将永久消失。</b>',
+    okText: '确认彻底删除',
+    onOk: function(){ doPurge({id: id}); }
+  });
+}
+
+// 批量彻底删除
+function batchPurge(){
+  var ym = document.getElementById('ymSel').value;
+  var list = getFilteredList();
+  if(list.length === 0){ toast('回收站为空', 'error'); return; }
+  if(ym){
+    var y = ym.slice(0,4), m = ym.slice(4,6);
+    cmOpen({
+      title: '批量彻底删除',
+      body: '确认彻底删除 <b>'+y+'年'+m+'月</b> 的全部 <b>'+list.length+'</b> 条工资？<br><b style="color:#e64340;">此操作不可恢复，数据将永久消失。</b>',
+      okText: '确认彻底删除',
+      onOk: function(){ doPurge({ym: ym}); }
+    });
+  } else {
+    cmOpen({
+      title: '批量彻底删除',
+      body: '确认彻底删除回收站中的全部 <b>'+list.length+'</b> 条工资？<br><b style="color:#e64340;">此操作不可恢复，数据将永久消失。</b>',
+      okText: '确认彻底删除',
+      onOk: function(){ doPurge({ym: 'all'}); }
+    });
+  }
+}
+
+async function doPurge(params){
+  var body = {};
+  if(params.id){ body.id = params.id; }
+  else if(params.ym === 'all'){
+    // 全部彻底删除：逐月删除
+    var yms = ALL_YMS.slice();
+    var okCnt = 0, failCnt = 0;
+    for(var i=0; i<yms.length; i++){
+      try {
+        var r = await fetch('/api/admin/salary/purge', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ym: yms[i]})
+        });
+        var d = await r.json();
+        if(d.success){ okCnt += (d.purged||0); } else { failCnt++; }
+      } catch(e){ failCnt++; }
+    }
+    toast('已彻底删除 '+okCnt+' 条'+(failCnt?'，'+failCnt+'个月份失败':''), failCnt?'error':'success');
+    loadList();
+    return;
+  } else { body.ym = params.ym; }
+  try {
+    var r = await fetch('/api/admin/salary/purge', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    });
+    var d = await r.json();
+    if(d.success){
+      toast('已彻底删除 '+d.purged+' 条', 'success');
+      loadList();
+    } else {
+      toast('彻底删除失败：'+(d.error||'未知错误'), 'error');
+    }
+  } catch(e){
+    toast('彻底删除请求失败：'+(e.message||e), 'error');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', async function(){
+  var me = await fetch('/api/auth/me');
+  if(me.status === 401){ location.href = '/api/auth/login?redirect=/admin/salary_trash'; return; }
+  loadList();
+});
+</script>
+</body>
+</html>

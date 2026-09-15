@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0">
+<title>通讯录</title>
+<link rel="stylesheet" href="/assets/weui.min.css?v=20260807a">
+<link rel="stylesheet" href="/assets/admin.css?v=20260807a">
+<script src="/assets/weui.min.js?v=20260807a"></script>
+<script src="/assets/admin.js?v=20260807a"></script>
+<style>
+ body{background:#f5f5f5;font-family:-apple-system,"PingFang SC",sans-serif;margin:0;}
+ .page{max-width:1000px;margin:0 auto;padding:15px;}
+ .header{display:flex;justify-content:space-between;align-items:center;padding:10px 0;}
+ .header h1{font-size:20px;margin:0;}
+ .sync-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:6px 0 14px;}
+ .tabs{display:flex;gap:8px;margin:10px 0;}
+ .tab{padding:8px 16px;background:#fff;border-radius:8px;cursor:pointer;font-size:14px;}
+ .tab.active{background:#07c160;color:#fff;}
+ .panel{background:#fff;border-radius:10px;padding:12px;margin-bottom:15px;box-shadow:0 1px 4px rgba(0,0,0,.06);}
+ .panel h3{margin:4px 0 10px;font-size:15px;}
+ table{width:100%;border-collapse:collapse;font-size:13px;}
+ th,td{border:1px solid #eee;padding:6px 8px;text-align:left;}
+ th{background:#fafafa;color:#666;}
+ .tag{display:inline-block;background:#eafaf0;color:#07c160;border-radius:4px;padding:3px 9px;margin:3px;font-size:13px;}
+ .tip{display:none;font-size:13px;}
+ .tagcard{border:1px solid #eee;border-radius:8px;padding:10px 12px;margin-bottom:10px;background:#fcfcfc;}
+ .tagcard__title{font-size:14px;font-weight:600;margin-bottom:6px;}
+ .tagcard__members{line-height:1.9;}
+ .tag.member{background:#eef4ff;color:#3a6ee8;}
+ .muted{color:#999;font-weight:400;font-size:12px;}
+</style>
+</head>
+<body>
+<header class="ad-appbar">
+  <a class="ad-appbar__back" href="/admin/dashboard" aria-label="返回">‹</a>
+  <div class="ad-appbar__title"><span class="ic">📇</span><span>通讯录</span></div>
+  <div class="ad-appbar__actions">
+    <a class="ad-appbar__btn" href="javascript:doLogout()">退出</a>
+  </div>
+</header>
+<div class="page">
+  <div class="sync-bar">
+    <a href="javascript:sync('user')" class="weui-btn weui-btn_mini weui-btn_primary">同步成员</a>
+    <a href="javascript:sync('department')" class="weui-btn weui-btn_mini weui-btn_primary">同步部门</a>
+    <a href="javascript:sync('tag')" class="weui-btn weui-btn_mini weui-btn_primary">同步标签</a>
+    <span id="syncTip" class="tag tip"></span>
+  </div>
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('users')">成员</div>
+    <div class="tab" onclick="switchTab('depts')">部门</div>
+    <div class="tab" onclick="switchTab('tags')">标签</div>
+  </div>
+  <div class="panel" id="panel-users">
+    <h3>成员（来自企业微信通讯录）</h3>
+    <table><thead><tr><th>姓名</th><th>UserID</th><th>部门</th></tr></thead><tbody id="userRows"></tbody></table>
+    <div class="pager" id="userPager"></div>
+  </div>
+  <div class="panel" id="panel-depts" style="display:none">
+    <h3>部门</h3>
+    <table><thead><tr><th>部门名</th><th>DeptID</th><th>上级部门</th></tr></thead><tbody id="deptRows"></tbody></table>
+  </div>
+  <div class="panel" id="panel-tags" style="display:none">
+    <h3>标签</h3>
+    <div id="tagList"></div>
+  </div>
+</div>
+<script>
+function switchTab(t, opts){
+  opts = opts || {};
+  ['users','depts','tags'].forEach(function(x){
+    document.getElementById('panel-'+x).style.display = (x===t)?'block':'none';
+  });
+  document.querySelectorAll('.tab').forEach(function(el){
+    el.classList.toggle('active', el.getAttribute('onclick').indexOf("'"+t+"'")>=0);
+  });
+  if(!opts.fromHash){
+    var target='#tab='+t;
+    if(location.hash!==target){ history.replaceState(null,'',target); }
+  }
+}
+function _getTabFromHash(){
+  var m=/^#tab=([a-zA-Z0-9_-]+)$/.exec(location.hash||'');
+  if(!m) return null;
+  var valid={users:1,depts:1,tags:1};
+  return valid[m[1]]?m[1]:null;
+}
+async function sync(type){
+  var map={department:'/api/admin/sync/department',user:'/api/admin/sync/user',tag:'/api/admin/sync/tag'};
+  var tip=document.getElementById('syncTip'); tip.style.display='inline-block'; tip.textContent='同步中…';
+  var d=null;
+  try{
+    var r=await fetch(map[type],{method:'POST'});
+    var ct=r.headers.get('content-type')||'';
+    if(ct.indexOf('application/json')>=0){ d=await r.json(); }
+    else { var txt=await r.text(); throw new Error('服务端返回非 JSON（HTTP '+r.status+'）：'+txt.slice(0,160)); }
+  }catch(e){
+    tip.textContent='❌ 请求失败：'+(e.message||e);
+    return;
+  }
+  tip.textContent = d.success ? ('✅ '+(d.message||'同步成功')) : ('❌ '+(d.error||'同步失败'));
+  if(d.success){
+    // 同步成功后自动切换到对应 tab：user→成员、department→部门、tag→标签
+    var tabMap={user:'users',department:'depts',tag:'tags'};
+    if(tabMap[type]) switchTab(tabMap[type]);
+    load();
+  }
+}
+var ALL_USERS = [];
+var USER_PAGE = 1;
+var USER_PAGE_SIZE = parseInt(localStorage.getItem('contacts_pageSize') || '20', 10);
+var totalPages = 1;
+
+async function load(){
+  var d={};
+  try{
+    var r=await fetch('/api/admin/contacts');
+    var ct=r.headers.get('content-type')||'';
+    if(ct.indexOf('application/json')>=0){ d=await r.json().catch(function(){ return {}; }); }
+    else { var txt=await r.text(); throw new Error('服务端返回非 JSON（HTTP '+r.status+'）：'+txt.slice(0,160)); }
+  }catch(e){
+    document.getElementById('tagList').innerHTML='<span class="tag" style="background:#fde8e8;color:#d33">通讯录加载失败：'+esc(e.message||e)+'</span>';
+    return;
+  }
+  if(d.success===false){
+    document.getElementById('tagList').innerHTML='<span class="tag" style="background:#fde8e8;color:#d33">'+esc(d.error||'加载出错')+'</span>';
+    return;
+  }
+  var depts=(d.departments||[]), users=(d.users||[]), tags=(d.tags||[]), tmembers=(d.tag_members||{});
+  var dn={}; depts.forEach(function(x){ dn[x.dept_id]=x.name; });
+  window._deptNames = dn;
+  ALL_USERS = users;
+  USER_PAGE = 1;
+  renderUsers();
+  document.getElementById('deptRows').innerHTML = depts.map(function(x){
+    return '<tr><td>'+esc(x.name)+'</td><td>'+x.dept_id+'</td><td>'+esc(dn[x.parent_id]||'-')+'</td></tr>';
+  }).join('') || '<tr><td colspan="3">暂无部门，请先同步</td></tr>';
+  var tagHtml = tags.map(function(x){
+    var members=tmembers[x.tag_id]||[];
+    var memberHtml = members.length
+      ? members.map(function(m){ return '<span class="tag member">'+esc(m.name||m.userid)+'</span>'; }).join('')
+      : '<span class="muted">（无成员或尚未同步成员）</span>';
+    return '<div class="tagcard">'
+         + '<div class="tagcard__title">'+esc(x.tagname)+' <span class="muted">#'+esc(x.tag_id)+' · '+members.length+' 人</span></div>'
+         + '<div class="tagcard__members">'+memberHtml+'</div>'
+         + '</div>';
+  }).join('');
+  document.getElementById('tagList').innerHTML = tagHtml || '<span class="tag">暂无标签，请先同步</span>';
+}
+
+function renderUsers(){
+  var depts = window._deptNames || {};
+  var users = ALL_USERS;
+  if(users.length === 0){
+    document.getElementById('userRows').innerHTML = '<tr><td colspan="3">暂无成员，请先同步</td></tr>';
+    document.getElementById('userPager').innerHTML = '';
+    return;
+  }
+  var total = users.length;
+  var pageSize = USER_PAGE_SIZE;
+  totalPages = Math.ceil(total / pageSize);
+  if(USER_PAGE > totalPages) USER_PAGE = totalPages;
+  if(USER_PAGE < 1) USER_PAGE = 1;
+  var start = (USER_PAGE - 1) * pageSize;
+  var pageUsers = users.slice(start, start + pageSize);
+  document.getElementById('userRows').innerHTML = pageUsers.map(function(u){
+    return '<tr><td>'+esc(u.name)+'</td><td>'+esc(u.userid)+'</td><td>'+esc(depts[u.dept_id]||u.dept_name||'-')+'</td></tr>';
+  }).join('');
+  renderPager('userPager', USER_PAGE, totalPages, total, pageSize, 'userGoPage', 'userChangePageSize');
+}
+
+function userGoPage(p){ USER_PAGE = p; renderUsers(); }
+function userChangePageSize(sz){
+  USER_PAGE_SIZE = parseInt(sz, 10);
+  localStorage.setItem('contacts_pageSize', sz);
+  USER_PAGE = 1;
+  renderUsers();
+}
+document.addEventListener('DOMContentLoaded', async function(){
+  var me=await fetch('/api/auth/me');
+  if(me.status===401){ location.href='/api/auth/login?redirect=/admin/contacts'; return; }
+  var initTab=_getTabFromHash();
+  window.addEventListener('hashchange', function(){
+    var t=_getTabFromHash();
+    if(t) switchTab(t,{fromHash:true});
+  });
+  load();
+  if(initTab) switchTab(initTab,{fromHash:true});
+});
+</script>
+</body>
+</html>

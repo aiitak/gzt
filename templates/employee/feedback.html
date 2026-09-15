@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0">
+    <title>我的反馈</title>
+    <link rel="stylesheet" href="/assets/weui.min.css?v=20260807a">
+    <script src="/assets/weui.min.js?v=20260807a"></script>
+    <style>
+        :root { --theme: <?php echo htmlspecialchars($GLOBALS['_site_theme'], ENT_QUOTES, 'UTF-8'); ?>; }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            background: #f5f5f5;
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif;
+            padding-bottom: 120px;
+        }
+        .nav-bar {
+            position: sticky;
+            top: 0;
+            background: #fff;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            padding: 10px 16px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .nav-bar .back {
+            position: absolute;
+            left: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 12px;
+            height: 32px;
+            border-radius: 14px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            color: var(--theme);
+            background: #f0faf4;
+            transition: background 0.15s;
+        }
+        .nav-bar .back:active { background: #e0f0e8; }
+        .nav-bar .title {
+            flex: 1;
+            text-align: center;
+            font-size: 17px;
+            font-weight: 500;
+            color: #333;
+        }
+        .nav-bar .nav-gear {
+            position: absolute;
+            right: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 16px;
+            text-decoration: none;
+            color: #666;
+            transition: background 0.15s;
+        }
+        .nav-bar .nav-gear:active { background: #f0f0f0; }
+        .page { padding: 12px 12px 20px; }
+
+        .ann-bar {
+            background: #fff8e1;
+            border-left: 3px solid #ffa726;
+            padding: 10px 44px 10px 14px;
+            font-size: 13px;
+            color: #666;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            position: relative;
+        }
+        .ann-bar .gear-btn {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            background: rgba(255,167,38,0.15);
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 13px;
+            color: #e67e22;
+            text-decoration: none;
+            transition: all 0.15s;
+        }
+        .ann-bar .gear-btn:active { background: rgba(255,167,38,0.3); }
+        .feedback-summary {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .feedback-summary .sum-item {
+            flex: 1;
+            background: #fff;
+            border-radius: 10px;
+            padding: 10px 12px;
+            text-align: center;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        }
+        .feedback-summary .sum-num {
+            font-size: 20px;
+            font-weight: bold;
+            line-height: 1.2;
+        }
+        .feedback-summary .sum-label {
+            font-size: 12px;
+            color: #999;
+            margin-top: 2px;
+        }
+        .sum-item.total .sum-num { color: var(--theme); }
+        .sum-item.pending .sum-num { color: #ff9800; }
+        .sum-item.replied .sum-num { color: #07c160; }
+
+        .month-group {
+            background: #fff;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            overflow: hidden;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        }
+        .month-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 14px;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.15s;
+        }
+        .month-header:active { background: #f9f9f9; }
+        .month-header .mh-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .month-header .mh-icon {
+            font-size: 12px;
+            transition: transform 0.2s;
+            color: #999;
+        }
+        .month-group.collapsed .mh-icon { transform: rotate(-90deg); }
+        .month-header .mh-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+        }
+        .month-header .mh-count {
+            font-size: 12px;
+            color: #999;
+            background: #f5f5f5;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+        .month-body {
+            padding: 0 14px 12px;
+            overflow: hidden;
+            transition: max-height 0.25s ease;
+        }
+        .month-group.collapsed .month-body {
+            display: none;
+        }
+
+        .feedback-card {
+            background: #f9f9f9;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+            position: relative;
+        }
+        .feedback-card:last-child { margin-bottom: 0; }
+        .feedback-card .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 6px;
+        }
+        .feedback-card .content {
+            font-size: 14px;
+            color: #333;
+            line-height: 1.6;
+            word-break: break-all;
+        }
+        .feedback-card .reply {
+            margin-top: 8px;
+            padding: 8px 10px;
+            background: #fff;
+            border-radius: 6px;
+            font-size: 13px;
+            border-left: 2px solid #576b95;
+        }
+        .feedback-card .reply .label { color: #576b95; font-weight: bold; font-size: 12px; }
+        .feedback-card .reply .reply-content { margin-top: 2px; }
+        .feedback-card .reply .reply-time { font-size: 11px; color: #bbb; margin-top: 3px; }
+        .feedback-card.target-highlight {
+            box-shadow: 0 0 0 3px var(--theme), 0 2px 12px rgba(7,193,96,0.2);
+            animation: highlight-pulse 1.5s ease;
+        }
+        @keyframes highlight-pulse {
+            0% { box-shadow: 0 0 0 6px rgba(7,193,96,0.5), 0 2px 16px rgba(7,193,96,0.3); }
+            100% { box-shadow: 0 0 0 3px var(--theme), 0 2px 12px rgba(7,193,96,0.2); }
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 8px;
+            font-size: 11px;
+        }
+        .status-badge.pending { background: #fff3e0; color: #ff9800; }
+        .status-badge.replied { background: #e8f8e8; color: #07c160; }
+
+        .load-more {
+            text-align: center;
+            padding: 14px;
+            color: var(--theme);
+            font-size: 14px;
+            cursor: pointer;
+            background: #fff;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        }
+        .load-more:active { background: #f5f9f6; }
+
+        .loading { text-align: center; padding: 40px; color: #999; }
+        .empty { text-align: center; padding: 60px; color: #999; }
+        .empty .icon { font-size: 48px; margin-bottom: 10px; }
+
+        .fab-btn {
+            position: fixed;
+            right: 16px;
+            bottom: 80px;
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--theme) 0%, #06ad56 100%);
+            color: #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 4px 16px rgba(7,193,96,0.4);
+            cursor: pointer;
+            z-index: 50;
+            transition: transform 0.2s;
+        }
+        .fab-btn:active { transform: scale(0.95); }
+
+        .tab-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            background: #fff;
+            border-top: 1px solid #eee;
+            padding: 6px 0;
+            padding-bottom: calc(6px + env(safe-area-inset-bottom));
+            z-index: 100;
+        }
+        .tab-bar .tab-item {
+            flex: 1;
+            text-align: center;
+            padding: 6px 0;
+            text-decoration: none;
+            color: #999;
+            font-size: 11px;
+            transition: color 0.15s;
+        }
+        .tab-bar .tab-item .icon { font-size: 22px; display: block; margin-bottom: 2px; }
+        .tab-bar .tab-item.active { color: var(--theme); }
+
+        .footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 12px;
+            color: #bbb;
+        }
+        .footer .company { margin-bottom: 4px; }
+
+        .password-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(180deg, #f0faf4 0%, #f5f5f5 100%);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .password-box {
+            width: 100%;
+            max-width: 340px;
+            background: #fff;
+            border-radius: 20px;
+            padding: 36px 28px 28px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+            text-align: center;
+            animation: slideUp 0.35s ease;
+        }
+        .password-box .pw-icon {
+            width: 72px; height: 72px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--theme) 0%, #06ad56 100%);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 34px; margin: 0 auto 14px;
+            box-shadow: 0 6px 16px rgba(7,193,96,0.3); overflow: hidden;
+        }
+        .password-box .pw-icon img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+        .password-box .brand-title { font-size: 18px; font-weight: 700; color: var(--theme); margin-bottom: 2px; }
+        .password-box .brand-subtitle { font-size: 12px; color: #bbb; margin-bottom: 20px; }
+        .password-box .title { font-size: 20px; font-weight: 600; margin-bottom: 6px; color: #1a1a1a; }
+        .password-box .subtitle { font-size: 13px; color: #999; margin-bottom: 28px; line-height: 1.5; }
+        .password-box .pwd-eye-wrap { position: relative; display: block; margin-bottom: 20px; }
+        .password-box .pwd-eye-wrap input {
+            width: 100%; height: 50px; border: 1.5px solid #e5e5e5; border-radius: 12px;
+            padding: 0 44px 0 16px; font-size: 16px; background: #f9f9f9;
+            outline: none; transition: all 0.25s; -webkit-appearance: none;
+        }
+        .password-box .pwd-eye-wrap input:focus {
+            border-color: var(--theme); background: #fff; box-shadow: 0 0 0 4px rgba(7,193,96,0.1);
+        }
+        .password-box .pwd-eye {
+            position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+            cursor: pointer; font-size: 18px; user-select: none; color: #bbb; z-index: 2; transition: color 0.15s;
+        }
+        .password-box .pwd-eye:active { color: var(--theme); }
+        .password-box .pw-btn {
+            width: 100%; height: 50px; background: linear-gradient(135deg, var(--theme) 0%, #06ad56 100%);
+            color: #fff; border: none; border-radius: 12px; font-size: 16px; font-weight: 500;
+            cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 14px rgba(7,193,96,0.3);
+            text-decoration: none; line-height: 50px; display: block;
+        }
+        .password-box .pw-btn:active { transform: scale(0.98); box-shadow: 0 2px 8px rgba(7,193,96,0.2); }
+        .password-box .pw-footer { margin-top: 18px; font-size: 12px; color: #bbb; }
+    </style>
+</head>
+<body>
+    <!-- 密码验证层 -->
+    <div class="password-overlay" id="passwordOverlay" style="display:none;">
+        <div class="password-box">
+            <div class="pw-icon">
+                <?php if ($GLOBALS['_site_logo']): ?>
+                    <img src="<?php echo htmlspecialchars($GLOBALS['_site_logo']); ?>" alt="logo">
+                <?php else: ?>📋<?php endif; ?>
+            </div>
+            <div class="brand-title"><?php echo htmlspecialchars($GLOBALS['_site_title']); ?></div>
+            <?php if ($GLOBALS['_site_subtitle']): ?>
+                <div class="brand-subtitle"><?php echo htmlspecialchars($GLOBALS['_site_subtitle']); ?></div>
+            <?php endif; ?>
+            <div class="title">🔐 请输入密码</div>
+            <div class="subtitle" id="pwSubtitle">查看反馈信息需要验证密码</div>
+            <div class="pwd-eye-wrap">
+                <input type="password" id="passwordInput" placeholder="请输入密码" autocomplete="off">
+                <span class="pwd-eye" id="eyeBtn">👁</span>
+            </div>
+            <a href="javascript:;" class="pw-btn" id="pwConfirmBtn">确认</a>
+            <div class="pw-footer"><?php echo htmlspecialchars($GLOBALS['_site_company'], ENT_QUOTES, 'UTF-8'); ?></div>
+        </div>
+    </div>
+
+    <div class="page">
+        <div class="ann-bar">
+            <?php if ($GLOBALS['_site_announcement']): ?>📢 <?php echo htmlspecialchars($GLOBALS['_site_announcement']); ?><?php endif; ?>
+            <a href="/employee/password" class="gear-btn" title="密码设置">⚙️</a>
+        </div>
+        <div id="feedbackList" class="loading">加载中...</div>
+        <div class="footer">
+            <div class="company"><?php echo htmlspecialchars($GLOBALS['_site_company'], ENT_QUOTES, 'UTF-8'); ?></div>
+            <div>Copyright © <?php echo $GLOBALS['_site_year']; ?> <?php echo htmlspecialchars($GLOBALS['_site_website'], ENT_QUOTES, 'UTF-8'); ?></div>
+        </div>
+    </div>
+    <div class="fab-btn" onclick="newFeedback()" title="提交新反馈">+</div>
+    <!-- 底部Tab导航 -->
+    <nav class="tab-bar">
+        <a href="/employee/salary" class="tab-item">
+            <span class="icon">💰</span>
+            <span>首页</span>
+        </a>
+        <a href="/employee/history" class="tab-item">
+            <span class="icon">💵</span>
+            <span>工资</span>
+        </a>
+        <a href="/employee/bonus" class="tab-item">
+            <span class="icon">🎁</span>
+            <span>奖金</span>
+        </a>
+        <a href="/employee/feedback" class="tab-item active">
+            <span class="icon">📋</span>
+            <span>反馈</span>
+        </a>
+        <a href="/employee/vacation" class="tab-item">
+            <span class="icon">🏖️</span>
+            <span>年假</span>
+        </a>
+    </nav>
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            const resp = await fetch('/api/auth/me');
+            if (resp.status === 401) {
+                const redirect = encodeURIComponent(window.location.pathname);
+                window.location.href = '/api/auth/login?redirect=' + redirect;
+                return;
+            }
+            const me = await resp.json();
+            if (me.password_set === false) {
+                window.location.href = '/employee/password';
+                return;
+            }
+            await loadFeedback();
+            handleHash();
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const preYM = urlParams.get('ym');
+            const preBonusId = urlParams.get('bonus_id');
+            const preBonusYear = urlParams.get('bonus_year');
+            const preBonusType = urlParams.get('bonus_type');
+            if (preBonusId) {
+                var bonusInfo = null;
+                if (preBonusYear) {
+                    bonusInfo = { year: preBonusYear, bonus_type: preBonusType };
+                }
+                setTimeout(() => newFeedback(null, parseInt(preBonusId), bonusInfo), 300);
+            } else if (preYM) {
+                setTimeout(() => newFeedback(preYM), 300);
+            }
+        });
+
+        const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[c]));
+
+        let _allFeedback = [];
+        let _visibleGroups = 0;
+        const GROUP_STEP = 3;
+
+        async function loadFeedback() {
+            try {
+                const resp = await fetch('/api/feedback/my');
+                const data = await resp.json();
+                if (data.need_password) {
+                    if (data.need_setup) {
+                        window.location.href = '/employee/password';
+                    } else {
+                        showPasswordOverlay('查看反馈信息需要验证密码');
+                    }
+                    return;
+                }
+                _allFeedback = data || [];
+                _visibleGroups = 0;
+                renderFeedback();
+            } catch (e) {
+                document.getElementById('feedbackList').innerHTML = '<div class="empty"><div class="icon">⚠️</div><div>加载失败</div></div>';
+            }
+        }
+
+        function renderFeedback() {
+            const container = document.getElementById('feedbackList');
+            container.className = '';
+            container.innerHTML = '';
+
+            if (!_allFeedback.length) {
+                container.innerHTML = '<div class="empty"><div class="icon">📭</div><div>暂无反馈记录</div></div>';
+                return;
+            }
+
+            // 统计
+            const total = _allFeedback.length;
+            const pending = _allFeedback.filter(f => f.status !== 'replied').length;
+            const replied = total - pending;
+
+            // 汇总栏
+            const summary = document.createElement('div');
+            summary.className = 'feedback-summary';
+            summary.innerHTML = `
+                <div class="sum-item total"><div class="sum-num">${total}</div><div class="sum-label">总反馈</div></div>
+                <div class="sum-item pending"><div class="sum-num">${pending}</div><div class="sum-label">待处理</div></div>
+                <div class="sum-item replied"><div class="sum-num">${replied}</div><div class="sum-label">已回复</div></div>
+            `;
+            container.appendChild(summary);
+
+            // 按月份分组
+            const groups = {};
+            const groupOrder = [];
+            _allFeedback.forEach(item => {
+                const ym = item.year_month || '';
+                if (!groups[ym]) {
+                    groups[ym] = [];
+                    groupOrder.push(ym);
+                }
+                groups[ym].push(item);
+            });
+
+            // 先显示前 GROUP_STEP 组，第一个默认展开，其余折叠
+            const showCount = Math.min(_visibleGroups + GROUP_STEP, groupOrder.length);
+            groupOrder.slice(0, showCount).forEach((ym, idx) => {
+                container.appendChild(createMonthGroup(ym, groups[ym], idx === 0));
+            });
+            _visibleGroups = showCount;
+
+            // 加载更多
+            if (_visibleGroups < groupOrder.length) {
+                const loadMore = document.createElement('div');
+                loadMore.className = 'load-more';
+                loadMore.textContent = `加载更多（剩余 ${groupOrder.length - _visibleGroups} 个月份）`;
+                loadMore.onclick = loadMoreGroups;
+                container.appendChild(loadMore);
+            }
+        }
+
+        async function handleHash() {
+            const hash = window.location.hash;
+            if (!hash || !hash.startsWith('#feedback-')) return;
+            const targetId = hash.replace('#feedback-', '');
+            let targetCard = document.getElementById('feedback-' + targetId);
+
+            // 如果目标卡片未渲染（在未加载的分组中），继续加载更多
+            const groupOrder = getGroupOrder();
+            while (!targetCard && _visibleGroups < groupOrder.length) {
+                loadMoreGroups();
+                targetCard = document.getElementById('feedback-' + targetId);
+            }
+
+            if (!targetCard) return;
+
+            // 展开包含该卡片的月份分组
+            const monthGroup = targetCard.closest('.month-group');
+            if (monthGroup && monthGroup.classList.contains('collapsed')) {
+                monthGroup.classList.remove('collapsed');
+            }
+
+            // 高亮目标卡片
+            targetCard.classList.add('target-highlight');
+
+            // 滚动到目标位置（延迟一帧确保展开动画完成）
+            setTimeout(() => {
+                const navBarHeight = document.querySelector('.nav-bar')?.offsetHeight || 0;
+                const y = targetCard.getBoundingClientRect().top + window.pageYOffset - navBarHeight - 20;
+                window.scrollTo({ top: y, behavior: 'smooth' });
+            }, 100);
+        }
+
+        function getGroupKey(item) {
+            if (item.bonus && item.bonus.id) {
+                return 'bonus_' + item.bonus.year + '_' + item.bonus.bonus_type;
+            }
+            return item.year_month || '';
+        }
+
+        function getGroupLabel(item) {
+            if (item.bonus && item.bonus.id) {
+                return item.bonus.year + '年 ' + item.bonus.bonus_type + ' 奖金';
+            }
+            const ym = item.year_month || '';
+            return ym ? (ym.slice(0,4) + '年' + ym.slice(4,6) + '月') : '通用反馈';
+        }
+
+        function getGroupOrder() {
+            const groupOrder = [];
+            const seen = new Set();
+            _allFeedback.forEach(item => {
+                const key = getGroupKey(item);
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    groupOrder.push(key);
+                }
+            });
+            return groupOrder;
+        }
+
+        function getGroupItems(key) {
+            return _allFeedback.filter(item => getGroupKey(item) === key);
+        }
+
+        // 加载更多分组（供 renderFeedback 和 handleHash 复用，避免 arguments.callee 在箭头函数中失效）
+        function loadMoreGroups() {
+            const groupOrder = getGroupOrder();
+            const nextCount = Math.min(_visibleGroups + GROUP_STEP, groupOrder.length);
+            const frag = document.createDocumentFragment();
+            groupOrder.slice(_visibleGroups, nextCount).forEach(ym => {
+                frag.appendChild(createMonthGroup(ym, getGroupItems(ym)));
+            });
+            _visibleGroups = nextCount;
+            const oldBtn = document.querySelector('.load-more');
+            if (oldBtn) oldBtn.remove();
+            document.getElementById('feedbackList').appendChild(frag);
+            if (_visibleGroups < groupOrder.length) {
+                const newBtn = document.createElement('div');
+                newBtn.className = 'load-more';
+                newBtn.textContent = `加载更多（剩余 ${groupOrder.length - _visibleGroups} 个月份）`;
+                newBtn.onclick = loadMoreGroups;
+                document.getElementById('feedbackList').appendChild(newBtn);
+            }
+        }
+
+        function createMonthGroup(key, items, expanded) {
+            const group = document.createElement('div');
+            group.className = 'month-group' + (expanded ? '' : ' collapsed');
+
+            const ymLabel = getGroupLabel(items[0]);
+            const pendingCount = items.filter(i => i.status !== 'replied').length;
+
+            group.innerHTML = `
+                <div class="month-header" onclick="this.parentElement.classList.toggle('collapsed')">
+                    <div class="mh-left">
+                        <span class="mh-icon">▼</span>
+                        <span class="mh-title">${ymLabel}</span>
+                    </div>
+                    <span class="mh-count">${items.length}条${pendingCount > 0 ? ' · ' + pendingCount + '待处理' : ''}</span>
+                </div>
+                <div class="month-body"></div>
+            `;
+
+            const body = group.querySelector('.month-body');
+            items.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'feedback-card';
+                card.id = 'feedback-' + item.id;
+                const statusClass = item.status === 'replied' ? 'replied' : 'pending';
+                const statusText = item.status === 'replied' ? '已回复' : '待处理';
+                
+                let repliesHtml = '';
+                if (item.replies && item.replies.length > 0) {
+                    repliesHtml = item.replies.map(r => `
+                        <div class="reply">
+                            <div class="label">${r.reply_name ? esc(r.reply_name) + ' 回复：' : '回复：'}</div>
+                            <div class="reply-content">${esc(r.content)}</div>
+                            <div class="reply-time">${esc(r.created_at || '')}</div>
+                        </div>
+                    `).join('');
+                }
+                
+                card.innerHTML = `
+                    <div class="header">
+                        <span>${esc(item.created_at || '')}</span>
+                        <span class="status-badge ${statusClass}">${statusText}</span>
+                    </div>
+                    <div class="content">${esc(item.content)}</div>
+                    ${repliesHtml}
+                `;
+                body.appendChild(card);
+            });
+
+            return group;
+        }
+
+        function newFeedback(preSelectYM, preBonusId, preBonusInfo) {
+            var isBonus = preBonusId && preBonusId > 0;
+            var contextHtml = '';
+            if (isBonus) {
+                var bonusLabel = preBonusInfo && preBonusInfo.year
+                    ? (preBonusInfo.year + '年 ' + (preBonusInfo.bonus_type || ''))
+                    : ('奖金记录 #' + preBonusId);
+                contextHtml = '<div id="bonusContext" style="padding:8px 12px;margin-bottom:10px;background:#e8f5e9;border-radius:6px;font-size:13px;color:#2e7d32;">📌 关联：' + esc(bonusLabel) + '</div>';
+            }
+            var selectHtml = isBonus ? '' : '<select id="newFeedbackMonth" style="width:100%;padding:8px;margin-bottom:10px;border:1px solid #d9d9d9;border-radius:4px;font-size:14px;box-sizing:border-box;background:#fff;color:#333;"><option value="">（不关联具体记录）</option></select>';
+
+            var $dialog = weui.dialog({
+                title: '提交反馈',
+                content: '<div style="padding:10px 0;">' + contextHtml + selectHtml + '<textarea id="newFeedbackText" rows="4" style="width:100%;padding:8px;border:1px solid #d9d9d9;border-radius:4px;box-sizing:border-box;font-size:14px;outline:none;resize:none;" placeholder="请描述您的问题"></textarea></div>',
+                className: 'feedback-dialog',
+                buttons: [
+                    {
+                        label: '取消',
+                        type: 'default',
+                        onClick: function() { $dialog.hide(); }
+                    },
+                    {
+                        label: '提交',
+                        type: 'primary',
+                        onClick: async function() {
+                            var textEl = document.getElementById('newFeedbackText');
+                            var text = textEl ? textEl.value : '';
+                            if (!text || !text.trim()) {
+                                weui.topTips('请输入内容');
+                                return false;
+                            }
+                            $dialog.hide();
+                            try {
+                                var body = {
+                                    content: text.trim()
+                                };
+                                if (isBonus) {
+                                    body.bonus_id = preBonusId;
+                                } else {
+                                    var selVal = (document.getElementById('newFeedbackMonth') || {}).value || '';
+                                    if (selVal.startsWith('bonus_')) {
+                                        body.bonus_id = parseInt(selVal.substring(7));
+                                    } else {
+                                        body.year_month = selVal;
+                                    }
+                                }
+                                const resp = await fetch('/api/feedback/submit', {
+                                    method: 'POST',
+                                    headers: {'Content-Type': 'application/json'},
+                                    body: JSON.stringify(body)
+                                });
+                                const data = await resp.json();
+                                if (data.success) {
+                                    weui.toast('✅ 已提交', 1500);
+                                    setTimeout(loadFeedback, 1500);
+                                } else {
+                                    weui.topTips(data.error || '提交失败');
+                                }
+                            } catch (e) {
+                                weui.topTips('网络错误');
+                            }
+                        }
+                    }
+                ]
+            });
+            setTimeout(function() {
+                var el = document.getElementById('newFeedbackText');
+                if (el) el.focus();
+                if (!isBonus) {
+                    var sel = document.getElementById('newFeedbackMonth');
+                    if (sel) {
+                        var salaryPromise = fetch('/api/salary/list').then(function(r){ return r.json(); }).catch(function(){ return {list:[]}; });
+                        var bonusPromise = fetch('/api/bonus/employee').then(function(r){ return r.json(); }).catch(function(){ return {list:[]}; });
+                        Promise.all([salaryPromise, bonusPromise]).then(function(results) {
+                            var salData = results[0] || {};
+                            var bonusData = results[1] || {};
+                            sel.innerHTML = '<option value="">（不关联具体记录）</option>';
+                            var salList = salData.list || [];
+                            if (salList.length) {
+                                var g1 = document.createElement('optgroup');
+                                g1.label = '工资条';
+                                salList.forEach(function(it){
+                                    var o = document.createElement('option');
+                                    o.value = it.year_month;
+                                    o.textContent = it.year_month.slice(0,4) + '年' + it.year_month.slice(4,6) + '月薪资';
+                                    if (preSelectYM && it.year_month === preSelectYM) o.selected = true;
+                                    g1.appendChild(o);
+                                });
+                                sel.appendChild(g1);
+                            }
+                            var bonusList = [];
+                            (bonusData.list || []).forEach(function(gy){
+                                (gy.items || []).forEach(function(it){
+                                    bonusList.push(it);
+                                });
+                            });
+                            if (bonusList.length) {
+                                var g2 = document.createElement('optgroup');
+                                g2.label = '奖金记录';
+                                bonusList.forEach(function(it){
+                                    var o = document.createElement('option');
+                                    o.value = 'bonus_' + it.id;
+                                    o.textContent = it.year + '年 ' + it.bonus_type;
+                                    g2.appendChild(o);
+                                });
+                                sel.appendChild(g2);
+                            }
+                        });
+                    }
+                }
+            }, 100);
+        }
+
+        function showPasswordOverlay(tip) {
+            document.getElementById('passwordOverlay').style.display = 'flex';
+            document.getElementById('pwSubtitle').textContent = tip || '查看反馈信息需要验证密码';
+            document.getElementById('passwordInput').value = '';
+            setTimeout(function() { document.getElementById('passwordInput').focus(); }, 300);
+        }
+
+        async function verifyPassword() {
+            const pw = document.getElementById('passwordInput').value;
+            if (!pw) { weui.topTips('请输入密码'); return; }
+            try {
+                const resp = await fetch('/api/auth/password/verify', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({password: pw})
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    weui.toast('验证成功', 800);
+                    setTimeout(function() {
+                        document.getElementById('passwordOverlay').style.display = 'none';
+                        loadFeedback();
+                    }, 800);
+                } else if (data.need_setup) {
+                    window.location.href = '/employee/password';
+                } else {
+                    weui.topTips(data.error || '密码错误');
+                }
+            } catch (e) {
+                weui.topTips('网络错误');
+            }
+        }
+
+        document.getElementById('pwConfirmBtn').addEventListener('click', verifyPassword);
+        document.getElementById('passwordInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') verifyPassword();
+        });
+        document.getElementById('eyeBtn').addEventListener('click', function() {
+            const input = document.getElementById('passwordInput');
+            if (input.type === 'password') {
+                input.type = 'text';
+                this.textContent = '🙈';
+            } else {
+                input.type = 'password';
+                this.textContent = '👁';
+            }
+        });
+
+    </script>
+</body>
+</html>

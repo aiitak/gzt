@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0">
+<title>工资管理</title>
+<link rel="stylesheet" href="/assets/weui.min.css?v=20260807a">
+<link rel="stylesheet" href="/assets/admin.css?v=20260807a">
+<script src="/assets/weui.min.js?v=20260807a"></script>
+<script src="/assets/admin.js?v=20260807a"></script>
+<script src="/assets/pinyin.js?v=20260807a"></script>
+<style>
+ body{background:#f5f5f5;font-family:-apple-system,"PingFang SC",sans-serif;margin:0;}
+ .page{max-width:1100px;margin:0 auto;padding:15px;}
+ .panel{background:#fff;border-radius:10px;padding:12px 14px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.06);}
+ .panel h3{margin:4px 0 10px;font-size:15px;}
+ .month-list{display:flex;flex-wrap:wrap;gap:8px;}
+ .month-tag{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border:1px solid #ddd;border-radius:18px;background:#fff;font-size:13px;cursor:pointer;text-decoration:none;color:#333;}
+ .month-tag:hover{background:#f0f8f4;border-color:#07c160;}
+ .month-tag.active{background:#07c160;color:#fff;border-color:#07c160;}
+ .month-tag .cnt{font-size:11px;color:#888;background:#f0f0f0;border-radius:8px;padding:1px 6px;}
+ .month-tag.active .cnt{color:#fff;background:rgba(255,255,255,.25);}
+ .month-tag .pay{font-size:11px;color:#07c160;}
+ .month-tag.active .pay{color:#fff;}
+
+ table{width:100%;border-collapse:collapse;font-size:13px;}
+ table th,table td{padding:8px 10px;text-align:left;border-bottom:1px solid #eee;}
+ table th{background:#fafafa;color:#666;font-weight:600;position:sticky;top:0;}
+ table tr:hover{background:#f9f9f9;}
+ .td-right{text-align:right;font-variant-numeric:tabular-nums;}
+ .td-center{text-align:center;}
+ .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;}
+ .badge.confirmed{background:#e8f8e8;color:#07c160;}
+ .badge.unconfirmed{background:#fff3e0;color:#ff9800;}
+ .badge.draft{background:#f0f0f0;color:#999;}
+ .badge.sent{background:#e8f0fe;color:#576b95;}
+ .act-link{color:#576b95;cursor:pointer;text-decoration:none;margin-right:10px;}
+ .act-link:hover{text-decoration:underline;}
+
+ /* 详情弹窗 */
+ .detail-mask{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:999;display:none;align-items:flex-start;justify-content:center;padding:20px 10px;overflow:auto;}
+ .detail-mask.show{display:flex;}
+ .detail-box{background:#fff;border-radius:10px;width:100%;max-width:600px;padding:18px 20px;margin-bottom:20px;}
+ .detail-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #eee;}
+ .detail-head h3{margin:0;font-size:17px;}
+ .detail-head .close{font-size:22px;color:#999;cursor:pointer;text-decoration:none;line-height:1;}
+ .detail-info{display:flex;flex-wrap:wrap;gap:12px;font-size:13px;color:#666;margin-bottom:14px;}
+ .detail-info span{background:#f6f8fa;padding:3px 8px;border-radius:4px;}
+ .detail-total{background:linear-gradient(135deg,#07c160,#1aa86a);color:#fff;border-radius:10px;padding:14px;text-align:center;margin-bottom:14px;}
+ .detail-total .lbl{font-size:12px;opacity:.9;}
+ .detail-total .val{font-size:28px;font-weight:700;margin-top:4px;}
+ .detail-group{margin-bottom:14px;border:1px solid #eee;border-radius:8px;overflow:hidden;}
+ .detail-group__head{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;font-size:13px;font-weight:600;}
+ .detail-group__head.income{background:#f0f8f4;color:#07c160;border-left:3px solid #07c160;}
+ .detail-group__head.deduction{background:#fef0f0;color:#e64340;border-left:3px solid #e64340;}
+ .detail-group__head.other{background:#f6f8fa;color:#666;border-left:3px solid #999;}
+ .detail-group__sum{font-weight:700;}
+ .detail-group__items{padding:4px 0;}
+ /* 多层表头层级缩进 */
+ .detail-group__head.level-1{font-size:14px;padding:9px 12px;}
+ .detail-group__head.level-2{font-size:13px;padding:7px 12px 7px 22px;background:#f6faf7;border-left-width:2px;}
+ .detail-group__head.level-3{font-size:12px;padding:6px 12px 6px 32px;background:#fafdfb;border-left-width:2px;font-weight:500;}
+ .detail-group__head.level-2.income{background:#f6faf7;}
+ .detail-group__head.level-3.income{background:#fafdfb;}
+ .detail-group__head.level-2.deduction{background:#fdf5f5;}
+ .detail-group__head.level-3.deduction{background:#fef9f9;}
+ .detail-item{display:flex;justify-content:space-between;padding:7px 12px;font-size:13px;border-bottom:1px solid #f8f8f8;}
+ .detail-item.indent-1{padding-left:22px;}
+ .detail-item.indent-2{padding-left:32px;}
+ .detail-item.indent-3{padding-left:42px;}
+ .detail-item:last-child{border-bottom:none;}
+ .detail-item .lbl{color:#666;}
+ .detail-item .val{font-weight:500;font-variant-numeric:tabular-nums;}
+ .detail-item .val.negative{color:#e64340;}
+ .loading{text-align:center;padding:30px;color:#999;font-size:13px;}
+ .month-toggle{display:inline-flex;align-items:center;gap:4px;padding:7px 14px;border:1px dashed #aaa;border-radius:18px;background:#fff;font-size:13px;cursor:pointer;color:#576b95;}
+ .month-toggle:hover{background:#f0f8f4;border-color:#07c160;}
+ /* 年份分组 */
+ .year-group{margin-bottom:10px;border:1px solid #eee;border-radius:8px;overflow:hidden;}
+ .year-head{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#fafafa;cursor:pointer;font-size:14px;font-weight:600;color:#333;user-select:none;}
+ .year-head:hover{background:#f0f8f4;}
+ .year-head .arrow{color:#999;transition:transform .2s;}
+ .year-head.collapsed .arrow{transform:rotate(-90deg);}
+ .year-body{padding:8px 12px;display:flex;flex-wrap:wrap;gap:8px;}
+ .year-body.collapsed{display:none;}
+ /* 月份统计卡片 */
+ .ym-stats{display:flex;gap:10px;flex-wrap:wrap;}
+ .ym-stat{flex:1;min-width:100px;padding:10px;border-radius:8px;text-align:center;}
+ .ym-stat .n{font-size:22px;font-weight:700;}
+ .ym-stat .l{font-size:11px;color:#999;margin-top:3px;}
+ .ym-stat.blue{background:#e8f0fe;}.ym-stat.blue .n{color:#576b95;}
+ .ym-stat.green{background:#e8f8e8;}.ym-stat.green .n{color:#07c160;}
+ .ym-stat.orange{background:#fff3e0;}.ym-stat.orange .n{color:#ff9800;}
+
+ /* 确认弹窗 */
+ .cm-mask{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;display:none;align-items:center;justify-content:center;}
+ .cm-mask.show{display:flex;}
+ .cm-box{background:#fff;border-radius:12px;width:90%;max-width:360px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.18);animation:cmPop .18s ease-out;}
+ @keyframes cmPop{from{transform:scale(.92);opacity:0;}to{transform:scale(1);opacity:1;}}
+ .cm-head{padding:18px 20px 8px;text-align:center;}
+ .cm-icon{width:52px;height:52px;border-radius:50%;background:#fef0f0;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;font-size:26px;}
+ .cm-icon.warn{background:#fef0f0;color:#e64340;}
+ .cm-title{font-size:16px;font-weight:600;color:#333;}
+ .cm-body{padding:4px 20px 16px;text-align:center;font-size:13px;color:#888;line-height:1.6;}
+ .cm-body b{color:#333;font-weight:600;}
+ .cm-actions{display:flex;border-top:1px solid #f0f0f0;}
+ .cm-btn{flex:1;padding:13px 0;text-align:center;font-size:15px;cursor:pointer;border:none;background:transparent;}
+ .cm-btn.cancel{color:#999;border-right:1px solid #f0f0f0;}
+ .cm-btn.cancel:hover{background:#fafafa;}
+ .cm-btn.ok{color:#e64340;font-weight:600;}
+ .cm-btn.ok:hover{background:#fef0f0;}
+
+ /* Toast 浮动消息 */
+ .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.82);color:#fff;padding:10px 22px;border-radius:22px;font-size:13px;z-index:2000;opacity:0;transition:opacity .25s,top .25s;pointer-events:none;box-shadow:0 4px 14px rgba(0,0,0,.2);}
+ .toast.show{opacity:1;top:30px;}
+ .toast.success{background:rgba(7,193,96,.92);}
+ .toast.error{background:rgba(230,67,64,.92);}
+</style>
+</head>
+<body>
+<header class="ad-appbar">
+  <a class="ad-appbar__back" href="/admin/dashboard" aria-label="返回">‹</a>
+  <div class="ad-appbar__title"><span class="ic">💰</span><span>工资管理</span></div>
+  <div class="ad-appbar__actions">
+    <a class="ad-appbar__btn" href="javascript:doLogout()">退出</a>
+  </div>
+</header>
+<div class="page">
+
+  <!-- 年份+月份级联选择 -->
+  <div class="panel">
+    <h3>📅 选择月份</h3>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <select id="yearSel" onchange="onYearChange()" style="padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px;min-width:120px;"></select>
+      <select id="monthSel" onchange="onMonthChange()" style="padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px;min-width:120px;"></select>
+      <a href="/admin/salary_trash" style="margin-left:auto;padding:7px 14px;border:1px solid #ddd;border-radius:6px;font-size:13px;color:#666;text-decoration:none;background:#fff;display:inline-flex;align-items:center;gap:4px;">🗑️ 回收站</a>
+    </div>
+    <div id="ymStats" style="margin-top:12px;display:none;"></div>
+    <div id="ymActions" style="margin-top:10px;display:none;">
+      <button id="delMonthBtn" onclick="deleteMonth()" style="padding:6px 14px;border:1px solid #e64340;background:#fff;color:#e64340;border-radius:6px;font-size:13px;cursor:pointer;">🗑 删除本月所有工资</button>
+    </div>
+  </div>
+
+  <!-- 员工工资列表 -->
+  <div class="panel" id="listPanel" style="display:none;">
+    <h3>👥 员工工资 <span id="listTitle" style="color:#999;font-weight:400;font-size:13px;"></span></h3>
+    <div style="margin-bottom:10px;">
+      <input id="empSearch" type="text" placeholder="🔍 搜索姓名/拼音/部门/ID" oninput="onSearchInput()" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:18px;font-size:13px;box-sizing:border-box;outline:none;">
+    </div>
+    <div style="overflow-x:auto;">
+      <table id="salaryTable">
+        <thead>
+          <tr>
+            <th>姓名</th>
+            <th>部门</th>
+            <th class="td-right">实发工资</th>
+            <th class="td-center">状态</th>
+            <th class="td-center">确认</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="salaryTbody"></tbody>
+      </table>
+    </div>
+    <div class="pager" id="salaryPager"></div>
+  </div>
+
+</div>
+
+<!-- 详情弹窗 -->
+<div class="detail-mask" id="detailMask">
+  <div class="detail-box" id="detailBox"></div>
+</div>
+
+<!-- 确认弹窗 -->
+<div class="cm-mask" id="cmMask">
+  <div class="cm-box">
+    <div class="cm-head">
+      <div class="cm-icon warn">⚠️</div>
+      <div class="cm-title" id="cmTitle">确认操作</div>
+    </div>
+    <div class="cm-body" id="cmBody"></div>
+    <div class="cm-actions">
+      <button class="cm-btn cancel" onclick="cmClose()">取消</button>
+      <button class="cm-btn ok" id="cmOkBtn">确认删除</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast 浮动消息 -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== 通用：确认弹窗 =====
+var CM_CALLBACK = null;
+function cmOpen(opts){
+  document.getElementById('cmTitle').textContent = opts.title || '确认操作';
+  document.getElementById('cmBody').innerHTML = opts.body || '';
+  document.getElementById('cmOkBtn').textContent = opts.okText || '确认';
+  CM_CALLBACK = opts.onOk || null;
+  document.getElementById('cmMask').classList.add('show');
+}
+function cmClose(){
+  document.getElementById('cmMask').classList.remove('show');
+  CM_CALLBACK = null;
+}
+document.getElementById('cmOkBtn').addEventListener('click', function(){
+  var cb = CM_CALLBACK;
+  cmClose();
+  if(cb) cb();
+});
+document.getElementById('cmMask').addEventListener('click', function(e){
+  if(e.target === this) cmClose();
+});
+
+// ===== 通用：Toast 浮动消息 =====
+var TOAST_TIMER = null;
+function toast(msg, type){
+  var el = document.getElementById('toast');
+  el.className = 'toast' + (type ? ' ' + type : '');
+  el.textContent = msg;
+  el.classList.add('show');
+  if(TOAST_TIMER) clearTimeout(TOAST_TIMER);
+  TOAST_TIMER = setTimeout(function(){ el.classList.remove('show'); }, type === 'error' ? 3000 : 2000);
+}
+
+var CURRENT_YM = '';
+
+var ALL_MONTHS = [];       // 所有月份列表
+var YEAR_MONTHS = {};      // {year: [monthObj, ...]}
+var CURRENT_LIST = [];     // 当前月份的员工工资列表
+var SALARY_PAGE = 1;
+var SALARY_PAGE_SIZE = parseInt(localStorage.getItem('salary_pageSize') || '20', 10);
+var totalPages = 1;
+
+async function loadMonths(){
+  try {
+    var r = await fetch('/api/admin/salary/list');
+    var d = await r.json();
+    if(!d.success){
+      document.getElementById('ymStats').innerHTML='<div style="color:#e64340;">加载失败</div>';
+      document.getElementById('ymStats').style.display='block';
+      return;
+    }
+    ALL_MONTHS = d.months || [];
+    if(ALL_MONTHS.length===0){
+      document.getElementById('ymStats').innerHTML='<div style="color:#999;padding:10px;">暂无工资数据，请先上传工资</div>';
+      document.getElementById('ymStats').style.display='block';
+      return;
+    }
+    // 按年份分组
+    YEAR_MONTHS = {};
+    ALL_MONTHS.forEach(function(m){
+      if(!YEAR_MONTHS[m.year]) YEAR_MONTHS[m.year] = [];
+      YEAR_MONTHS[m.year].push(m);
+    });
+    // 填充年份下拉（降序）
+    var yearSel = document.getElementById('yearSel');
+    yearSel.innerHTML = '';
+    Object.keys(YEAR_MONTHS).sort(function(a,b){ return b-a; }).forEach(function(y){
+      var o = document.createElement('option');
+      o.value = y; o.textContent = y + '年';
+      yearSel.appendChild(o);
+    });
+    // 默认选最近年份
+    yearSel.value = yearSel.options[0].value;
+    onYearChange();
+  } catch(e){
+    document.getElementById('ymStats').innerHTML='<div style="color:#e64340;">加载失败：'+esc(e.message||e)+'</div>';
+    document.getElementById('ymStats').style.display='block';
+  }
+}
+
+function onYearChange(){
+  var y = document.getElementById('yearSel').value;
+  var months = YEAR_MONTHS[y] || [];
+  var monthSel = document.getElementById('monthSel');
+  monthSel.innerHTML = '';
+  // 月份降序（最近月份在前）
+  months.sort(function(a,b){ return b.month - a.month; }).forEach(function(m){
+    var o = document.createElement('option');
+    o.value = m.ym || (m.year + String(m.month).padStart(2,'0'));
+    o.textContent = m.month + '月（' + m.cnt + '人 / ' + m.confirmed_cnt + '已确认）';
+    monthSel.appendChild(o);
+  });
+  if(monthSel.options.length > 0){
+    monthSel.value = monthSel.options[0].value;
+    onMonthChange();
+  } else {
+    document.getElementById('ymStats').style.display='none';
+    document.getElementById('listPanel').style.display='none';
+  }
+}
+
+function onMonthChange(){
+  var ym = document.getElementById('monthSel').value;
+  if(!ym) return;
+  CURRENT_YM = ym;
+  // 显示统计信息
+  var y = parseInt(ym.slice(0,4));
+  var m = parseInt(ym.slice(4,6));
+  var mObj = (YEAR_MONTHS[y]||[]).find(function(x){ return x.year===y && x.month===m; });
+  if(mObj){
+    var unconfirmed = mObj.cnt - mObj.confirmed_cnt;
+    var pay = parseFloat(mObj.total_pay||0).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2});
+    document.getElementById('ymStats').style.display='block';
+    document.getElementById('ymStats').innerHTML =
+      '<div class="ym-stats">'
+      + '<div class="ym-stat blue"><div class="n">'+mObj.cnt+'</div><div class="l">总人数</div></div>'
+      + '<div class="ym-stat green"><div class="n">'+mObj.confirmed_cnt+'</div><div class="l">已确认</div></div>'
+      + '<div class="ym-stat orange"><div class="n">'+unconfirmed+'</div><div class="l">未确认</div></div>'
+      + '</div>'
+      + '<div style="margin-top:8px;font-size:12px;color:#999;text-align:center;">实发工资合计：'+fmtMoney(mObj.total_pay)+'</div>';
+    document.getElementById('ymActions').style.display='block';
+  } else {
+    document.getElementById('ymActions').style.display='none';
+  }
+  loadList(ym);
+}
+
+async function loadList(ym){
+  document.getElementById('listPanel').style.display='block';
+  document.getElementById('listTitle').textContent = '（'+ym.slice(0,4)+'年'+ym.slice(4,6)+'月）';
+  document.getElementById('empSearch').value = '';
+  document.getElementById('salaryTbody').innerHTML = '<tr><td colspan="6" class="loading">加载中...</td></tr>';
+
+  try {
+    var r = await fetch('/api/admin/salary/list?ym='+ym);
+    var d = await r.json();
+    if(!d.success || !d.list){
+      document.getElementById('salaryTbody').innerHTML = '<tr><td colspan="6" style="color:#e64340;">加载失败</td></tr>';
+      return;
+    }
+    CURRENT_LIST = d.list;
+    SALARY_PAGE = 1;
+    renderList();
+  } catch(e){
+    document.getElementById('salaryTbody').innerHTML = '<tr><td colspan="6" style="color:#e64340;">加载失败：'+esc(e.message||e)+'</td></tr>';
+  }
+}
+
+function onSearchInput(){
+  SALARY_PAGE = 1;
+  renderList();
+}
+
+function renderList(){
+  var q = (document.getElementById('empSearch').value || '').trim().toLowerCase();
+  var list = CURRENT_LIST;
+  if(q){
+    list = list.filter(function(s){
+      var name = (s.name||'').toLowerCase();
+      var dept = (s.dept_name||'').toLowerCase();
+      var uid = (s.userid||'').toLowerCase();
+      if(name.indexOf(q)>=0 || dept.indexOf(q)>=0 || uid.indexOf(q)>=0) return true;
+      if(typeof matchPinyinQuery==='function' && matchPinyinQuery(q, s.name||'')) return true;
+      return false;
+    });
+  }
+  if(list.length===0){
+    document.getElementById('salaryTbody').innerHTML = '<tr><td colspan="6" style="color:#999;text-align:center;">'+(q?'无匹配员工':'该月份无工资数据')+'</td></tr>';
+    document.getElementById('salaryPager').innerHTML = '';
+    return;
+  }
+  var total = list.length;
+  var pageSize = SALARY_PAGE_SIZE;
+  var totalPages = Math.ceil(total / pageSize);
+  if(SALARY_PAGE > totalPages) SALARY_PAGE = totalPages;
+  if(SALARY_PAGE < 1) SALARY_PAGE = 1;
+  var start = (SALARY_PAGE - 1) * pageSize;
+  var pageList = list.slice(start, start + pageSize);
+  document.getElementById('salaryTbody').innerHTML = pageList.map(function(s){
+    var statusBadge = '';
+    if(s.status==='draft'){ statusBadge='<span class="badge draft">草稿</span>'; }
+    else if(s.status==='sent'){ statusBadge='<span class="badge sent">已下发</span>'; }
+    else if(s.status==='confirmed'){ statusBadge='<span class="badge sent">已确认</span>'; }
+    var confirmBadge = s.confirmed ? '<span class="badge confirmed">✓ 已确认</span>' : '<span class="badge unconfirmed">待确认</span>';
+    return '<tr>'
+      + '<td>'+esc(s.name||s.userid)+'</td>'
+      + '<td>'+esc(s.dept_name||'未分配')+'</td>'
+      + '<td class="td-right">'+fmtMoney(s.real_pay)+'</td>'
+      + '<td class="td-center">'+statusBadge+'</td>'
+      + '<td class="td-center">'+confirmBadge+'</td>'
+      + '<td><a class="act-link" onclick="showDetail(\''+esc(s.userid)+'\',\''+CURRENT_YM+'\')">查看详情</a><a class="act-link" style="color:#e64340;" onclick="deleteOne(\''+esc(s.userid)+'\',\''+esc(s.name||s.userid)+'\')">删除</a></td>'
+      + '</tr>';
+  }).join('');
+  renderPager('salaryPager', SALARY_PAGE, totalPages, total, pageSize, 'salaryGoPage', 'salaryChangePageSize');
+}
+
+function salaryGoPage(p){ SALARY_PAGE = p; renderList(); }
+function salaryChangePageSize(sz){
+  SALARY_PAGE_SIZE = parseInt(sz, 10);
+  localStorage.setItem('salary_pageSize', sz);
+  SALARY_PAGE = 1;
+  renderList();
+}
+
+async function showDetail(userid, ym){
+  document.getElementById('detailMask').classList.add('show');
+  document.getElementById('detailBox').innerHTML = '<div class="loading">加载中...</div>';
+  try {
+    var r = await fetch('/api/admin/salary/detail/'+ym+'?userid='+encodeURIComponent(userid));
+    var d = await r.json();
+    if(!d.success){
+      document.getElementById('detailBox').innerHTML = '<div style="color:#e64340;padding:20px;">'+esc(d.error||'加载失败')+'</div>';
+      return;
+    }
+    var s = d.salary;
+    var groups = d.groups || [];
+    // 规则：过滤掉全为 0 的空分组、单项目金额为 0 的项（兜底，后端已过滤）
+    groups = groups.filter(function(g){
+      return g && g.items && g.items.length > 0;
+    });
+    var pay = parseFloat(s.real_pay||0).toFixed(2);
+    var statusText = s.confirmed ? '已确认' : (s.status==='sent' ? '已下发待确认' : s.status);
+
+    var groupsHtml = '';
+    if(groups.length===0){
+      groupsHtml = '<div style="text-align:center;color:#999;padding:20px;">暂无明细项</div>';
+    } else {
+      groupsHtml = groups.map(function(g){
+        var cls = g.is_deduction ? 'deduction' : (g.name ? 'income' : 'other');
+        var sumText = g.sum.toFixed(2);
+        // 跳过金额为 0 的单项（兜底过滤）
+        var filteredItems = g.items.filter(function(it){
+          var v = parseFloat(it.value) || 0;
+          return v !== 0;
+        });
+        if(filteredItems.length === 0) return '';
+
+        // 路径层级处理：g.name 可能为 "工资项/计时工资"
+        function pathDepth(p){ return p ? p.split('/').filter(function(s){return s;}).length : 0; }
+        var depth = Math.min(pathDepth(g.name), 3);
+        var lvlCls = depth > 0 ? 'level-'+depth : '';
+        var indCls = depth > 0 ? 'indent-'+depth : '';
+        // 显示最后一级名称
+        var lastSeg = g.name ? g.name.split('/').filter(function(s){return s;}).pop() : g.name;
+
+        // 单项同名：用分组标题样式显示这一项（一行）
+        var singleSameName = filteredItems.length === 1 && filteredItems[0].name === lastSeg;
+        if(singleSameName){
+          var it0 = filteredItems[0];
+          var disp0 = (it0.is_deduction?'-':'')+Math.abs(it0.display).toFixed(2);
+          return '<div class="detail-group">'
+            + '<div class="detail-group__head '+cls+' '+lvlCls+'">'
+            + '<span>'+esc(lastSeg)+'</span>'
+            + '<span class="detail-group__sum">'+disp0+'</span>'
+            + '</div>'
+            + '</div>';
+        }
+        var itemsHtml = filteredItems.map(function(it){
+          var valCls = it.is_deduction ? 'negative' : '';
+          return '<div class="detail-item '+indCls+'">'
+            + '<span class="lbl">'+esc(it.name)+'</span>'
+            + '<span class="val '+valCls+'">'+(it.is_deduction?'-':'')+Math.abs(it.display).toFixed(2)+'</span>'
+            + '</div>';
+        }).join('');
+        // 空 category 不显示分组标题（不要"其他"），直接平铺项目
+        var skipHead = !g.name;
+        var headHtml = skipHead
+          ? ''
+          : '<div class="detail-group__head '+cls+' '+lvlCls+'">'
+            + '<span>'+esc(lastSeg)+'</span>'
+            + '<span class="detail-group__sum">'+sumText+'</span>'
+            + '</div>';
+        return '<div class="detail-group">'
+          + headHtml
+          + '<div class="detail-group__items">'+itemsHtml+'</div>'
+          + '</div>';
+      }).filter(function(h){ return h !== ''; }).join('');
+    }
+
+    document.getElementById('detailBox').innerHTML =
+      '<div class="detail-head">'
+      + '<h3>💰 '+esc(s.name||s.userid)+' 的工资条</h3>'
+      + '<a class="close" href="javascript:closeDetail()">×</a>'
+      + '</div>'
+      + '<div class="detail-info">'
+      + '<span>📅 '+s.year+'年'+s.month+'月</span>'
+      + '<span>🏢 '+esc(s.dept_name)+'</span>'
+      + '<span>👤 '+esc(s.userid)+'</span>'
+      + '<span>📌 '+statusText+'</span>'
+      + (s.confirmed_at?'<span>✅ 确认时间:'+esc(s.confirmed_at)+'</span>':'')
+      + (s.pushed_at?'<span>📨 下发时间:'+esc(s.pushed_at)+'</span>':'')
+      + '</div>'
+      + '<div class="detail-total">'
+      + '<div class="lbl">实发工资</div>'
+      + '<div class="val">¥'+esc(pay)+'</div>'
+      + '</div>'
+      + groupsHtml;
+  } catch(e){
+    document.getElementById('detailBox').innerHTML = '<div style="color:#e64340;padding:20px;">加载失败：'+esc(e.message||e)+'</div>';
+  }
+}
+
+function closeDetail(){
+  document.getElementById('detailMask').classList.remove('show');
+}
+
+// 删除整月所有工资条
+function deleteMonth(){
+  if(!CURRENT_YM) return;
+  var y = CURRENT_YM.slice(0,4), m = CURRENT_YM.slice(4,6);
+  cmOpen({
+    title: '删除整月工资',
+    body: '确认删除 <b>'+y+'年'+m+'月</b> 的所有工资？<br>该操作不可恢复，将同时删除所有员工的明细数据。',
+    okText: '确认删除',
+    onOk: doDeleteMonth
+  });
+}
+
+async function doDeleteMonth(){
+  if(!CURRENT_YM) return;
+  var y = CURRENT_YM.slice(0,4), m = CURRENT_YM.slice(4,6);
+  try {
+    var r = await fetch('/api/admin/salary/delete', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ym: CURRENT_YM})
+    });
+    var d = await r.json();
+    if(!d.success){
+      toast('删除失败：'+(d.error||'未知错误'), 'error');
+      return;
+    }
+    toast('已删除 '+y+'年'+m+'月 工资条', 'success');
+    document.getElementById('ymActions').style.display='none';
+    document.getElementById('listPanel').style.display='none';
+    document.getElementById('ymStats').style.display='none';
+    await loadMonths();
+  } catch(e){
+    toast('删除请求失败：'+e.message, 'error');
+  }
+}
+
+// 删除单个员工该月工资条
+function deleteOne(userid, name){
+  if(!CURRENT_YM || !userid) return;
+  var y = CURRENT_YM.slice(0,4), m = CURRENT_YM.slice(4,6);
+  cmOpen({
+    title: '删除员工工资',
+    body: '确认删除「<b>'+esc(name)+'</b>」在 <b>'+y+'年'+m+'月</b> 的工资？<br>该操作不可恢复。',
+    okText: '确认删除',
+    onOk: function(){ doDeleteOne(userid); }
+  });
+}
+
+async function doDeleteOne(userid){
+  if(!CURRENT_YM || !userid) return;
+  try {
+    var r = await fetch('/api/admin/salary/delete', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ym: CURRENT_YM, userid: userid})
+    });
+    var d = await r.json();
+    if(!d.success){
+      toast('删除失败：'+(d.error||'未知错误'), 'error');
+      return;
+    }
+    toast('已删除', 'success');
+    // 先刷新月份列表（人数变化）
+    var me = await fetch('/api/admin/salary/list');
+    var md = await me.json();
+    if(md.success){
+      ALL_MONTHS = md.months || [];
+      YEAR_MONTHS = {};
+      ALL_MONTHS.forEach(function(mm){
+        if(!YEAR_MONTHS[mm.year]) YEAR_MONTHS[mm.year]=[];
+        YEAR_MONTHS[mm.year].push(mm);
+      });
+    }
+    var y = parseInt(CURRENT_YM.slice(0,4));
+    var m = parseInt(CURRENT_YM.slice(4,6));
+    var mObj = (YEAR_MONTHS[y]||[]).find(function(x){ return x.year===y && x.month===m; });
+    if(!mObj){
+      // 当前月份已无数据，切换到其他月份
+      document.getElementById('ymActions').style.display='none';
+      document.getElementById('listPanel').style.display='none';
+      document.getElementById('ymStats').style.display='none';
+      var yearSel = document.getElementById('yearSel');
+      yearSel.innerHTML = '';
+      Object.keys(YEAR_MONTHS).sort(function(a,b){ return b-a; }).forEach(function(yy){
+        var o = document.createElement('option');
+        o.value = yy; o.textContent = yy + '年';
+        yearSel.appendChild(o);
+      });
+      if(yearSel.options.length > 0){
+        yearSel.value = yearSel.options[0].value;
+        onYearChange();
+      } else {
+        document.getElementById('ymStats').innerHTML='<div style="color:#999;padding:10px;">暂无工资数据，请先上传工资</div>';
+        document.getElementById('ymStats').style.display='block';
+      }
+    } else {
+      // 当前月份还有数据，更新统计卡片并刷新列表
+      var unconfirmed = mObj.cnt - mObj.confirmed_cnt;
+      document.getElementById('ymStats').style.display='block';
+      document.getElementById('ymStats').innerHTML =
+        '<div class="ym-stats">'
+        + '<div class="ym-stat blue"><div class="n">'+mObj.cnt+'</div><div class="l">总人数</div></div>'
+        + '<div class="ym-stat green"><div class="n">'+mObj.confirmed_cnt+'</div><div class="l">已确认</div></div>'
+        + '<div class="ym-stat orange"><div class="n">'+unconfirmed+'</div><div class="l">未确认</div></div>'
+        + '</div>'
+        + '<div style="margin-top:8px;font-size:12px;color:#999;text-align:center;">实发工资合计：'+fmtMoney(mObj.total_pay)+'</div>';
+      await loadList(CURRENT_YM);
+    }
+  } catch(e){
+    toast('删除请求失败：'+e.message, 'error');
+  }
+}
+// 点击遮罩关闭
+document.getElementById('detailMask').addEventListener('click', function(e){
+  if(e.target === this) closeDetail();
+});
+
+document.addEventListener('DOMContentLoaded', async function(){
+  var me = await fetch('/api/auth/me');
+  if(me.status===401){ location.href='/api/auth/login?redirect=/admin/salary_list'; return; }
+  loadMonths();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0">
+    <title>上传工资</title>
+<link rel="stylesheet" href="/assets/weui.min.css?v=20260807a">
+<link rel="stylesheet" href="/assets/admin.css?v=20260807a">
+<script src="/assets/weui.min.js?v=20260807a"></script>
+<script src="/assets/admin.js?v=20260807a"></script>
+<script src="/assets/pinyin.js?v=20260807a"></script>
+    <style>
+        body { background: #f5f5f5; }
+        .topbar { display:flex; justify-content:flex-end; margin-bottom:12px; }
+        .btn-back { display:inline-flex; align-items:center; gap:4px; background:#07c160; color:#fff; text-decoration:none; padding:8px 16px; border-radius:8px; font-size:14px; box-shadow:0 2px 6px rgba(7,193,96,.25); }
+        .btn-back:hover { background:#06ad56; }
+        .page { max-width: 800px; margin: 0 auto; padding: 15px; }
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .card-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #07c160;
+        }
+        .upload-area {
+            border: 2px dashed #ddd;
+            border-radius: 10px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .upload-area:hover, .upload-area.dragover {
+            border-color: #07c160;
+            background: #f0fff0;
+        }
+        .upload-area .icon { font-size: 48px; }
+        .upload-area .text { font-size: 14px; color: #999; margin-top: 10px; }
+        .file-info {
+            padding: 10px;
+            background: #f8f8f8;
+            border-radius: 6px;
+            margin-top: 10px;
+            display: none;
+        }
+        .result-box {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+        .result-box.success { background: #e8f8e8; }
+        .result-box.error { background: #fff3e0; }
+        .format-tips {
+            font-size: 13px;
+            color: #666;
+            padding: 10px;
+            background: #f8f8f8;
+            border-radius: 6px;
+            margin-top: 10px;
+        }
+        .format-tips li { margin: 5px 0; }
+        .push-section { margin-top: 15px; }
+        /* 下载模板小按钮 */
+        .tpl-mini{display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border:1px solid #07c160;border-radius:6px;background:#fff;color:#07c160;font-size:12px;cursor:pointer;text-decoration:none;white-space:nowrap;}
+        .tpl-mini:hover{background:#f0fff0;}
+    </style>
+</head>
+<body>
+    <header class="ad-appbar">
+        <a class="ad-appbar__back" href="/admin/dashboard" aria-label="返回">‹</a>
+        <div class="ad-appbar__title"><span class="ic">📤</span><span>上传工资</span></div>
+        <div class="ad-appbar__actions">
+            <a class="ad-appbar__btn" href="javascript:doLogout()">退出</a>
+        </div>
+    </header>
+    <div class="page">
+        <div class="card">
+            <div class="card-title">📤 上传工资Excel</div>
+
+            <!-- 上传区域 -->
+            <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+                <div class="icon">📄</div>
+                <div class="text">点击上传Excel文件（仅支持 .xlsx 格式）</div>
+                <input type="file" id="fileInput" accept=".xlsx" style="display:none" onchange="handleFile(this)">
+            </div>
+            <div class="file-info" id="fileInfo"></div>
+
+            <!-- 格式说明 -->
+            <div class="format-tips">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                    <strong>📋 Excel格式要求：</strong>
+                    <a class="tpl-mini" href="/api/admin/salary_template" download>📥 下载Excel模板</a>
+                </div>
+                <ul>
+                    <li>第一行合并单元格，格式为 <strong>【xxxx年xx月薪资】</strong>（如：【2026年05月薪资】），用于识别年份与月份</li>
+                    <li>第一列为 <strong>企业微信成员ID 或 员工姓名</strong>
+                        <div style="margin-top:4px;color:#07c160;">匹配规则：纯字母 → 按企微成员ID匹配；纯汉字 → 按员工姓名匹配</div>
+                    </li>
+                    <li>必须包含 <strong>「实发工资」</strong> 列</li>
+                    <li>支持多层表头与合并单元格</li>
+                    <li>员工端展示所有列：扣除类字段自动以红色负数显示（如 <code style="background:#fdecec;color:#d33;padding:1px 5px;border-radius:3px;">-¥1,200.00</code>），收入字段显示为正数</li>
+                    <li>同月同员工重复上传时，旧记录自动被覆盖更新</li>
+                </ul>
+            </div>
+
+            <!-- 上传结果 -->
+            <div class="result-box" id="resultBox"></div>
+
+            <!-- 推送未下发工资 -->
+            <div class="push-section" id="pushSection">
+                <div id="pushMonthWrap" style="margin-bottom:12px;">
+                    <label style="font-size:14px;display:block;margin-bottom:6px;">选择发放月份（仅列出未下发的工资）</label>
+                    <select id="pushMonth" class="ad-input" style="width:100%;box-sizing:border-box;"></select>
+                </div>
+                <div id="pushMonthEmpty" style="color:#999;font-size:14px;margin-bottom:12px;display:none;">🎉 当前没有未下发的工资</div>
+                <a href="javascript:;" class="weui-btn weui-btn_primary" onclick="pushSalary()" style="width:100%;">🚀 推送未下发工资</a>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">🔄 重新推送（含已推送）</div>
+            <div style="font-size:12px;color:#999;margin-bottom:12px;">重新推送会覆盖所有已推送状态，包括已推送但未确认的工资</div>
+            <div id="pushAllMonthWrap" style="margin-bottom:12px;">
+                <label style="font-size:14px;display:block;margin-bottom:6px;">选择月份（含已推送）</label>
+                <select id="pushAllMonth" class="ad-input" style="width:100%;box-sizing:border-box;"></select>
+            </div>
+            <div id="pushAllMonthEmpty" style="color:#999;font-size:14px;margin-bottom:12px;display:none;">🎉 当前没有可重新推送的工资</div>
+            <a href="javascript:;" class="weui-btn weui-btn_default" onclick="pushAllSalary()" style="width:100%;">🔄 重新推送（含已推送）</a>
+        </div>
+
+        <div class="card">
+            <div class="card-title">📋 最近推送记录</div>
+            <div id="pushHistory" style="color:#999;text-align:center;padding:15px;">加载中...</div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">📨 推送结果通知接收人</div>
+            <div style="font-size:12px;color:#999;margin-bottom:12px;">工资推送完成后，系统将通知以下人员。未设置时默认通知所有管理员与财务。</div>
+            <div id="notifyUserList" style="margin-bottom:12px;color:#999;">加载中...</div>
+            <div style="display:flex;gap:8px;">
+                <a href="javascript:;" class="weui-btn weui-btn_primary" onclick="openNotifyPicker()" style="flex:1;">📇 从通讯录选择</a>
+                <a href="javascript:;" class="weui-btn weui-btn_default" onclick="addNotifyUser()" style="flex:1;">手动添加</a>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">⏰ 定时推送设置</div>
+            <div class="ad-form-row" style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+                <label style="font-size:14px;min-width:80px;">开启定时</label>
+                <label class="ad-switch"><input id="scheduleEnabled" type="checkbox"><span class="slider"></span></label>
+            </div>
+            <div class="ad-form-row" style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+                <label style="font-size:14px;min-width:80px;">每月日期</label>
+                <input class="ad-input" id="scheduleDay" type="number" min="1" max="28" value="15" placeholder="如：15" style="width:100px;">
+                <span style="font-size:12px;color:#999;">每月第几天执行（1-28）</span>
+            </div>
+            <div class="ad-form-row" style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+                <label style="font-size:14px;min-width:80px;">推送时间</label>
+                <input class="ad-input" id="scheduleHour" type="number" min="0" max="23" value="10" style="width:72px;">
+                <span style="color:#999;">:</span>
+                <input class="ad-input" id="scheduleMinute" type="number" min="0" max="59" value="0" style="width:72px;">
+            </div>
+            <a href="javascript:;" class="weui-btn weui-btn_primary" onclick="saveSchedule()" style="width:100%;">保存定时设置</a>
+            <div style="margin-top:10px;font-size:12px;color:#999;text-align:center;">
+                访问密钥与调用方式已迁移至「系统设置 → 催办工作时间」
+            </div>
+        </div>
+    </div>
+
+    <!-- 通知接收人选择器弹窗 -->
+    <div class="ad-modal-mask" id="notifyPickerMask" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+        <div style="background:#fff;border-radius:12px;width:90%;max-width:500px;max-height:80vh;display:flex;flex-direction:column;">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:16px;border-bottom:1px solid #eee;">
+                <span style="font-weight:bold;">📇 从通讯录选择接收人</span>
+                <span style="cursor:pointer;font-size:18px;" onclick="closeNotifyPicker()">✕</span>
+            </div>
+            <div style="padding:12px;overflow:auto;flex:1;">
+                <input class="ad-input" id="notifyPickerSearch" placeholder="搜索姓名 / 拼音 / UserID" oninput="renderNotifyPicker()" style="width:100%;box-sizing:border-box;margin-bottom:10px;">
+                <div id="notifyPickerList" style="max-height:46vh;overflow:auto;"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-top:1px solid #eee;">
+                <span id="notifyPickerCount" style="font-size:13px;color:#666;">已选 0 人</span>
+                <button class="ad-btn ad-btn--primary" onclick="confirmNotifyPicker()" style="background:#07c160;color:#fff;border:none;padding:8px 20px;border-radius:6px;cursor:pointer;">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentYM = '';
+        let uploadResult = null;
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            const resp = await fetch('/api/auth/me');
+            if (resp.status === 401) {
+                window.location.href = '/api/auth/login?redirect=/admin/upload';
+                return;
+            }
+            loadPushHistory();
+            loadPushMonths();
+            loadPushAllMonths();
+            loadNotifyUsers();
+            loadSchedule();
+        });
+
+        // ===== 推送结果通知接收人 =====
+        let NOTIFY_CURRENT = [];
+        let NOTIFY_PICKER = { users: [], selected: new Set() };
+
+        async function loadNotifyUsers() {
+            try {
+                const resp = await fetch('/api/admin/notify-users');
+                const data = await resp.json();
+                const c = document.getElementById('notifyUserList');
+                if (!data || data.length === 0) {
+                    NOTIFY_CURRENT = [];
+                    c.textContent = '暂未设置通知接收人，默认通知所有管理员和财务';
+                } else {
+                    NOTIFY_CURRENT = data.map(function (u) { return u.userid; });
+                    c.innerHTML = data.map(function (u) {
+                        return '<span class="notify-chip" style="display:inline-block;background:#f0f0f0;border-radius:16px;padding:4px 12px;margin:2px;font-size:13px;">' + esc(u.name) + ' (' + esc(u.userid) + ')'
+                            + '<span style="cursor:pointer;margin-left:4px;color:#999;" onclick="removeNotifyUser(\'' + esc(u.userid) + '\')">✕</span></span>';
+                    }).join('');
+                }
+            } catch (e) {
+                document.getElementById('notifyUserList').textContent = '加载失败';
+            }
+        }
+
+        async function addNotifyUser() {
+            const userid = prompt('请输入要添加的成员 UserID：');
+            if (!userid) return;
+            try {
+                const resp = await fetch('/api/admin/notify-users', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'add', userids: [userid.trim()] })
+                });
+                const r = await resp.json();
+                if (r.success) { weui.toast('✅ 已添加接收人'); loadNotifyUsers(); }
+                else { weui.topTips(r.error || '添加失败'); }
+            } catch (e) { weui.topTips('添加失败'); }
+        }
+
+        async function removeNotifyUser(userid) {
+            try {
+                const resp = await fetch('/api/admin/notify-users', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'remove', userids: [userid] })
+                });
+                const r = await resp.json();
+                if (r.success) { loadNotifyUsers(); }
+                else { weui.topTips(r.error || '移除失败'); }
+            } catch (e) { weui.topTips('移除失败'); }
+        }
+
+        async function openNotifyPicker() {
+            NOTIFY_PICKER.selected = new Set(NOTIFY_CURRENT);
+            try {
+                const resp = await fetch('/api/admin/contacts');
+                const d = await resp.json();
+                NOTIFY_PICKER.users = (d && Array.isArray(d.users)) ? d.users : [];
+            } catch (e) { NOTIFY_PICKER.users = []; }
+            document.getElementById('notifyPickerSearch').value = '';
+            document.getElementById('notifyPickerMask').style.display = 'flex';
+            renderNotifyPicker();
+        }
+        function closeNotifyPicker() { document.getElementById('notifyPickerMask').style.display = 'none'; }
+        function renderNotifyPicker() {
+            const q = (document.getElementById('notifyPickerSearch').value || '').trim().toLowerCase();
+            const box = document.getElementById('notifyPickerList');
+            const users = NOTIFY_PICKER.users.filter(function (u) {
+                if (!q) return true;
+                if ((u.name || '').toLowerCase().indexOf(q) >= 0 || (u.userid || '').toLowerCase().indexOf(q) >= 0) return true;
+                if (typeof matchPinyinQuery === 'function' && matchPinyinQuery(q, u.name || '')) return true;
+                return false;
+            });
+            if (users.length === 0) {
+                box.innerHTML = '<div style="color:#999;text-align:center;padding:20px;">未找到成员，请先同步通讯录。</div>';
+            } else {
+                box.innerHTML = users.map(function (u) {
+                    const sel = NOTIFY_PICKER.selected.has(u.userid);
+                    return '<div onclick="toggleNotifyPick(\'' + esc(u.userid) + '\')" style="padding:10px;border-bottom:1px solid #f5f5f5;cursor:pointer;display:flex;align-items:center;gap:8px;' + (sel ? 'background:#e8f5e9;' : '') + '">'
+                        + '<span style="width:20px;height:20px;border:2px solid ' + (sel ? '#07c160;background:#07c160' : '#ccc') + ';border-radius:4px;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:12px;">' + (sel ? '✓' : '') + '</span>'
+                        + '<span><span style="font-weight:500;">' + esc(u.name || u.userid) + '</span><span style="font-size:12px;color:#999;margin-left:6px;">' + esc(u.dept_name || '') + ' · ID:' + esc(u.userid) + '</span></span></div>';
+                }).join('');
+            }
+            document.getElementById('notifyPickerCount').textContent = '已选 ' + NOTIFY_PICKER.selected.size + ' 人';
+        }
+        function toggleNotifyPick(userid) {
+            if (NOTIFY_PICKER.selected.has(userid)) NOTIFY_PICKER.selected.delete(userid);
+            else NOTIFY_PICKER.selected.add(userid);
+            renderNotifyPicker();
+        }
+        async function confirmNotifyPicker() {
+            const userids = Array.from(NOTIFY_PICKER.selected);
+            if (userids.length === 0) { closeNotifyPicker(); return; }
+            try {
+                const resp = await fetch('/api/admin/notify-users', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'add', userids: userids })
+                });
+                const r = await resp.json();
+                if (r.success) { weui.toast('✅ 已添加 ' + userids.length + ' 位接收人'); loadNotifyUsers(); }
+                else { weui.topTips(r.error || '添加失败'); }
+            } catch (e) { weui.topTips('添加失败'); }
+            closeNotifyPicker();
+        }
+
+        // ===== 定时推送 =====
+        async function loadSchedule() {
+            try {
+                const resp = await fetch('/api/admin/schedule');
+                const d = await resp.json();
+                document.getElementById('scheduleEnabled').checked = !!d.enabled;
+                document.getElementById('scheduleDay').value = d.day || 15;
+                document.getElementById('scheduleHour').value = d.hour || 10;
+                document.getElementById('scheduleMinute').value = d.minute || 0;
+            } catch (e) {}
+        }
+        async function saveSchedule(opts) {
+            opts = opts || {};
+            const data = {
+                enabled: document.getElementById('scheduleEnabled').checked,
+                day: parseInt(document.getElementById('scheduleDay').value) || 15,
+                hour: parseInt(document.getElementById('scheduleHour').value) || 10,
+                minute: parseInt(document.getElementById('scheduleMinute').value) || 0,
+            };
+            try {
+                const resp = await fetch('/api/admin/schedule', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
+                });
+                const r = await resp.json();
+                if (r.success) {
+                    if (!opts.silent) weui.toast('✅ 定时设置已保存');
+                } else {
+                    if (!opts.silent) weui.topTips(r.error || '保存失败');
+                }
+                return r.success;
+            } catch (e) {
+                if (!opts.silent) weui.topTips('保存失败');
+                return false;
+            }
+        }
+
+        // ===== 上传文件 =====
+        function handleFile(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const ext = file.name.split('.').pop().toLowerCase();
+            if (ext !== 'xlsx') {
+                weui.topTips('仅支持 .xlsx 格式，请用 Excel 另存为 .xlsx 后再上传');
+                return;
+            }
+
+            document.getElementById('fileInfo').style.display = 'block';
+            document.getElementById('fileInfo').innerHTML = `
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span>📄 ${esc(file.name)} (${(file.size / 1024).toFixed(1)}KB)</span>
+                    <span style="color:#07c160;">解析中...</span>
+                </div>
+            `;
+
+            uploadFile(file);
+        }
+
+        async function uploadFile(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const resp = await fetch('/api/admin/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await resp.json();
+
+                const resultBox = document.getElementById('resultBox');
+                resultBox.style.display = 'block';
+
+                if (data.success) {
+                    currentYM = data.year_month;
+                    uploadResult = data;
+
+                    // 构建列名+分组预览
+                    var colPreviewHtml = '';
+                    if (data.col_preview && data.col_preview.length > 0) {
+                        var catMap = {};
+                        var catOrder = [];
+                        data.col_preview.forEach(function(c){
+                            var cat = c.category || '(无分组)';
+                            if(!catMap[cat]){ catMap[cat] = []; catOrder.push(cat); }
+                            catMap[cat].push(c.name);
+                        });
+                        colPreviewHtml = '<div style="margin-top:10px;padding:8px;background:#f9f9f9;border-radius:6px;font-size:12px;">'
+                            + '<div style="font-weight:600;margin-bottom:4px;color:#666;">📋 表头解析预览：</div>';
+                        catOrder.forEach(function(cat){
+                            colPreviewHtml += '<div style="margin:3px 0;">'
+                                + '<span style="color:#07c160;font-weight:600;">['+esc(cat)+']</span> '
+                                + '<span style="color:#333;">'+esc(catMap[cat].join('、'))+'</span>'
+                                + '</div>';
+                        });
+                        colPreviewHtml += '</div>';
+                    }
+
+                    resultBox.className = 'result-box success';
+                    var skipHtml = '';
+                    if (data.skip > 0) {
+                        var skipNames = (data.skipped_names || []).join('、');
+                        skipHtml = '<div style="color:#ff9800;">⚠️ 未匹配：' + data.skip + ' 人'
+                            + (skipNames ? '（' + esc(skipNames) + '）' : '')
+                            + '</div>';
+                    }
+                    resultBox.innerHTML = `
+                        <div style="font-weight:bold;">✅ 解析和导入成功</div>
+                        <div style="margin-top:8px;">
+                            <div>📅 月份：${data.year_month.slice(0,4)}年${data.year_month.slice(4,6)}月</div>
+                            <div>📊 成功导入：${data.valid} 条</div>
+                            <div>📋 字段数：${data.columns} 个</div>
+                            ${skipHtml}
+                        </div>
+                        ${colPreviewHtml}
+                    `;
+                    document.getElementById('fileInfo').innerHTML = `
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <span>📄 ${esc(file.name)}</span>
+                            <span style="color:#07c160;">✅ 解析和导入完成</span>
+                        </div>
+                    `;
+                    loadPushMonths();
+                    loadPushHistory();
+                    // 上传成功后：把定时推送的"每月日期"自动改为当天日期并保存
+                    try {
+                        const todayDay = new Date().getDate();
+                        const safeDay = Math.min(28, Math.max(1, todayDay));
+                        document.getElementById('scheduleDay').value = safeDay;
+                        await saveSchedule({silent: true});
+                    } catch (e) {}
+                } else {
+                    resultBox.className = 'result-box error';
+                    resultBox.innerHTML = '<div style="font-weight:bold;">❌ ' + esc(data.error || '解析失败') + '</div>';
+                }
+            } catch (e) {
+                const resultBox = document.getElementById('resultBox');
+                resultBox.style.display = 'block';
+                resultBox.className = 'result-box error';
+                resultBox.innerHTML = '<div style="font-weight:bold;">❌ 上传失败，请重试</div>';
+            }
+        }
+
+        // ===== 推送（手动发放未下发的工资）=====
+        // 加载"有未下发工资"的月份，填充下拉框；管理员/财务均可操作
+        async function loadPushMonths() {
+            const sel = document.getElementById('pushMonth');
+            const wrap = document.getElementById('pushMonthWrap');
+            const empty = document.getElementById('pushMonthEmpty');
+            try {
+                const resp = await fetch('/api/admin/push/months');
+                const r = await resp.json();
+                sel.innerHTML = '';
+                if (r.months && r.months.length) {
+                    r.months.forEach(function (m) {
+                        const o = document.createElement('option');
+                        o.value = m.ym;
+                        o.textContent = m.ym.slice(0, 4) + '年' + m.ym.slice(4, 6) + '月（未下发 ' + m.draft + ' 人）';
+                        sel.appendChild(o);
+                    });
+                    wrap.style.display = '';
+                    empty.style.display = 'none';
+                } else {
+                    wrap.style.display = 'none';
+                    empty.style.display = 'block';
+                }
+                currentYM = sel.value || '';
+            } catch (e) {
+                wrap.style.display = 'none';
+                empty.style.display = 'block';
+            }
+        }
+
+        async function pushSalary() {
+            // 优先取下拉框选中的月份；上传成功后也会同步到 currentYM
+            const sel = document.getElementById('pushMonth');
+            const ym = (sel && sel.value) ? sel.value : currentYM;
+            if (!ym) {
+                weui.topTips('暂无未下发的工资');
+                return;
+            }
+            currentYM = ym;
+
+            const loading = weui.loading('推送中...');
+            try {
+                const resp = await fetch('/api/admin/push/' + ym, {method: 'POST'});
+                const data = await resp.json();
+                loading.hide();
+
+                if (data.success) {
+                    weui.toast(`✅ 推送完成\n成功：${data.success_count} / 失败：${data.fail_count}`, 2000);
+                    loadPushMonths();
+                    loadPushAllMonths();
+                    loadPushHistory();
+                } else {
+                    weui.topTips(data.error || '推送失败');
+                }
+            } catch (e) {
+                loading.hide();
+                weui.topTips('推送失败');
+            }
+        }
+
+        async function pushAllSalary() {
+            const sel = document.getElementById('pushAllMonth');
+            const ym = sel ? sel.value : '';
+            if (!ym) {
+                weui.topTips('暂无可重新推送的工资');
+                return;
+            }
+            weui.confirm('重新推送将覆盖所有已推送状态，确定吗？', async function() {
+                const loading = weui.loading('重新推送中...');
+                try {
+                    const resp = await fetch('/api/admin/push/all/' + ym, {method: 'POST'});
+                    const data = await resp.json();
+                    loading.hide();
+                    if (data.success) {
+                        weui.toast('✅ 重新推送完成', 2000);
+                        loadPushMonths();
+                        loadPushAllMonths();
+                        loadPushHistory();
+                    } else {
+                        weui.topTips(data.error || '重新推送失败');
+                    }
+                } catch (e) {
+                    loading.hide();
+                    weui.topTips('重新推送失败');
+                }
+            });
+        }
+
+        // 加载"可重新推送"的月份（含已推送），填充独立下拉框
+        async function loadPushAllMonths() {
+            const sel = document.getElementById('pushAllMonth');
+            const wrap = document.getElementById('pushAllMonthWrap');
+            const empty = document.getElementById('pushAllMonthEmpty');
+            try {
+                const resp = await fetch('/api/admin/push/all_months');
+                const r = await resp.json();
+                sel.innerHTML = '';
+                if (r.months && r.months.length) {
+                    r.months.forEach(function (m) {
+                        const o = document.createElement('option');
+                        o.value = m.ym;
+                        o.textContent = m.ym.slice(0, 4) + '年' + m.ym.slice(4, 6) + '月（共 ' + m.total + ' 人）';
+                        sel.appendChild(o);
+                    });
+                    wrap.style.display = '';
+                    empty.style.display = 'none';
+                } else {
+                    wrap.style.display = 'none';
+                    empty.style.display = 'block';
+                }
+            } catch (e) {
+                wrap.style.display = 'none';
+                empty.style.display = 'block';
+            }
+        }
+
+        // ===== 推送历史 =====
+        async function loadPushHistory() {
+            try {
+                const resp = await fetch('/api/admin/stats/overview');
+                const data = await resp.json();
+                const el = document.getElementById('pushHistory');
+                if (data.latest_month && data.latest_month !== '无') {
+                    el.innerHTML = `
+                        <div>📅 最近推送：${data.latest_month.slice(0,4)}年${data.latest_month.slice(4,6)}月</div>
+                        <div>📊 本次推送 ${data.total_sent_employees || 0} 人</div>
+                        <div style="margin-top:5px;font-size:12px;">
+                            ✅ 已确认 ${data.total_confirmed || 0} 人 |
+                            ⏳ 待确认 ${data.total_unconfirmed || 0} 人
+                        </div>
+                    `;
+                } else {
+                    el.innerHTML = '暂无推送记录';
+                }
+            } catch (e) {
+                document.getElementById('pushHistory').innerHTML = '加载失败';
+            }
+        }
+    </script>
+</body>
+</html>

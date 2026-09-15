@@ -1,0 +1,1334 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0">
+    <title>我的年假</title>
+    <link rel="stylesheet" href="/assets/weui.min.css?v=20260807a">
+    <script src="/assets/weui.min.js?v=20260807a"></script>
+    <style>
+        :root { --theme: <?php echo htmlspecialchars($GLOBALS['_site_theme'], ENT_QUOTES, 'UTF-8'); ?>; }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            background: #f5f5f5;
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif;
+        }
+        .page { padding: 12px 12px 160px; }
+
+        /* ===== 顶部标题栏 ===== */
+        .nav-bar {
+            position: sticky;
+            top: 0;
+            background: #fff;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            padding: 10px 16px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .nav-bar .back {
+            position: absolute;
+            left: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 12px;
+            height: 32px;
+            border-radius: 14px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            color: var(--theme);
+            background: #f0faf4;
+            transition: background 0.15s;
+        }
+        .nav-bar .back:active { background: #e0f0e8; }
+        .nav-bar .title {
+            flex: 1;
+            text-align: center;
+            font-size: 17px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        /* ===== 年份导航（左右箭头 + 中间年份文本） ===== */
+        .year-nav {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            padding: 4px 16px 8px;   /* 上 padding 9→4：整体上移 5px */
+        }
+        .year-nav .year-btn {
+            width: 36px;
+            height: 36px;
+            border: 1.5px solid #e0e0e0;
+            border-radius: 50%;
+            background: #fff;
+            color: #333;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 600;
+            line-height: 1;
+            cursor: pointer;
+            transition: all 0.15s;
+            flex-shrink: 0;
+            padding: 0;
+        }
+        .year-nav .year-btn:active {
+            background: #f0faf4;
+            border-color: var(--theme);
+            color: var(--theme);
+        }
+        .year-nav .year-btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+            background: #f8f8f8;
+            border-color: #eee;
+            color: #bbb;
+        }
+        .year-nav .year-label {
+            min-width: 96px;
+            text-align: center;
+            font-size: 19px;
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+
+        /* ===== 余额卡片：一行三列（左label / 中数值 / 右 姓名+年度 两行）=====
+         * 说明：字号严格维持设计稿（13/42/16/12），仅把 padding 左右 20→14px 换取横向空间，
+         *      保证 320px 最窄手机（iPhone SE）也不溢出；三列 flex 布局保证水平+垂直都居中。
+         */
+        .balance-hero {
+            background: linear-gradient(135deg, var(--theme) 0%, #1aa86a 100%);
+            border-radius: 18px;
+            padding: 24px 14px;   /* 方案 A：左右 14px 换取空间，上下仍 24px */
+            margin-bottom: 14px;
+            color: #fff;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 6px 20px rgba(7,193,96,.18);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        .balance-hero::after {
+            content: '';
+            position: absolute;
+            right: -30px; top: -30px;
+            width: 120px; height: 120px;
+            background: rgba(255,255,255,.08);
+            border-radius: 50%;
+        }
+        .balance-hero .bcol {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+        .balance-hero .bcol.left   { flex: 0 0 auto; }
+        .balance-hero .bcol.center { flex: 1 1 auto; }
+        .balance-hero .bcol.right  {
+            flex: 0 0 auto;
+            max-width: 35%;      /* 超长人名兜底：极窄屏最多占 35% 宽度 */
+            gap: 2px;
+        }
+        .balance-hero .bcl-label {
+            font-size: 13px;      /* 保持原字号 */
+            color: rgba(255,255,255,.8);
+        }
+        .balance-hero .bcc-value {
+            font-size: 42px;      /* 保持原大字字号 */
+            font-weight: 700;
+            font-family: -apple-system, "PingFang SC", sans-serif;
+            line-height: 1.1;
+        }
+        .balance-hero .bcc-unit {
+            font-size: 16px;      /* 保持原单位字号 */
+            font-weight: 400;
+            margin-left: 4px;
+        }
+        .balance-hero .bcr-name,
+        .balance-hero .bcr-year  {
+            font-size: 12px;      /* 保持原 sub 字号 */
+            color: rgba(255,255,255,.7);
+            line-height: 1.5;
+            word-break: keep-all; /* 人名/年度不拆字换行 */
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+            white-space: nowrap;
+        }
+
+        /* ===== 明细卡片 ===== */
+        .detail-card {
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 1px 4px rgba(0,0,0,.06);
+            margin-bottom: 10px;
+            padding: 16px;
+        }
+        .detail-card .dc-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;   /* 左标题 / 右侧信息（入职日期）两端对齐 */
+            gap: 6px;
+        }
+        .detail-card .dc-title .dc-right {
+            font-size: 12px;
+            font-weight: 400;
+            color: #999;
+            white-space: nowrap;   /* 入职日期文字紧凑不换行，保证 320px 窄屏也不溢出 */
+        }
+        .detail-card .dc-title .dc-right b {
+            color: #555;
+            font-weight: 500;
+        }
+        .detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .detail-item {
+            text-align: center;
+        }
+        .detail-item .di-label {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 4px;
+        }
+        .detail-item .di-value {
+            font-size: 22px;
+            font-weight: 600;
+            font-family: -apple-system, "PingFang SC", sans-serif;
+        }
+        .di-ok { color: #07c160; }
+        .di-warn { color: #e65100; }
+        .di-sub { color: #666; }
+        .di-muted { color: #bbb; }
+
+        /* ===== 资格提示 ===== */
+        .eligibility-notice {
+            background: #fff8e1;
+            border-left: 3px solid #ffa726;
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin-bottom: 12px;
+            font-size: 13px;
+            color: #666;
+            line-height: 1.6;
+        }
+        .eligibility-notice .en-icon {
+            font-size: 20px;
+            margin-right: 4px;
+        }
+
+        /* ===== 流水列表 ===== */
+        .ledger-section {
+            margin-top: 4px;
+        }
+        .ledger-section .ls-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+            padding-left: 4px;
+        }
+        .ledger-item {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 1px 4px rgba(0,0,0,.06);
+            margin-bottom: 8px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .ledger-item .li-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+        .li-icon.src-1 { background: #fce4ec; color: #c62828; }
+        .li-icon.src-2 { background: #e3f2fd; color: #1565c0; }
+        .li-icon.src-3 { background: #f3e5f5; color: #7b1fa2; }
+        .li-icon.src-4 { background: #e8f5e9; color: #2e7d32; }
+        .ledger-item .li-body { flex: 1; min-width: 0; }
+        .ledger-item .li-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2px;
+        }
+        .ledger-item .li-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+        }
+        .ledger-item .li-delta {
+            font-size: 16px;
+            font-weight: 600;
+            font-family: -apple-system, monospace;
+        }
+        .li-delta.pos { color: #2e7d32; }
+        .li-delta.neg { color: #c62828; }
+        .ledger-item .li-time {
+            font-size: 12px;
+            color: #999;
+        }
+        .ledger-item .li-note {
+            font-size: 12px;
+            color: #aaa;
+            margin-top: 2px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        /* 审批通过/撤销行：点击可展开详情卡片，给用户视觉暗示 */
+        .ledger-item.clickable { cursor: pointer; transition: background 0.15s, box-shadow 0.15s; }
+        .ledger-item.clickable:active { background: #f9f9f9; box-shadow: 0 2px 10px rgba(0,0,0,.07); }
+        .ledger-item.clickable .li-name::after {
+            content: '›';
+            margin-left: 6px;
+            color: #bbb;
+            font-weight: 500;
+            font-size: 16px;
+            line-height: 1;
+        }
+
+        /* 审批记录快照行：所有行（审批中/驳回/撤销…）都可点击查看完整详情，视觉暗示与流水 clickable 一致 */
+        .approval-item { cursor: pointer; transition: background 0.15s, box-shadow 0.15s; }
+        .approval-item:active { background: #f9f9f9; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+        .approval-item .ai-name::after {
+            content: '›';
+            margin-left: 6px;
+            color: #bbb;
+            font-weight: 500;
+            font-size: 16px;
+            line-height: 1;
+        }
+
+        /* ===== 审批详情弹窗（4 行信息：编号 / 开始 / 结束 / 总计） ===== */
+        .sp-modal-mask {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,.45);
+            z-index: 200;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            animation: spMaskFade .18s ease-out;
+        }
+        .sp-modal-mask.show { display: flex; }
+        @keyframes spMaskFade { from { opacity: 0 } to { opacity: 1 } }
+        .sp-modal-card {
+            background: #fff;
+            width: 100%;
+            max-width: 360px;
+            border-radius: 16px;
+            position: relative;
+            box-shadow: 0 12px 40px rgba(0,0,0,.2);
+            animation: spCardIn .22s cubic-bezier(.2,.9,.3,1.1);
+            /* 手机端：头部固定 + 内容区滚动：纵向 flex 拆分 */
+            display: flex;
+            flex-direction: column;
+            max-height: 90vh;
+        }
+        @keyframes spCardIn { from { transform: scale(.92) translateY(8px); opacity: 0 } to { transform: none; opacity: 1 } }
+        /* 头部固定区：关闭按钮 + 标题，padding 与原卡片一致，不随滚动 */
+        .sp-card-head {
+            flex-shrink: 0;
+            padding: 22px 20px 6px;
+            position: relative;
+            border-bottom: 1px solid #f3f3f3;
+            border-radius: 16px 16px 0 0;
+        }
+        .sp-modal-card .sp-close {
+            position: absolute;
+            top: 10px; right: 12px;
+            width: 28px; height: 28px;
+            border: none; background: transparent;
+            font-size: 20px; color: #999;
+            cursor: pointer;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .sp-modal-card .sp-close:active { background: #f2f2f2; color: #666; }
+        .sp-modal-card .sp-title {
+            font-size: 16px; font-weight: 600; color: #333;
+            margin: 0; padding-right: 24px; line-height: 1.4; padding-bottom: 8px;
+        }
+        /* 内容滚动区：独占剩余高度，内部滚动，头部不动 */
+        .sp-card-body {
+            flex: 1 1 auto;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 10px 20px 16px;
+        }
+        .sp-modal-card .sp-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #f3f3f3;
+            font-size: 14px;
+        }
+        .sp-modal-card .sp-row:last-of-type { border-bottom: none; }
+        .sp-modal-card .sp-row .k { color: #999; }
+        .sp-modal-card .sp-row .v { color: #333; font-weight: 500; font-family: -apple-system, monospace; max-width: 62%; text-align: right; word-break: break-all; }
+        .sp-modal-card .sp-row.total .v { color: #07c160; font-size: 18px; }
+        /* 新增内容区块：「提交人/提交时间」与「审批流程节点」分隔标题，风格与企微一致（粗体+绿色底划线） */
+        .sp-section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1a1a1a;
+            padding: 4px 0 6px;
+            margin: 18px 0 10px;
+            border-top: 1px solid #f0f0f0;
+            padding-top: 14px;
+        }
+        .sp-section-title:first-of-type {
+            border-top: 1px solid #f0f0f0;
+        }
+        .sp-section-title .count {
+            color: #666;
+            font-weight: 400;
+            margin-left: 4px;
+        }
+        .sp-section-title .warn {
+            font-size: 12px;
+            color: #e53935;
+            font-weight: 400;
+            margin-left: 8px;
+        }
+        /* 审批流程节点：卡片列表（无表格，不横滑）——抄送合并一张卡片 + 审批节点逐张 + 空意见隐藏 */
+        .sp-flow-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .sp-flow-card {
+            background: #fff;
+            border: 1px solid #ececec;
+            border-radius: 8px;
+            padding: 10px 12px;
+        }
+        /* 节点头部：左「📌节点名」、右「✅状态颜色文字」 */
+        .sp-flow-card .sp-fc-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+            font-size: 13px;
+        }
+        .sp-flow-card .sp-fc-idx {
+            font-weight: 600;
+            color: #333;
+        }
+        .sp-flow-card .sp-fc-idx.icon-cc::before { content: '📌 '; }
+        .sp-flow-card .sp-fc-idx.icon-lv::before { content: '📍 '; }
+        .sp-flow-card .sp-fc-st {
+            font-weight: 500;
+            font-size: 12px;
+        }
+        /* 内容行：处理人 + 时间同一行（左右分布），抄送卡片紧凑写人名一行 */
+        .sp-flow-card .sp-fc-line {
+            font-size: 13px;
+            color: #333;
+            line-height: 1.55;
+            word-break: break-all;
+        }
+        .sp-flow-card .sp-fc-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 8px;
+            font-size: 13px;
+        }
+        .sp-flow-card .sp-fc-meta .sp-fc-user {
+            color: #333;
+            font-weight: 500;
+        }
+        .sp-flow-card .sp-fc-meta .sp-fc-time {
+            color: #888;
+            font-family: -apple-system, monospace;
+            font-size: 12px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .sp-flow-card .sp-fc-speech {
+            margin-top: 6px;
+            padding-top: 6px;
+            border-top: 1px dashed #eee;
+            color: #555;
+            font-size: 12.5px;
+            line-height: 1.55;
+        }
+        .sp-flow-card .sp-fc-speech::before { content: '意见：'; color: #999; }
+        /* 抄送节点更紧凑：卡片背景更浅，边框更淡 */
+        .sp-flow-card.is-cc {
+            background: #f8faf8;
+            border-color: #e2f0e6;
+        }
+        .sp-flow-card.is-cc .sp-fc-line { color: #3a6b4a; }
+        .sp-status-tag-text { font-weight: 500; }
+        .sp-st-ok    { color: #07c160; }    /* 绿：已同意 */
+        .sp-st-warn  { color: #e53935; }    /* 红：已驳回 */
+        .sp-st-muted { color: #6b7280; }    /* 灰：审批中 */
+        .sp-st-done  { color: #9ca3af; }    /* 浅灰：已撤销 */
+        /* 节点区 loading/空态 提示文字 */
+        .sp-flow-empty {
+            padding: 14px 10px;
+            font-size: 13px;
+            color: #999;
+            text-align: center;
+            border: 1px dashed #e5e7eb;
+            border-radius: 6px;
+        }
+        .sp-flow-empty.ok  { color: #555; border-color: #d1fae5; }
+        .sp-flow-empty.bad { color: #b91c1c; border-color: #fecaca; }
+
+        /* ===== 空状态 ===== */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #bbb;
+        }
+        .empty-state .es-icon { font-size: 48px; margin-bottom: 12px; }
+        .empty-state .es-text { font-size: 14px; }
+
+        /* ===== 底部Tab导航 ===== */
+        .tab-bar {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: #fff;
+            display: flex;
+            border-top: 1px solid #ececec;
+            z-index: 100;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .tab-bar .tab-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 6px 0;
+            text-decoration: none;
+            color: #999;
+            font-size: 11px;
+            transition: color 0.15s;
+        }
+        .tab-bar .tab-item .icon { font-size: 22px; display: block; margin-bottom: 2px; }
+        .tab-bar .tab-item.active { color: var(--theme); }
+
+        /* ===== 加载中 ===== */
+        .loading {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+            font-size: 14px;
+        }
+
+        /* ===== 查看密码弹窗（pw_ok cookie 过期时就地弹，不跳详情页） ===== */
+        .pw-modal-mask {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,.45);
+            z-index: 220;
+            display: none; align-items: center; justify-content: center;
+            padding: 20px;
+        }
+        .pw-modal-mask.show { display: flex; }
+        .pw-modal-card {
+            background: #fff;
+            width: 100%; max-width: 340px;
+            border-radius: 16px;
+            padding: 22px 20px 20px;
+            box-shadow: 0 12px 40px rgba(0,0,0,.2);
+        }
+        .pw-modal-card .pwm-title {
+            font-size: 16px; font-weight: 600; color: #333; margin-bottom: 6px;
+        }
+        .pw-modal-card .pwm-hint {
+            font-size: 12px; color: #999; margin-bottom: 16px; line-height: 1.6;
+        }
+        .pw-modal-card .pwm-input {
+            width: 100%;
+            border: 1.5px solid #e6e6e6;
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 15px;
+            outline: none;
+            transition: border-color .15s;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+        .pw-modal-card .pwm-input:focus { border-color: var(--theme); }
+        .pw-modal-card .pwm-err {
+            color: #e65100; font-size: 12px; min-height: 18px; margin: 6px 2px 0;
+        }
+        .pw-modal-card .pwm-actions {
+            display: flex; gap: 10px; margin-top: 14px;
+        }
+        .pw-modal-card .pwm-btn {
+            flex: 1; padding: 11px 0; border-radius: 10px; border: none;
+            font-size: 15px; cursor: pointer; font-family: inherit;
+        }
+        .pw-modal-card .pwm-btn.cancel { background: #f4f4f4; color: #666; }
+        .pw-modal-card .pwm-btn.submit { background: var(--theme); color: #fff; font-weight: 500; }
+        .pw-modal-card .pwm-btn:disabled { opacity: .6; }
+        .pw-modal-card .pwm-btn.submit:active { filter: brightness(.95); }
+
+        /* ===== 审批快照面板 ===== */
+        .approvals-section {
+            margin-top: 18px;
+            background: #fafafa;
+            border-radius: 14px;
+            padding: 14px 14px 6px;
+            border: 1px dashed #e3e3e3;
+        }
+        .approvals-section .as-title {
+            font-size: 15px; font-weight: 600; color: #555; margin-bottom: 10px;
+            padding-left: 2px;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .approval-item {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 1px 4px rgba(0,0,0,.05);
+            margin-bottom: 8px;
+            padding: 12px 14px;
+            display: flex; align-items: center; gap: 12px;
+            cursor: pointer;
+            transition: background .15s, box-shadow .15s;
+        }
+        .approval-item:active { background: #f9f9f9; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+        .approval-item .ai-icon {
+            width: 36px; height: 36px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px; flex-shrink: 0; color: #fff;
+        }
+        .ai-icon.sp-status-1 { background: #1976d2; }     /* 审批中 蓝 */
+        .ai-icon.sp-status-2 { background: #07c160; }     /* 已通过 绿 */
+        .ai-icon.sp-status-3 { background: #c62828; }     /* 已驳回 红 */
+        .ai-icon.sp-status-4 { background: #9e9e9e; }     /* 已撤回 灰 */
+        .ai-icon.sp-status-6 { background: #ef6c00; }     /* 通过后撤销 橙 */
+        .ai-icon.sp-status-0 { background: #bdbdbd; }     /* 未知 */
+        .approval-item .ai-body { flex: 1; min-width: 0; }
+        .approval-item .ai-top {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 5px; gap: 8px;
+        }
+        .approval-item .ai-name {
+            font-size: 14px; font-weight: 500; color: #333;
+            flex: 1; min-width: 0;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .approval-item .ai-status-tag {
+            font-size: 11px; line-height: 1;
+            padding: 4px 8px; border-radius: 10px;
+            background: #f2f2f2; color: #666; flex-shrink: 0;
+        }
+        .ai-status-tag.sp-status-1 { background: #e3f2fd; color: #1565c0; }
+        .ai-status-tag.sp-status-2 { background: #e8f5e9; color: #2e7d32; }
+        .ai-status-tag.sp-status-3 { background: #ffebee; color: #c62828; }
+        .ai-status-tag.sp-status-4 { background: #f5f5f5; color: #616161; }
+        .ai-status-tag.sp-status-6 { background: #fff3e0; color: #e65100; }
+
+        /* 时间段：双行"起 / 止"靠左布局（日期+时间+起/止 紧紧挨在一起，不拆分散列）
+           📅 只出现在第一行"起"那行，第二行"止"用 padding-left 对齐到日期列起始。
+           这样手机 360px 也能完整显示：每行最多 20 字符左右，不出省略号 */
+        .approval-item .ai-range {
+            font-size: 12px; color: #666;
+            line-height: 1.65;
+            margin-top: 2px;
+            text-align: left;
+            word-break: keep-all;
+        }
+        .approval-item .ai-range span {
+            white-space: nowrap;
+        }
+        .approval-item .ai-range .air-indent {
+            display: inline-block;
+            /* 18px 刚好把第二行的日期对齐到第一行日期起始（前面 📅 占的宽度） */
+            padding-left: 18px;
+        }
+        /* <=360px 手机再把缩进收一点，防止某些极窄屏下图标实际宽度比 18px 略大 */
+        @media (max-width: 360px) {
+            .approval-item .ai-range .air-indent { padding-left: 16px; }
+        }
+        .approval-item .ai-meta {
+            font-size: 11px; color: #aaa; margin-top: 4px;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <!-- 年份导航（‹ 去年 / 今年 / 明年 ›） -->
+        <div class="year-nav">
+            <button id="prevYear" class="year-btn" onclick="shiftYear(-1)">‹</button>
+            <span id="yearLabel" class="year-label">—</span>
+            <button id="nextYear" class="year-btn" onclick="shiftYear(1)">›</button>
+        </div>
+
+        <!-- 内容区 -->
+        <div id="content">
+            <div class="loading">加载中...</div>
+        </div>
+
+        <!-- 底部Tab导航 -->
+        <nav class="tab-bar">
+            <a href="/employee/salary" class="tab-item">
+                <span class="icon">💰</span><span>首页</span>
+            </a>
+            <a href="/employee/history" class="tab-item">
+                <span class="icon">💵</span><span>工资</span>
+            </a>
+            <a href="/employee/bonus" class="tab-item">
+                <span class="icon">🎁</span><span>奖金</span>
+            </a>
+            <a href="/employee/feedback" class="tab-item">
+                <span class="icon">📋</span><span>反馈</span>
+            </a>
+            <a href="/employee/vacation" class="tab-item active">
+                <span class="icon">🏖️</span><span>年假</span>
+            </a>
+        </nav>
+    </div>
+
+    <!-- 审批详情弹窗：编号 / 开始时间 / 结束时间 / 总计 → 追加 提交人时间 + 审批流程节点表 -->
+    <div id="spDetailModal" class="sp-modal-mask" onclick="if(event.target===this)closeSpDetail()">
+        <div class="sp-modal-card" onclick="event.stopPropagation()">
+            <!-- 头部固定区：不随滚动 -->
+            <div class="sp-card-head">
+                <button class="sp-close" onclick="closeSpDetail()" aria-label="关闭">×</button>
+                <div class="sp-title" id="spTitle">审批详情</div>
+            </div>
+            <!-- 内容滚动区：编号/时间/提交信息/流程节点 都在里面滚动 -->
+            <div class="sp-card-body">
+                <div class="sp-row"><span class="k">编号</span><span class="v" id="spNo">—</span></div>
+                <div class="sp-row"><span class="k">开始时间</span><span class="v" id="spStart">—</span></div>
+                <div class="sp-row"><span class="k">结束时间</span><span class="v" id="spEnd">—</span></div>
+                <div class="sp-row total"><span class="k">总计</span><span class="v" id="spDays">—</span></div>
+
+                <div class="sp-section-title" id="spSubmitTitle">提交信息</div>
+                <div class="sp-row"><span class="k">提交人</span><span class="v" id="spSubmitter">—</span></div>
+                <div class="sp-row"><span class="k">提交时间</span><span class="v" id="spSubmitTime">—</span></div>
+
+                <div class="sp-section-title" id="spFlowTitle">
+                    🔀 审批流程节点<span class="count" id="spFlowCount">（0 个）</span>
+                    <span class="warn" id="spFlowWarn" style="display:none;">⚠️ 节点暂不可用（超出企微保留期或历史单未回填）</span>
+                </div>
+                <div id="spFlowBox">
+                    <div class="sp-flow-empty">加载中…</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 查看密码验证（pw_ok cookie 过期时就地弹，不用跳详情页） -->
+    <div id="pwModal" class="pw-modal-mask" onclick="if(event.target===this)closePwModal()">
+        <div class="pw-modal-card" onclick="event.stopPropagation()">
+            <div class="pwm-title">🔐 请输入查看密码</div>
+            <div class="pwm-hint">为了您的工资 / 年假隐私，长时间未操作后需要重新验证密码。</div>
+            <input id="pwInput" class="pwm-input" type="password" placeholder="4-20 位查看密码" autocomplete="current-password"
+                   onkeydown="if(event.key==='Enter')submitPwVerify()">
+            <div id="pwError" class="pwm-err"></div>
+            <div class="pwm-actions">
+                <button class="pwm-btn cancel" onclick="closePwModal()">取消</button>
+                <button id="pwSubmitBtn" class="pwm-btn submit" onclick="submitPwVerify()">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        let _curYear = new Date().getFullYear();
+        // 年份导航：去年 / 今年 / 明年 共 3 年，点 ‹ = 去年（-1）、点 › = 明年（+1），边界禁用
+        let _years = [];   // 从小到大：[去年, 今年, 明年]
+        let _selYear = _curYear;
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            // 事件委托：审批流水行点击 → 弹详情卡片（renderData 每次重建 DOM，委托一次绑定永久有效）
+            var content = document.getElementById('content');
+            content.addEventListener('click', function(e) {
+                var ledger = e.target.closest('.ledger-item.clickable');
+                if (ledger) {
+                    openSpDetail({
+                        title: ledger.dataset.title || '审批详情',
+                        sp_no: ledger.dataset.spNo,
+                        start_date: ledger.dataset.startDate,
+                        end_date: ledger.dataset.endDate,
+                        leave_days: ledger.dataset.leaveDays
+                    });
+                    return;
+                }
+                // 审批快照行：查看完整编号/时间段/天数详情
+                var ap = e.target.closest('.approval-item');
+                if (ap) {
+                    openSpDetail({
+                        title: ap.dataset.title || '审批记录',
+                        sp_no: ap.dataset.spNo,
+                        start_date: ap.dataset.startDate,
+                        end_date: ap.dataset.endDate,
+                        leave_days: ap.dataset.leaveDays
+                    });
+                }
+            });
+            await checkLogin();
+        });
+
+        /**
+         * 打开审批详情卡片：
+         *   1) 先立即渲染"编号/开始/结束/总计"4 行（首屏无等待，来自主接口缓存 data-attr）
+         *   2) 异步拉取 /api/vacation/sp_detail 接口，填入「提交人/提交时间」和「审批流程节点表（5 列）」
+         *   为什么分两步：老单 / 网络不好时，基本信息能立即看到，不会整个弹空白等接口。
+         *   安全注意：401/403 跳转登录（会话或密码过期），错误走提示不会泄露信息。
+         */
+        async function openSpDetail(data) {
+            data = data || {};
+            var sp_no = data.sp_no || '';
+            // ---------- 1) 首屏：立即填 4 行基础 + 重置新增区块为 loading ----------
+            document.getElementById('spTitle').textContent = data.title || '审批详情';
+            document.getElementById('spNo').textContent = sp_no || '—';
+            document.getElementById('spStart').textContent = data.start_date || '—';
+            document.getElementById('spEnd').textContent = data.end_date || '—';
+            document.getElementById('spDays').textContent = (data.leave_days !== null && data.leave_days !== undefined && data.leave_days !== '')
+                ? ('共 ' + data.leave_days + ' 天') : '—';
+            document.getElementById('spSubmitter').textContent = '—';
+            document.getElementById('spSubmitTime').textContent = '—';
+            document.getElementById('spFlowCount').textContent = '（0 个）';
+            document.getElementById('spFlowWarn').style.display = 'none';
+            document.getElementById('spFlowBox').innerHTML = '<div class="sp-flow-empty">加载中…</div>';
+            var mask = document.getElementById('spDetailModal');
+            mask.classList.add('show');
+            document.body.style.overflow = 'hidden';
+
+            if (!sp_no) {
+                // 手动调整/系统调整行：没有 sp_no 就不会有审批流程节点
+                document.getElementById('spSubmitTitle').style.display = 'none';
+                document.getElementById('spFlowTitle').style.display = 'none';
+                document.getElementById('spFlowBox').style.display = 'none';
+                return;
+            }
+            // 行带 sp_no：确保 提交信息 / 流程节点 两块可见（手动调整上次隐藏过要恢复）
+            document.getElementById('spSubmitTitle').style.display = '';
+            document.getElementById('spFlowTitle').style.display = '';
+            document.getElementById('spFlowBox').style.display = '';
+
+            // ---------- 2) 异步拉详情接口 ----------
+            try {
+                var resp = await fetch('/api/vacation/sp_detail?sp_no=' + encodeURIComponent(sp_no));
+                if (resp.status === 401 || resp.status === 403) {
+                    window.location.href = '/api/auth/login?redirect=/employee/vacation';
+                    return;
+                }
+                var d = await resp.json();
+                if (!d || !d.success) {
+                    var errMsg = d && d.error ? String(d.error) : '加载失败';
+                    document.getElementById('spFlowBox').innerHTML =
+                        '<div class="sp-flow-empty bad">❌ ' + esc(errMsg) + '</div>';
+                    // 403 或 sp_no 不对时，不弹 toast 避免干扰，只让用户在弹窗内看到红色提示
+                    return;
+                }
+
+                // 填 提交人/时间（vacation_approvals 直接有字段，即使 raw_json 空也能显示）
+                document.getElementById('spSubmitter').textContent = d.submitter || '—';
+                document.getElementById('spSubmitTime').textContent = d.submit_time || '—';
+
+                // 流程节点区：不可用 → 显示老单兜底提示
+                var nodes = Array.isArray(d.flow_nodes) ? d.flow_nodes : [];
+                document.getElementById('spFlowCount').textContent = '（' + nodes.length + ' 个）';
+                if (!d.nodes_available || nodes.length === 0) {
+                    document.getElementById('spFlowWarn').style.display = nodes.length === 0 ? '' : 'inline';
+                    document.getElementById('spFlowBox').innerHTML =
+                        '<div class="sp-flow-empty ' + (nodes.length ? 'ok' : 'bad') + '">'
+                        + (nodes.length === 0
+                            ? '暂无审批流程节点数据（可能未提交审批或节点为空）'
+                            : '⚠️ 已展示现有节点；若历史单节点不全，请到年假总览执行「全年同步」回填 raw_json 后再看')
+                        + '</div>';
+                    return;
+                }
+                // 正常：渲染 5 列节点表格
+                document.getElementById('spFlowWarn').style.display = 'none';
+                document.getElementById('spFlowBox').innerHTML = renderFlowTable(nodes);
+            } catch (e) {
+                document.getElementById('spFlowBox').innerHTML =
+                    '<div class="sp-flow-empty bad">❌ 网络异常：' + esc(String(e && e.message || e)) + '</div>';
+            }
+        }
+
+        /**
+         * 渲染审批流程节点为「卡片列表」（替代旧表格，手机端无需横滑）：
+         *   1) 所有「抄送」节点合并成 1 张浅绿卡片，人名空格连写一行，不显示时间/意见（空就省）
+         *   2) 「第N级审批」节点各一张卡片：头部（📍节点名 + 右侧状态色），内容行（处理人左 + 时间右），
+         *      意见行（空完全不渲染）
+         *   状态颜色用后端传入的 status_color 映射（绿/红/灰/浅灰）。
+         *
+         * @param {Array} nodes 后端 handle_vacation_sp_detail 返回的 flow_nodes 数组
+         * @returns {string} HTML 字符串
+         */
+        function renderFlowTable(nodes) {
+            nodes = Array.isArray(nodes) ? nodes : [];
+            // ---- 分组：抄送 / 其他（审批级）----
+            var ccList = [];
+            var lvList = [];
+            nodes.forEach(function (n) {
+                var idx = String(n.idx || '');
+                // 抄送判定：索引名 === '抄送' 或内含"抄送"
+                if (idx === '抄送' || idx.indexOf('抄送') >= 0) ccList.push(n);
+                else lvList.push(n);
+            });
+
+            var html = '<div class="sp-flow-list">';
+
+            // ---- 抄送合并卡片（有就写一张）----
+            if (ccList.length) {
+                // 所有人名空格分隔写一行；保留原始顺序和重复项（企微允许同一人被重复抄送多条记录）
+                var names = [];
+                ccList.forEach(function (n) {
+                    var nm = String(n.user || '').trim();
+                    if (!nm) return;
+                    names.push(esc(nm));
+                });
+                // 状态：取第一个抄送节点的状态（一般都是已同意）
+                var cc0 = ccList[0] || {};
+                var cls = _mapStatusClass(cc0.status_color);
+                html += '<div class="sp-flow-card is-cc">'
+                    + '<div class="sp-fc-head">'
+                    + '<div class="sp-fc-idx icon-cc">抄送</div>'
+                    + '<div class="sp-fc-st"><span class="sp-status-tag-text ' + cls + '">'
+                    + esc(cc0.status || '') + '</span></div>'
+                    + '</div>'
+                    + '<div class="sp-fc-line">' + (names.length ? names.join('  ') : '-') + '</div>'
+                    + '</div>';
+            }
+
+            // ---- 审批节点卡片（逐张）----
+            lvList.forEach(function (n) {
+                var cls = _mapStatusClass(n.status_color);
+                var user = esc(n.user || '');
+                var time = esc(n.time || '');
+                // 意见：空 / 全空白 / 仅 "-" 视为无意见，不显示意见行
+                var rawSpeech = n.speech == null ? '' : String(n.speech).trim();
+                var speech = (rawSpeech !== '' && rawSpeech !== '-') ? esc(rawSpeech) : '';
+                html += '<div class="sp-flow-card">'
+                    + '<div class="sp-fc-head">'
+                    + '<div class="sp-fc-idx icon-lv">' + esc(n.idx || '') + '</div>'
+                    + '<div class="sp-fc-st"><span class="sp-status-tag-text ' + cls + '">'
+                    + esc(n.status || '') + '</span></div>'
+                    + '</div>'
+                    + '<div class="sp-fc-meta">'
+                    + '<div class="sp-fc-user">' + (user || '-') + '</div>'
+                    + '<div class="sp-fc-time">' + (time || '-') + '</div>'
+                    + '</div>';
+                // 意见：空完全不渲染
+                if (speech) {
+                    html += '<div class="sp-fc-speech">' + speech + '</div>';
+                }
+                html += '</div>';
+            });
+
+            html += '</div>';
+            return html;
+        }
+
+        /**
+         * 后端 status_color 映射到前端 CSS class（与旧表格逻辑完全一致，抽成复用函数）
+         * @param {string|undefined} c 后端返回的 status_color（十六进制或带色值文本）
+         * @returns {string} CSS class 名：sp-st-ok / sp-st-warn / sp-st-done / sp-st-muted
+         */
+        function _mapStatusClass(c) {
+            c = String(c || '').toLowerCase();
+            if (c === '#07c160' || c.indexOf('07c160') >= 0)           return 'sp-st-ok';
+            else if (c === '#e53935' || c.indexOf('e53935') >= 0)    return 'sp-st-warn';
+            else if (c === '#9ca3af' || c.indexOf('9ca3af') >= 0)   return 'sp-st-done';
+            else                                                       return 'sp-st-muted';
+        }
+
+        /**
+         * 关闭审批详情卡片（点遮罩、点 X 关闭，解锁 body 滚动）
+         */
+        function closeSpDetail() {
+            var mask = document.getElementById('spDetailModal');
+            mask.classList.remove('show');
+            document.body.style.overflow = '';
+        }
+
+        function esc(s) {
+            if (s === null || s === undefined) return '';
+            return String(s).replace(/[&<>"']/g, function(c) {
+                return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+            });
+        }
+
+        /**
+         * 拆分日期时间字符串为 {date, time}，缺失用 "—" 兜底。
+         * 输入形如 "2026-06-01 08:00" 或仅 "2026-06-01" 或空/undefined。
+         * 为审批记录双行"起/止"布局提供安全的 date/time 切片，避免单段 HTML 被整体截断。
+         */
+        function parseRangePart(v) {
+            if (!v) return { date: '—', time: '—' };
+            var s = String(v).trim();
+            var idx = s.indexOf(' ');
+            if (idx < 0) return { date: s, time: '—' };
+            return { date: s.substring(0, idx), time: s.substring(idx + 1) };
+        }
+
+        // ===== 查看密码过期的就地弹框 =====
+        // require_password() 返回 success:true + need_password:true 时调用。
+        // 验证走 /api/auth/password/verify（成功后端会重新种 pw_ok cookie），然后 reloadData。
+        function openPwModal() {
+            var modal = document.getElementById('pwModal');
+            if (!modal) return;
+            modal.classList.add('show');
+            document.body.style.overflow = 'hidden';
+            var input = document.getElementById('pwInput');
+            var err = document.getElementById('pwError');
+            if (input) { setTimeout(function(){ input.focus(); }, 80); input.value = ''; }
+            if (err) err.textContent = '';
+        }
+        function closePwModal() {
+            var modal = document.getElementById('pwModal');
+            if (!modal) return;
+            modal.classList.remove('show');
+            document.body.style.overflow = '';
+        }
+        async function submitPwVerify() {
+            var input = document.getElementById('pwInput');
+            var err = document.getElementById('pwError');
+            var btn = document.getElementById('pwSubmitBtn');
+            var password = input ? input.value : '';
+            if (!password) { if (err) err.textContent = '请输入查看密码'; return; }
+            if (btn) btn.disabled = true;
+            if (err) err.textContent = '';
+            try {
+                var resp = await fetch('/api/auth/password/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                    body: 'password=' + encodeURIComponent(password)
+                });
+                var d = await resp.json();
+                if (d && d.success) {
+                    closePwModal();
+                    loadData();   // 密码校验成功，pw_ok cookie 已更新，直接重取数据
+                    return;
+                }
+                if (d && d.need_setup) {
+                    closePwModal();
+                    window.location.href = '/employee/password';
+                    return;
+                }
+                if (resp.status === 401 || resp.status === 403) {
+                    closePwModal();
+                    window.location.href = '/api/auth/login?redirect=/employee/vacation';
+                    return;
+                }
+                if (err) err.textContent = (d && d.error) ? d.error : '验证失败，请重试';
+            } catch (e) {
+                if (err) err.textContent = '网络异常，请稍后重试';
+            } finally {
+                if (btn) btn.disabled = false;
+                if (input) input.focus();
+            }
+        }
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeSpDetail();
+                closePwModal();
+            }
+        });
+
+        /**
+         * 检查登录状态
+         *  - 401 / 403 → 员工登录页（带 redirect）
+         *  - currentUser 为空 / 未登录 → 员工登录页
+         *  - 未设密码 → 强制跳 /employee/password
+         *  - 任何异常（网络错误 / JWT 解析失败 / 接口崩）→ 兜底跳登录（不能停在"加载失败"让员工困惑）
+         */
+        async function checkLogin() {
+            try {
+                const resp = await fetch('/api/auth/me');
+                // 401=未登录；403=JWT 过期/签名无效/会话失效；两种均需要重新登录
+                if (resp.status === 401 || resp.status === 403) {
+                    window.location.href = '/api/auth/login?redirect=/employee/vacation';
+                    return;
+                }
+                currentUser = await resp.json();
+                if (!currentUser || !currentUser.logged_in) {
+                    window.location.href = '/api/auth/login?redirect=/employee/vacation';
+                    return;
+                }
+                if (!currentUser.password_set) {
+                    window.location.href = '/employee/password';
+                    return;
+                }
+                initYearSelect();
+                loadData();
+            } catch (e) {
+                // 任何异常（网络错误 / 跨域 / resp.json() 解析失败）→ 不弹提示，直接跳登录
+                // 员工无法区分"加载失败"和"没登录"，跳登录是唯一可自愈路径
+                window.location.href = '/api/auth/login?redirect=/employee/vacation';
+                return;
+            }
+        }
+
+        /**
+         * 初始化年份导航（仅 去年 / 今年 / 明年 三档；员工不关心更早/更远）
+         * 从小到大构造 _years，默认选中今年；边界年份对应按钮禁用避免越界。
+         */
+        function initYearSelect() {
+            _years = [_curYear - 1, _curYear, _curYear + 1];
+            if (_years.indexOf(_selYear) === -1) _selYear = _curYear;
+            updateYearNav();
+        }
+
+        /**
+         * 刷新年份导航 UI：中间显示当前选中年份，到达上/下边界时对应按钮置灰。
+         */
+        function updateYearNav() {
+            var label = document.getElementById('yearLabel');
+            var prevBtn = document.getElementById('prevYear');
+            var nextBtn = document.getElementById('nextYear');
+            if (label) label.textContent = _selYear + '年';
+            var idx = _years.indexOf(_selYear);
+            if (prevBtn) prevBtn.disabled = idx <= 0;
+            if (nextBtn) nextBtn.disabled = idx === -1 || idx >= _years.length - 1;
+        }
+
+        /**
+         * 左右按钮切换年份（-1=去年 / +1=明年），超出范围无操作。
+         */
+        function shiftYear(delta) {
+            var idx = _years.indexOf(_selYear);
+            if (idx === -1) return;
+            var newIdx = idx + Number(delta || 0);
+            if (newIdx < 0 || newIdx >= _years.length) return;
+            _selYear = _years[newIdx];
+            updateYearNav();
+            loadData();
+        }
+
+        /**
+         * 加载年假数据
+         *   HTTP 401/403 → 跳登录（JWT 过期/会话失效）
+         *   success=false + 错误关键词 → 跳登录（业务层报未登录/鉴权失败）
+         *   need_setup=true → 跳 /employee/password（没设过查看密码）
+         *   need_password=true → 弹就地密码验证框（查看密码 pw_ok cookie 过期）
+         *   其他 success=true → renderData
+         *   任何 catch（网络错误/JSON 解析失败）→ 兜底跳登录（让员工有自愈路径）
+         */
+        async function loadData() {
+            var year = _selYear;
+            var content = document.getElementById('content');
+            content.innerHTML = '<div class="loading">加载中...</div>';
+            try {
+                var resp = await fetch('/api/vacation/employee?year=' + encodeURIComponent(year));
+                if (resp.status === 401 || resp.status === 403) {
+                    window.location.href = '/api/auth/login?redirect=/employee/vacation';
+                    return;
+                }
+                var d = await resp.json();
+                if (!d) throw new Error('empty response');
+                // 查看密码未设置（require_password 虽然在 auth 里先拦，但 verify 的返回也会带 need_setup）
+                if (d.need_setup) {
+                    window.location.href = '/employee/password';
+                    return;
+                }
+                // 查看密码过期：就地弹框，不能直接走 renderData（会显示"无数据"）
+                if (d.need_password) {
+                    content.innerHTML = '';  // 不显示空数据，只弹密码框
+                    openPwModal();
+                    return;
+                }
+                if (!d.success) {
+                    var errMsg = String(d.error || '').toLowerCase();
+                    if (/未登录|未授权|鉴权|登录|401|403|forbidden|unauthorized/.test(errMsg)) {
+                        window.location.href = '/api/auth/login?redirect=/employee/vacation';
+                        return;
+                    }
+                    content.innerHTML = '<div class="empty-state"><div class="es-icon">⚠️</div><div class="es-text">' + esc(d.error || '加载失败') + '</div></div>';
+                    return;
+                }
+                renderData(d);
+            } catch (e) {
+                window.location.href = '/api/auth/login?redirect=/employee/vacation';
+                return;
+            }
+        }
+
+        /**
+         * 渲染年假数据（余额 + 明细 + 流水 + 审批快照查看面板）
+         * 注意：余额只来自 ledger 聚合；审批快照仅展示，绝不参与余额计算。
+         */
+        function renderData(d) {
+            var content = document.getElementById('content');
+            var b = d.balance || {};
+            var emp = d.emp || {};
+            var ledger = d.ledger || [];
+            var approvals = d.approvals || [];
+            var srcMap = { 1: '审批通过', 2: '手动调整', 3: '系统调整', 4: '审批撤销' };
+            var srcIcon = { 1: '✅', 2: '✏️', 3: '🔧', 4: '↩️' };
+            var srcClass = { 1: 'src-1', 2: 'src-2', 3: 'src-3', 4: 'src-4' };
+
+            // 企微审批状态：1=审批中 / 2=已通过 / 3=已驳回 / 4=已撤回 / 6=通过后撤销
+            var spMeta = {
+                1: { label: '审批中',   icon: '⏳' },
+                2: { label: '已通过',   icon: '✅' },
+                3: { label: '已驳回',   icon: '⛔' },
+                4: { label: '已撤回',   icon: '↩️' },
+                6: { label: '已撤销',   icon: '♻️' },
+                0: { label: '未知',     icon: '❔' }
+            };
+
+            var html = '';
+
+            // 未满工龄提示
+            if (!b.eligible) {
+                html += '<div class="eligibility-notice">'
+                    + '<span class="en-icon">ℹ️</span>'
+                    + esc(b.eligible_detail || '尚未满足年假享有条件')
+                    + '</div>';
+            }
+
+            // 余额卡片：一行三列（左 label / 中数值 / 右 姓名+年度 两行），全部水平+垂直居中
+            var balVal = b.eligible ? b.balance : '—';
+            var balClass = b.eligible ? (b.balance > 0 ? 'di-ok' : (b.balance < 0 ? 'di-warn' : 'di-sub')) : 'di-muted';
+            html += '<div class="balance-hero">'
+                + '<div class="bcol left"><div class="bcl-label">年假余额</div></div>'
+                + '<div class="bcol center"><div class="bcc-value">' + (b.eligible ? esc(b.balance) : '—') + '<span class="bcc-unit">天</span></div></div>'
+                + '<div class="bcol right">'
+                + '<div class="bcr-name">' + esc(emp.name || '') + '</div>'
+                + '<div class="bcr-year">' + esc(d.year) + '年度</div>'
+                + '</div>'
+                + '</div>';
+
+            // 明细卡片
+            var entVal = b.eligible ? b.entitlement : '—';
+            var usedVal = b.eligible ? b.used_days : '—';
+            var manualVal = b.eligible ? (b.manual_delta > 0 ? '+' + b.manual_delta : '' + b.manual_delta) : '—';
+            var manualClass = b.eligible ? (b.manual_delta > 0 ? 'di-ok' : (b.manual_delta < 0 ? 'di-warn' : 'di-sub')) : 'di-muted';
+            var apCount = b.eligible ? (b.approval_count || 0) : '—';
+
+            // 明细卡片：标题行左「📊 年假明细」+ 右「入职日期：xxxx-xx-xx」两端对齐（入职日期不存在则省略右侧）
+            var hireHtml = (emp.hire_date)
+                ? ('<span class="dc-right">入职日期：<b>' + esc(emp.hire_date) + '</b></span>')
+                : '';
+            html += '<div class="detail-card">'
+                + '<div class="dc-title"><span>📊 年假明细</span>' + hireHtml + '</div>'
+                + '<div class="detail-grid">'
+                + '<div class="detail-item"><div class="di-label">应享天数</div><div class="di-value di-sub">' + entVal + '</div></div>'
+                + '<div class="detail-item"><div class="di-label">已休天数</div><div class="di-value di-warn">' + usedVal + '</div></div>'
+                + '<div class="detail-item"><div class="di-label">手动调整</div><div class="di-value ' + manualClass + '">' + manualVal + '</div></div>'
+                + '<div class="detail-item"><div class="di-label">审批单数</div><div class="di-value di-sub">' + apCount + '</div></div>'
+                + '</div></div>';
+
+            // 入职日期已合并到年假明细标题行右侧，此处删除独立卡片
+
+            // 流水列表（真实影响余额）
+            html += '<div class="ledger-section"><div class="ls-title">📋 年假流水明细</div>';
+            if (ledger.length === 0) {
+                html += '<div class="empty-state"><div class="es-icon">📝</div><div class="es-text">' + (b.eligible ? '本年度暂无流水记录' : '未满工龄，无年假记录') + '</div></div>';
+            } else {
+                ledger.forEach(function(x) {
+                    var delta = parseFloat(x.delta);
+                    var deltaClass = delta > 0 ? 'pos' : (delta < 0 ? 'neg' : '');
+                    var deltaStr = delta > 0 ? ('+' + x.delta) : ('' + x.delta);
+                    var hasDetail = ((x.source === 1 || x.source === 4) && x.sp_no);
+                    var clickableClass = hasDetail ? ' clickable' : '';
+                    var dataAttrs = hasDetail
+                        ? (' data-title="' + esc(srcMap[x.source] || '审批详情') + '"'
+                           + ' data-sp-no="' + esc(x.sp_no) + '"'
+                           + ' data-start-date="' + esc(x.start_date || '') + '"'
+                           + ' data-end-date="' + esc(x.end_date || '') + '"'
+                           + ' data-leave-days="' + esc(x.leave_days || '') + '"')
+                        : '';
+                    html += '<div class="ledger-item' + clickableClass + '"' + dataAttrs + '>'
+                        + '<div class="li-icon ' + (srcClass[x.source] || '') + '">' + (srcIcon[x.source] || '❓') + '</div>'
+                        + '<div class="li-body">'
+                        + '<div class="li-top">'
+                        + '<span class="li-name">' + esc(srcMap[x.source] || '未知') + '</span>'
+                        + '<span class="li-delta ' + deltaClass + '">' + deltaStr + ' 天</span>'
+                        + '</div>'
+                        + '<div class="li-time">' + esc(x.show_time || x.created_at || '-') + '</div>'
+                        + (x.remark ? '<div class="li-note">' + esc(x.remark) + '</div>' : '')
+                        + '</div></div>';
+                });
+            }
+            html += '</div>';
+
+            // 审批快照面板：仅展示所有审批拉取状态，不影响余额
+            html += '<div class="approvals-section">'
+                + '<div class="as-title">👁️ 审批记录</div>';
+            if (approvals.length === 0) {
+                html += '<div class="empty-state" style="padding:24px 16px 28px;">'
+                    + '<div class="es-icon" style="font-size:36px;">📭</div>'
+                    + '<div class="es-text">本年度暂无审批记录</div>'
+                    + '</div>';
+            } else {
+                approvals.forEach(function(ap) {
+                    var st = ap.sp_status || 0;
+                    if (!spMeta[st]) st = 0;
+                    var meta = spMeta[st];
+                    var daysStr = (ap.leave_days === null || ap.leave_days === undefined || ap.leave_days === '')
+                        ? ''
+                        : (ap.leave_days + ' 天');
+                    // 时间段改为双行"起/止"紧贴靠左：📅 只出现在第一行，日期+时间+起/止 不拆列
+                    // 手机 360px 每行也能完整显示，不会出现 省略号 或 分散对齐
+                    var rangeHTML = '';
+                    if (ap.start_date || ap.end_date) {
+                        var s = parseRangePart(ap.start_date);
+                        var e = parseRangePart(ap.end_date);
+                        var sTxt = (s.date === '—' ? '' : s.date) + (s.time === '—' ? '' : ' ' + s.time);
+                        var eTxt = (e.date === '—' ? '' : e.date) + (e.time === '—' ? '' : ' ' + e.time);
+                        if (sTxt || eTxt) {
+                            rangeHTML = '<div class="ai-range">';
+                            if (sTxt) rangeHTML += '<span>📅 ' + esc(sTxt) + ' 起</span>';
+                            if (sTxt && eTxt) rangeHTML += '<br>';
+                            if (eTxt) rangeHTML += '<span class="air-indent">' + esc(eTxt) + ' 止</span>';
+                            rangeHTML += '</div>';
+                        }
+                    }
+                    var submitStr = ap.apply_time ? ('提交 ' + esc(ap.apply_time)) : '';
+                    var finishStr = ap.finish_time ? (' / 结束 ' + esc(ap.finish_time)) : '';
+                    var spNo = ap.sp_no || '';
+                    var dataAttrs = ' data-title="' + esc(meta.label) + '"'
+                        + ' data-sp-no="' + esc(spNo) + '"'
+                        + ' data-start-date="' + esc(ap.start_date || '') + '"'
+                        + ' data-end-date="' + esc(ap.end_date || '') + '"'
+                        + ' data-leave-days="' + esc(ap.leave_days || '') + '"';
+                    html += '<div class="approval-item sp-status-' + st + '"' + dataAttrs + '>'
+                        + '<div class="ai-icon sp-status-' + st + '">' + meta.icon + '</div>'
+                        + '<div class="ai-body">'
+                        + '<div class="ai-top">'
+                        + '<span class="ai-name" title="' + esc(ap.sp_name || spNo) + '">' + esc(ap.sp_name || (spNo ? '审批单 ' + spNo : '审批单')) + '</span>'
+                        + '<span class="ai-status-tag sp-status-' + st + '">' + meta.label + (daysStr ? (' · ' + daysStr) : '') + '</span>'
+                        + '</div>'
+                        + rangeHTML
+                        + '<div class="ai-meta">' + esc(spNo ? ('单号 ' + spNo) : '') + (submitStr || finishStr ? ((spNo ? ' · ' : '') + submitStr + finishStr) : '') + '</div>'
+                        + '</div></div>';
+                });
+            }
+            html += '</div>';
+
+            content.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
