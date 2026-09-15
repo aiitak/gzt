@@ -1,0 +1,242 @@
+Administrator@LCM MINGW64 /d/ME/Trae/GZX (main)
+$ git remote -v
+origin  https://github.com/aiitak/gzt.git (fetch)
+origin  https://github.com/aiitak/gzt.git (push)
+
+Administrator@LCM MINGW64 /d/ME/Trae/GZX (main)
+$ git remote set-url origin https://github.com/aiitak/gzt.git
+git remote -v
+origin  https://github.com/aiitak/gzt.git (fetch)
+origin  https://github.com/aiitak/gzt.git (push)
+
+Administrator@LCM MINGW64 /d/ME/Trae/GZX (main)
+$ git add .
+git commit -m "init: 工资条系统"
+warning: in the working copy of '.gitignore', LF will be replaced by CRLF the next time Git touches
+it
+warning: in the working copy of 'DEPLOY.md', LF will be replaced by CRLF the next time Git touches i
+t
+warning: in the working copy of 'admin.php', LF will be replaced by CRLF the next time Git touches i
+t
+warning: in the working copy of 'admin/router.php', LF will be replaced by CRLF the next time Git to
+uches it
+warning: in the working copy of 'api.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'approval_callback.php', LF will be replaced by CRLF the next time G
+it touches it
+warning: in the working copy of 'assets/admin.css', LF will be replaced by CRLF the next time Git to
+uches it
+warning: in the working copy of 'assets/admin.js', LF will be replaced by CRLF the next time Git tou
+ches it
+warning: in the working copy of 'assets/money.js', LF will be replaced by CRLF the next time Git tou
+ches it
+warning: in the working copy of 'assets/weui.min.css', LF will be replaced by CRLF the next time Git
+ touches it
+warning: in the working copy of 'assets/weui.min.js', LF will be replaced by CRLF the next time Git
+touches it
+warning: in the working copy of 'auth.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'callback.php', LF will be replaced by CRLF the next time Git touche
+s it
+warning: in the working copy of 'config.php', LF will be replaced by CRLF the next time Git touches
+it
+warning: in the working copy of 'cron.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'db.php', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'diag_remind.php', LF will be replaced by CRLF the next time Git tou
+ches it
+warning: in the working copy of 'employee/router.php', LF will be replaced by CRLF the next time Git
+ touches it
+warning: in the working copy of 'excel.php', LF will be replaced by CRLF the next time Git touches i
+t
+warning: in the working copy of 'functions.php', LF will be replaced by CRLF the next time Git touch
+es it
+warning: in the working copy of 'handlers/admin.php', LF will be replaced by CRLF the next time Git
+touches it
+warning: in the working copy of 'handlers/admin/auth.php', LF will be replaced by CRLF the next time
+ Git touches it
+warning: in the working copy of 'handlers/admin/contacts.php', LF will be replaced by CRLF the next
+time Git touches it
+warning: in the working copy of 'handlers/admin/messages.php', LF will be replaced by CRLF the next
+time Git touches it
+warning: in the working copy of 'handlers/admin/roles.php', LF will be replaced by CRLF the next tim
+e Git touches it
+warning: in the working copy of 'handlers/admin/salary.php', LF will be replaced by CRLF the next ti
+me Git touches it
+warning: in the working copy of 'handlers/admin/settings.php', LF will be replaced by CRLF the next
+time Git touches it
+warning: in the working copy of 'handlers/admin/system.php', LF will be replaced by CRLF the next ti
+me Git touches it
+warning: in the working copy of 'handlers/admin/vacation.php', LF will be replaced by CRLF the next
+time Git touches it
+warning: in the working copy of 'handlers/auth.php', LF will be replaced by CRLF the next time Git t
+ouches it
+warning: in the working copy of 'handlers/bonus.php', LF will be replaced by CRLF the next time Git
+touches it
+warning: in the working copy of 'handlers/feedback.php', LF will be replaced by CRLF the next time G
+it touches it
+warning: in the working copy of 'handlers/salary.php', LF will be replaced by CRLF the next time Git
+ touches it
+warning: in the working copy of 'handlers/vacation.php', LF will be replaced by CRLF the next time G
+it touches it
+warning: in the working copy of 'index.php', LF will be replaced by CRLF the next time Git touches i
+t
+warning: in the working copy of 'install.php', LF will be replaced by CRLF the next time Git touches
+ it
+warning: in the working copy of 'router.php', LF will be replaced by CRLF the next time Git touches
+it
+warning: in the working copy of 'settings.php', LF will be replaced by CRLF the next time Git touche
+s it
+warning: in the working copy of 'sql/schema_mysql.sql', LF will be replaced by CRLF the next time Gi
+t touches it
+warning: in the working copy of 'sql/schema_sqlite.sql', LF will be replaced by CRLF the next time G
+it touches it
+warning: in the working copy of 'templates/admin/access.html', LF will be replaced by CRLF the next
+time Git touches it
+warning: in the working copy of 'templates/admin/audit_log.html', LF will be replaced by CRLF the ne
+xt time Git touches it
+warning: in the working copy of 'templates/admin/bb.html', LF will be replaced by CRLF the next time
+ Git touches it
+warning: in the working copy of 'templates/admin/bonus-list.html', LF will be replaced by CRLF the n
+ext time Git touches it
+warning: in the working copy of 'templates/admin/bonus-trash.html', LF will be replaced by CRLF the
+next time Git touches it
+warning: in the working copy of 'templates/admin/bonus-types.html', LF will be replaced by CRLF the
+next time Git touches it
+warning: in the working copy of 'templates/admin/bonus-upload.html', LF will be replaced by CRLF the
+ next time Git touches it
+warning: in the working copy of 'templates/admin/contacts.html', LF will be replaced by CRLF the nex
+t time Git touches it
+warning: in the working copy of 'templates/admin/dashboard.html', LF will be replaced by CRLF the ne
+xt time Git touches it
+warning: in the working copy of 'templates/admin/feedback_list.html', LF will be replaced by CRLF th
+e next time Git touches it
+warning: in the working copy of 'templates/admin/history-import.html', LF will be replaced by CRLF t
+he next time Git touches it
+warning: in the working copy of 'templates/admin/info.html', LF will be replaced by CRLF the next ti
+me Git touches it
+warning: in the working copy of 'templates/admin/login.html', LF will be replaced by CRLF the next t
+ime Git touches it
+warning: in the working copy of 'templates/admin/messages.html', LF will be replaced by CRLF the nex
+t time Git touches it
+warning: in the working copy of 'templates/admin/notify.html', LF will be replaced by CRLF the next
+time Git touches it
+warning: in the working copy of 'templates/admin/roles.html', LF will be replaced by CRLF the next t
+ime Git touches it
+warning: in the working copy of 'templates/admin/salary-list.html', LF will be replaced by CRLF the
+next time Git touches it
+warning: in the working copy of 'templates/admin/salary-trash.html', LF will be replaced by CRLF the
+ next time Git touches it
+warning: in the working copy of 'templates/admin/settings.html', LF will be replaced by CRLF the nex
+t time Git touches it
+warning: in the working copy of 'templates/admin/stats.html', LF will be replaced by CRLF the next t
+ime Git touches it
+warning: in the working copy of 'templates/admin/upload.html', LF will be replaced by CRLF the next
+time Git touches it
+warning: in the working copy of 'templates/admin/vacation-adjust.html', LF will be replaced by CRLF
+the next time Git touches it
+warning: in the working copy of 'templates/admin/vacation-overview.html', LF will be replaced by CRL
+F the next time Git touches it
+warning: in the working copy of 'templates/admin/vacation-rules.html', LF will be replaced by CRLF t
+he next time Git touches it
+warning: in the working copy of 'templates/employee/bonus.html', LF will be replaced by CRLF the nex
+t time Git touches it
+warning: in the working copy of 'templates/employee/chart.html', LF will be replaced by CRLF the nex
+t time Git touches it
+warning: in the working copy of 'templates/employee/detail.html', LF will be replaced by CRLF the ne
+xt time Git touches it
+warning: in the working copy of 'templates/employee/feedback.html', LF will be replaced by CRLF the
+next time Git touches it
+warning: in the working copy of 'templates/employee/history.html', LF will be replaced by CRLF the n
+ext time Git touches it
+warning: in the working copy of 'templates/employee/login.html', LF will be replaced by CRLF the nex
+t time Git touches it
+warning: in the working copy of 'templates/employee/password.html', LF will be replaced by CRLF the
+next time Git touches it
+warning: in the working copy of 'templates/employee/salary.html', LF will be replaced by CRLF the ne
+xt time Git touches it
+warning: in the working copy of 'templates/employee/vacation.html', LF will be replaced by CRLF the
+next time Git touches it
+warning: in the working copy of 'version.php', LF will be replaced by CRLF the next time Git touches
+ it
+warning: in the working copy of 'wecom.php', LF will be replaced by CRLF the next time Git touches i
+t
+[main (root-commit) 040a346] init: 工资条系统
+ 77 files changed, 43779 insertions(+)
+ create mode 100644 .gitignore
+ create mode 100644 DEPLOY.md
+ create mode 100644 admin.php
+ create mode 100644 admin/router.php
+ create mode 100644 api.php
+ create mode 100644 approval_callback.php
+ create mode 100644 assets/admin.css
+ create mode 100644 assets/admin.js
+ create mode 100644 assets/echarts.min.js
+ create mode 100644 assets/money.js
+ create mode 100644 assets/pinyin.js
+ create mode 100644 assets/weui.min.css
+ create mode 100644 assets/weui.min.js
+ create mode 100644 auth.php
+ create mode 100644 callback.php
+ create mode 100644 config.php
+ create mode 100644 cron.php
+ create mode 100644 db.php
+ create mode 100644 diag_remind.php
+ create mode 100644 employee/router.php
+ create mode 100644 excel.php
+ create mode 100644 functions.php
+ create mode 100644 handlers/admin.php
+ create mode 100644 handlers/admin/auth.php
+ create mode 100644 handlers/admin/contacts.php
+ create mode 100644 handlers/admin/messages.php
+ create mode 100644 handlers/admin/roles.php
+ create mode 100644 handlers/admin/salary.php
+ create mode 100644 handlers/admin/settings.php
+ create mode 100644 handlers/admin/system.php
+ create mode 100644 handlers/admin/vacation.php
+ create mode 100644 handlers/auth.php
+ create mode 100644 handlers/bonus.php
+ create mode 100644 handlers/feedback.php
+ create mode 100644 handlers/salary.php
+ create mode 100644 handlers/vacation.php
+ create mode 100644 index.php
+ create mode 100644 install.php
+ create mode 100644 router.php
+ create mode 100644 settings.php
+ create mode 100644 sql/schema_mysql.sql
+ create mode 100644 sql/schema_sqlite.sql
+ create mode 100644 templates/admin/access.html
+ create mode 100644 templates/admin/audit_log.html
+ create mode 100644 templates/admin/bb.html
+ create mode 100644 templates/admin/bonus-list.html
+ create mode 100644 templates/admin/bonus-trash.html
+ create mode 100644 templates/admin/bonus-types.html
+ create mode 100644 templates/admin/bonus-upload.html
+ create mode 100644 templates/admin/contacts.html
+ create mode 100644 templates/admin/dashboard.html
+ create mode 100644 templates/admin/feedback_list.html
+ create mode 100644 templates/admin/history-import.html
+ create mode 100644 templates/admin/info.html
+ create mode 100644 templates/admin/login.html
+ create mode 100644 templates/admin/messages.html
+ create mode 100644 templates/admin/notify.html
+ create mode 100644 templates/admin/roles.html
+ create mode 100644 templates/admin/salary-list.html
+ create mode 100644 templates/admin/salary-trash.html
+ create mode 100644 templates/admin/settings.html
+ create mode 100644 templates/admin/stats.html
+ create mode 100644 templates/admin/upload.html
+ create mode 100644 templates/admin/vacation-adjust.html
+ create mode 100644 templates/admin/vacation-overview.html
+ create mode 100644 templates/admin/vacation-rules.html
+ create mode 100644 templates/employee/bonus.html
+ create mode 100644 templates/employee/chart.html
+ create mode 100644 templates/employee/detail.html
+ create mode 100644 templates/employee/feedback.html
+ create mode 100644 templates/employee/history.html
+ create mode 100644 templates/employee/login.html
+ create mode 100644 templates/employee/password.html
+ create mode 100644 templates/employee/salary.html
+ create mode 100644 templates/employee/vacation.html
+ create mode 100644 version.php
+ create mode 100644 wecom.php
+
+Administrator@LCM MINGW64 /d/ME/Trae/GZX (main)
+$
