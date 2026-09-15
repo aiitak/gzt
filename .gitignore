@@ -4,3 +4,4 @@ salary_data/
 *.db
 uploads/
 *.log
+.trae-html-share-packages/
